@@ -20,7 +20,7 @@ Free meteorological forecast site displaying **16 leading global weather models*
 | # | Model | Organization | Resolution | Days |
 |---|-------|-------------|-----------|------|
 | 1 | ECMWF IFS | ECMWF (EU) | 9 km | 10 |
-| 2 | ECMWF AIFS | ECMWF — AI model | 25 km | 10 |
+| 2 | ECMWF AIFS | ECMWF - AI model | 25 km | 10 |
 | 3 | GFS | NOAA (USA) | 13 km | 16 |
 | 4 | ICON | DWD (Germany) | 11 km | 7 |
 | 5 | ICON-EU | DWD (Germany) | 7 km | 5 |
