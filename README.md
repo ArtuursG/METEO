@@ -1,4 +1,4 @@
-# Weather Forecast — Model Comparison
+# Weather Forecast - Model Comparison
 
 Free meteorological forecast site displaying **16 leading global weather models** simultaneously for easy comparison.
 
@@ -8,12 +8,12 @@ Free meteorological forecast site displaying **16 leading global weather models*
 
 ## Features
 
-- **Temperature chart** — all 16 models in one chart, toggle each on/off
-- **Precipitation chart** — bar and line chart, ECMWF / ICON / MET Norway
-- **Wind chart** — 10m wind speed, model comparison
-- **Forecast table** — daily summary, model selector
-- **City search** — any city in the world with coordinate precision
-- **Light/dark theme** — saved automatically
+- **Temperature chart** - all 16 models in one chart, toggle each on/off
+- **Precipitation chart** - bar and line chart, ECMWF / ICON / MET Norway
+- **Wind chart** - 10m wind speed, model comparison
+- **Forecast table** - daily summary, model selector
+- **City search** - any city in the world with coordinate precision
+- **Light/dark theme** - saved automatically
 
 ## Models
 
@@ -38,10 +38,10 @@ Free meteorological forecast site displaying **16 leading global weather models*
 
 ## Stack
 
-- **HTML / CSS / JavaScript** — no framework, no build tools
-- **[Chart.js 4.4.1](https://www.chartjs.org/)** — interactive charts
-- **[Open-Meteo API](https://open-meteo.com/)** — free meteorological data (CC BY 4.0)
-- **GitHub Pages** — free hosting
+- **HTML / CSS / JavaScript** - no framework, no build tools
+- **[Chart.js 4.4.1](https://www.chartjs.org/)** - interactive charts
+- **[Open-Meteo API](https://open-meteo.com/)** - free meteorological data (CC BY 4.0)
+- **GitHub Pages** - free hosting
 
 ## Local setup
 
@@ -51,7 +51,7 @@ cd METEO
 # Open with Live Server (VS Code) or any local server
 ```
 
-> Open with a local server — direct `file://` may block API requests.
+> Open with a local server - direct `file://` may block API requests.
 
 ---
 
