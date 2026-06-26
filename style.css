@@ -177,11 +177,30 @@ footer a{color:var(--acc);text-decoration:none}
 footer a:hover{text-decoration:underline}
 
 @media(max-width:600px){
-  header{padding:0 1rem;gap:9px;height:56px}
-  main{padding:1.6rem 1rem 1rem}
-  .hero h1{font-size:25px}
-  .hero{margin-bottom:1.4rem}
-  .metrics{margin-bottom:1.4rem}
-  .cw{height:250px}
-  .cw-tall{height:280px}
+  /* Header — logo + tema poga 1. rindā, meklēšana 2. rindā */
+  header{flex-wrap:wrap;height:auto;padding:.65rem 1rem;gap:8px}
+  .logo{flex:1}
+  .tt{margin-left:0}
+  .sa{order:3;flex:0 0 100%;max-width:100%}
+  .sbtn{padding:8px 13px}
+
+  /* Cilnes — tikai ikonas */
+  .tb span{display:none}
+  .tb{padding:10px 16px;justify-content:center}
+  .tb svg{width:18px;height:18px}
+
+  /* Saturs */
+  main{padding:1.2rem .9rem .9rem}
+  .hero h1{font-size:24px}
+  .hero{margin-bottom:1.2rem;gap:8px}
+  .metrics{margin-bottom:1.2rem}
+  .metrics{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+
+  /* Grafiki */
+  .cw{height:230px}
+  .cw-tall{height:260px}
+
+  /* Modeļu pogas — lielāks touch targets */
+  .mt{padding:6px 9px;font-size:11px}
+  .card{padding:1rem}
 }
