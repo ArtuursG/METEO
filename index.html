@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laika prognoze - modeļu salīdzinājums</title>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">laiks<span>.lv</span></a>
+  <div class="sa">
+    <div class="sw">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--t3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="cityInput" placeholder="Meklēt pilsētu (angliski)...">
+    </div>
+    <button class="sbtn" onclick="searchCity()">Meklēt</button>
+    <div id="cityDrop" class="city-drop"></div>
+  </div>
+  <button class="tt" id="themeToggle" onclick="toggleTheme()" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
+</header>
+
+<main>
+  <div class="hero">
+    <h1 id="cityName">Rīga</h1>
+    <span class="hero-sub" id="heroSub">Latvija · EEST (UTC+3)</span>
+  </div>
+
+  <div class="metrics" id="metricsRow">
+    <div class="mc"><div class="mc-label">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc">Ielādē...</div></div>
+    <div class="mc"><div class="mc-label">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
+    <div class="mc"><div class="mc-label">Vējš</div><div class="mc-val" id="windNow">-<span>km/h</span></div><div class="mc-sub" id="windDir">-</div></div>
+    <div class="mc"><div class="mc-label">Mitrums</div><div class="mc-val" id="humNow">-<span>%</span></div><div class="mc-sub" id="precipNow">Nokrišņi: -</div></div>
+    <div class="mc"><div class="mc-label">Modeļi</div><div class="mc-val" id="activeCount">-</div><div class="mc-sub">aktīvi modeļi</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tb active" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>Temperatūra</button>
+    <button class="tb" onclick="switchTab('precip',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>Nokrišņi</button>
+    <button class="tb" onclick="switchTab('wind',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>Vējš</button>
+    <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Tabula</button>
+    <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Modeļi</button>
+  </div>
+
+  <div class="tc">
+    <div id="tab-temp" class="on">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Temperatūra 2m - modeļu salīdzinājums (16 dienas)</span>
+          <span style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace" id="lastUpdate"></span>
+        </div>
+        <div class="model-info">Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma</div>
+        <div class="mt-wrap" id="modelToggles"></div>
+        <div class="cw cw-tall"><div class="loading" id="loadT"><div class="spinner"></div>Ielādē...</div><canvas id="cT" role="img" aria-label="Temperatūras prognoze" style="display:none"></canvas></div>
+        <div class="legend" id="legT"></div>
+      </div>
+    </div>
+
+    <div id="tab-precip">
+      <div class="card">
+        <div class="card-hd" id="precipCardHd"></div>
+        <div class="cw"><div class="loading" id="loadP"><div class="spinner"></div>Ielādē...</div><canvas id="cP" role="img" aria-label="Nokrišņu prognoze" style="display:none"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Nokrišņu varbūtība (%) - modeļu salīdzinājums</span></div>
+        <div class="cw"><div class="loading" id="loadPP"><div class="spinner"></div>Ielādē...</div><canvas id="cPP" role="img" aria-label="Nokrišņu varbūtība" style="display:none"></canvas></div>
+      </div>
+    </div>
+
+    <div id="tab-wind">
+      <div class="card">
+        <div class="card-hd" id="windCardHd"></div>
+        <div class="cw"><div class="loading" id="loadW"><div class="spinner"></div>Ielādē...</div><canvas id="cW" role="img" aria-label="Vēja ātrums" style="display:none"></canvas></div>
+        <div class="legend" id="legW"></div>
+      </div>
+    </div>
+
+    <div id="tab-table">
+      <div class="card">
+        <div class="card-hd" id="tableCardHd"></div>
+        <div class="tw">
+          <div class="loading" id="loadTbl"><div class="spinner"></div>Ielādē...</div>
+          <table id="forecastTable" style="display:none">
+            <thead><tr>
+              <th>Datums</th><th>Laiks</th>
+              <th>Max °C</th><th>Min °C</th>
+              <th>Nokrišņi</th><th>Nokrišņi %</th>
+              <th>Vējš max</th>
+              <th>Mitrums</th>
+            </tr></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-about">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Meteoroloģiskie modeļi</span></div>
+        <div id="modelInfoList"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Dati: <a href="https://open-meteo.com" target="_blank">Open-Meteo API</a> (bezmaksas, CC BY 4.0) ·
+  Modeļi: ECMWF IFS, GFS, ICON, GEM, ACCESS-G, UKMO, MeteoFrance, JMA, DWD ICON-EU, HARMONIE un citi ·
+  <a href="https://github.com" target="_blank">GitHub</a>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
