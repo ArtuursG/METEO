@@ -1,0 +1,563 @@
+// ─── MODEĻI ───────────────────────────────────────────────────────────────────
+const MODELS = [
+  { id:'ecmwf_ifs025',              name:'ECMWF IFS',    flag:'🇪🇺', org:'ECMWF',               res:'9km',   days:10, color:'#2a78d6', dash:[] },
+  { id:'ecmwf_aifs025',            name:'ECMWF AIFS',   flag:'🇪🇺', org:'ECMWF (AI)',           res:'25km',  days:10, color:'#29b6f6', dash:[] },
+  { id:'gfs_seamless',              name:'GFS',           flag:'🇺🇸', org:'NOAA (USA)',           res:'13km',  days:16, color:'#1baf7a', dash:[6,3] },
+  { id:'icon_seamless',             name:'ICON (global)', flag:'🇩🇪', org:'DWD (Germany)',        res:'11km',  days:7,  color:'#eda100', dash:[4,2] },
+  { id:'icon_eu',                   name:'ICON-EU',       flag:'🇩🇪', org:'DWD (Germany)',        res:'7km',   days:5,  color:'#eb6834', dash:[2,2] },
+  { id:'gem_seamless',              name:'GEM',           flag:'🇨🇦', org:'MSC (Canada)',         res:'15km',  days:10, color:'#e34948', dash:[8,4] },
+  { id:'access_global',             name:'ACCESS-G',      flag:'🇦🇺', org:'BOM (Australia)',      res:'12km',  days:10, color:'#9085e9', dash:[10,3,2,3] },
+  { id:'ukmo_seamless',             name:'UKMO',          flag:'🇬🇧', org:'Met Office (UK)',      res:'10km',  days:7,  color:'#e87ba4', dash:[3,3] },
+  { id:'metno_seamless',            name:'MET Norway',    flag:'🇳🇴', org:'MET Norway',           res:'1km',   days:10, color:'#B75074', dash:[5,2,1,2] },
+  { id:'meteofrance_seamless',      name:'Météo-France',  flag:'🇫🇷', org:'Météo-France',        res:'1.5km', days:4,  color:'#805CD3', dash:[7,2] },
+  { id:'jma_seamless',              name:'JMA',           flag:'🇯🇵', org:'JMA (Japan)',          res:'13km',  days:11, color:'#A9852E', dash:[4,4] },
+  { id:'arpae_cosmo_seamless',      name:'ARPAE COSMO',   flag:'🇮🇹', org:'ARPAE (Italy)',        res:'2.8km', days:5,  color:'#008080', dash:[2,4] },
+  { id:'cma_grapes_global',         name:'CMA GRAPES',    flag:'🇨🇳', org:'CMA (China)',          res:'15km',  days:10, color:'#d63384', dash:[1,3] },
+  { id:'icon_d2',                   name:'ICON-D2',       flag:'🇩🇪', org:'DWD (Germany)',        res:'2km',   days:2,  color:'#00bcd4', dash:[9,2] },
+  { id:'knmi_harmonie_arome_europe',name:'HARMONIE NL',   flag:'🇳🇱', org:'KNMI (Netherlands)',   res:'2.5km', days:2,  color:'#4caf50', dash:[6,1,2,1] },
+  { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK',   flag:'🇩🇰', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const TABLE_MODELS=[
+  {id:'ecmwf_ifs025', name:'ECMWF IFS'},
+  {id:'icon_seamless', name:'ICON'},
+  {id:'metno_seamless', name:'MET Norway'},
+];
+
+const S = {
+  lat:56.946, lon:24.106,
+  city:'Rīga', country:'Latvija',
+  active: new Set(MODELS.map(m=>m.id)),
+  tableModel:   'ecmwf_ifs025',
+  precipModels: new Set(['ecmwf_ifs025','icon_seamless','metno_seamless']),
+  windModels:   new Set(['ecmwf_ifs025','icon_seamless','metno_seamless']),
+  data: {},
+  charts: {},
+};
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
+const r0=v=>v!=null?Math.round(v):null;
+
+function tempCls(t){
+  if(t==null)return '';
+  if(t>=28)return 'tc-hot';
+  if(t>=18)return 'tc-warm';
+  if(t>=8) return 'tc-cool';
+  return 'tc-cold';
+}
+
+function wDir(deg){
+  if(deg==null)return '-';
+  const d=['Z','ZZA','ZA','DAZ','A','DAD','D','ZAD'];
+  return d[Math.round(deg/45)%8];
+}
+
+const WICONS={
+  clear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="22.5"/><line x1="3.9" y1="3.9" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.1" y2="20.1"/><line x1="1.5" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="22.5" y2="12"/><line x1="3.9" y1="20.1" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.1" y2="3.9"/></svg>',
+  partly:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6.5" r="2.6"/><line x1="16.5" y1="1.6" x2="16.5" y2="3"/><line x1="21.4" y1="6.5" x2="20" y2="6.5"/><line x1="20" y1="3" x2="19" y2="4"/><path d="M16 19H7.5A4.5 4.5 0 0 1 6.7 10.1 6 6 0 0 1 18 11a4 4 0 0 1-2 8z"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>',
+  fog:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M4 11h16"/><path d="M6 15h12"/><path d="M5 19h11"/></svg>',
+  drizzle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
+  rain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="16" y1="13" x2="16" y2="21"/><line x1="8" y1="13" x2="8" y2="21"/><line x1="12" y1="15" x2="12" y2="23"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
+  snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>',
+  thunder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>',
+};
+function wKey(c){
+  if(c==null)return null;
+  if(c<=1)return 'clear';
+  if(c<=3)return 'partly';
+  if(c<=9)return 'fog';
+  if(c<=19)return 'rain';
+  if(c<=29)return 'snow';
+  if(c<=49)return 'fog';
+  if(c<=59)return 'drizzle';
+  if(c<=69)return 'rain';
+  if(c<=79)return 'snow';
+  if(c<=82)return 'rain';
+  if(c<=99)return 'thunder';
+  return 'thunder';
+}
+const WTEXT={clear:'Skaidrs',partly:'Mākoņains',cloud:'Apmācies',fog:'Migla',drizzle:'Smidzina',rain:'Lietus',snow:'Sniegs',thunder:'Pērkons'};
+function wIcon(c){const k=wKey(c);return k?WICONS[k]:'';}
+function wText(c){const k=wKey(c);return k?WTEXT[k]:'-';}
+
+function fmtHour(isoStr){
+  const d=new Date(isoStr);
+  return d.toLocaleDateString('lv-LV',{month:'short',day:'numeric'});
+}
+
+function fmtDate(isoStr){
+  const d=new Date(isoStr);
+  const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
+  return `<span class="dl">${dn[d.getDay()]}</span> ${d.toLocaleDateString('lv-LV',{day:'numeric',month:'long'})}`;
+}
+
+// ─── TAB ─────────────────────────────────────────────────────────────────────
+function switchTab(tab,btn){
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
+  btn.classList.add('active');
+  $('tab-'+tab).classList.add('on');
+}
+
+// ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
+function buildToggles(){
+  const wrap=$('modelToggles');
+  wrap.innerHTML='';
+
+  const allOn=MODELS.every(m=>S.active.has(m.id));
+  const addCtrl=(label,active,fn)=>{
+    const b=document.createElement('button');
+    b.className='mt'+(active?' on':'');
+    b.textContent=label;
+    b.onclick=fn;
+    wrap.appendChild(b);
+  };
+  addCtrl('Visi',allOn,()=>{
+    MODELS.forEach(m=>S.active.add(m.id));
+    buildToggles();
+    rebuildTempChart();
+  });
+  addCtrl('Neviens',S.active.size===0,()=>{
+    S.active.clear();
+    buildToggles();
+    rebuildTempChart();
+  });
+
+  const sep=document.createElement('div');
+  sep.style.cssText='width:0.5px;background:var(--b2);margin:2px 6px;align-self:stretch';
+  wrap.appendChild(sep);
+
+  MODELS.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='mt'+(S.active.has(m.id)?' on':'');
+    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
+    b.onclick=()=>{
+      if(S.active.has(m.id)){S.active.delete(m.id);b.classList.remove('on');}
+      else{S.active.add(m.id);b.classList.add('on');}
+      $('activeCount').textContent=S.active.size;
+      rebuildTempChart();
+    };
+    wrap.appendChild(b);
+  });
+  $('activeCount').textContent=S.active.size;
+}
+
+// ─── MODEL INFO LIST ─────────────────────────────────────────────────────────
+function buildModelInfo(){
+  const wrap=$('modelInfoList');
+  wrap.innerHTML='';
+  MODELS.forEach(m=>{
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--b)';
+    div.innerHTML=`
+      <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
+      <span style="font-size:14px">${m.flag}</span>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:13px">${m.name}</div>
+        <div style="font-size:11px;color:var(--t3)">${m.org} · Izšķirtspēja: ${m.res} · Prognoze: ${m.days} dienas</div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+// ─── CHART HELPERS ───────────────────────────────────────────────────────────
+function CD(){
+  const cs=getComputedStyle(document.body);
+  const v=n=>cs.getPropertyValue(n).trim();
+  return {
+  responsive:true,
+  maintainAspectRatio:false,
+  animation:{duration:300},
+  interaction:{mode:'index',intersect:false},
+  plugins:{
+    legend:{display:false},
+    tooltip:{
+      backgroundColor:v('--chart-tip-bg'),
+      borderColor:v('--chart-tip-border'),
+      borderWidth:1,
+      titleColor:v('--chart-tip-title'),
+      bodyColor:v('--chart-tip-body'),
+      padding:11,
+      cornerRadius:7,
+    }
+  },
+  scales:{
+    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:16,maxRotation:0,autoSkip:true,callback:function(val,index,ticks){const cur=this.getLabelForValue(val);if(index>0&&this.getLabelForValue(ticks[index-1].value)===cur)return '';return cur;}},grid:{color:v('--chart-grid')}},
+    y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}}
+  }
+  };
+}
+
+function showChart(loadId,canvasId){
+  $(loadId).style.display='none';
+  $(canvasId).style.display='block';
+}
+
+function buildLegend(legId,models){
+  const wrap=$(legId);
+  if(!wrap)return;
+  wrap.innerHTML='';
+  models.forEach(m=>{
+    const el=document.createElement('div');
+    el.className='li';
+    el.innerHTML=`<span class="ld" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    wrap.appendChild(el);
+  });
+}
+
+// ─── TEMPERATURE CHART ───────────────────────────────────────────────────────
+function rebuildTempChart(){
+  const first=Object.values(S.data)[0];
+  if(!first?.hourly?.time)return;
+  const chartDefaults=CD();
+  const labels=first.hourly.time.map(fmtHour);
+  const datasets=MODELS
+    .filter(m=>S.data[m.id]?.hourly?.temperature_2m&&S.active.has(m.id))
+    .map(m=>({
+      label:m.name,
+      data:S.data[m.id].hourly.temperature_2m,
+      borderColor:m.color,
+      borderWidth:1.5,
+      pointRadius:0,
+      tension:0.3,
+      fill:false,
+    }));
+  showChart('loadT','cT');
+  if(S.charts.temp)S.charts.temp.destroy();
+  S.charts.temp=new Chart($('cT'),{
+    type:'line',data:{labels,datasets},
+    options:{...chartDefaults,
+      scales:{...chartDefaults.scales,
+        y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'°C'}}
+      },
+      plugins:{...chartDefaults.plugins,
+        tooltip:{...chartDefaults.plugins.tooltip,
+          callbacks:{
+            title:items=>fmtTooltipTitle(first.hourly.time,items[0].dataIndex),
+            label:c=>` ${c.dataset.label}: ${round(c.parsed.y)}°C`
+          }
+        }
+      }
+    }
+  });
+  buildLegend('legT',MODELS.filter(m=>S.data[m.id]&&S.active.has(m.id)));
+}
+
+// ─── PRECIP CHART ────────────────────────────────────────────────────────────
+function mkModelSelector(containerId,stateKey,title,onSelect){
+  const hd=$(containerId);
+  hd.innerHTML=`<span class="card-title">${title}</span>`;
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:4px';
+  TABLE_MODELS.forEach(tm=>{
+    const b=document.createElement('button');
+    b.className='mt'+(S[stateKey]===tm.id?' on':'');
+    b.textContent=tm.name;
+    b.onclick=()=>{S[stateKey]=tm.id;onSelect();};
+    wrap.appendChild(b);
+  });
+  hd.appendChild(wrap);
+}
+
+function mkMultiSelector(containerId,stateKey,title,onSelect){
+  const hd=$(containerId);
+  hd.innerHTML=`<span class="card-title">${title}</span>`;
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:.6rem';
+  const allOn=MODELS.every(m=>S[stateKey].has(m.id));
+  const addCtrl=(label,active,fn)=>{
+    const b=document.createElement('button');
+    b.className='mt'+(active?' on':'');
+    b.textContent=label;b.onclick=fn;wrap.appendChild(b);
+  };
+  addCtrl('Visi',allOn,()=>{MODELS.forEach(m=>S[stateKey].add(m.id));onSelect();});
+  addCtrl('Neviens',S[stateKey].size===0,()=>{S[stateKey].clear();onSelect();});
+  const sep=document.createElement('div');
+  sep.style.cssText='width:0.5px;background:var(--b2);margin:2px 6px;align-self:stretch';
+  wrap.appendChild(sep);
+  MODELS.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='mt'+(S[stateKey].has(m.id)?' on':'');
+    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
+    b.onclick=()=>{
+      if(S[stateKey].has(m.id)){if(S[stateKey].size<=1)return;S[stateKey].delete(m.id);}
+      else S[stateKey].add(m.id);
+      onSelect();
+    };
+    wrap.appendChild(b);
+  });
+  hd.appendChild(wrap);
+}
+
+function fmtTooltipTitle(timeArr,idx){
+  const d=new Date(timeArr[idx]);
+  const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
+  return `${d.toLocaleDateString('lv-LV',{day:'numeric',month:'long'})} - ${dn[d.getDay()]} - plkst. ${d.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'})}`;
+}
+
+function buildPrecipCharts(){
+  mkMultiSelector('precipCardHd','precipModels','Nokrišņi (mm)',buildPrecipCharts);
+
+  const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!base?.hourly?.time)return;
+  const chartDefaults=CD();
+  const labels=base.hourly.time.map(fmtHour);
+  const active=MODELS.filter(m=>S.precipModels.has(m.id)&&S.data[m.id]?.hourly?.precipitation);
+  const multi=active.length>1;
+
+  showChart('loadP','cP');
+  if(S.charts.precip)S.charts.precip.destroy();
+
+  const datasets=multi
+    ? active.map(m=>({label:m.name,data:S.data[m.id].hourly.precipitation,borderColor:m.color,backgroundColor:m.color+'30',borderWidth:1.5,pointRadius:0,tension:0.3,fill:true}))
+    : active.length===1
+      ? [{label:active[0].name,data:S.data[active[0].id].hourly.precipitation||[],backgroundColor:active[0].color+'8c',borderColor:active[0].color,borderWidth:0,borderRadius:2}]
+      : [];
+
+  S.charts.precip=new Chart($('cP'),{
+    type:multi?'line':'bar',
+    data:{labels,datasets},
+    options:{...chartDefaults,
+      scales:{...chartDefaults.scales,
+        x:{...chartDefaults.scales.x,ticks:{...chartDefaults.scales.x.ticks,maxTicksLimit:16}},
+        y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' mm'}}
+      },
+      plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
+        title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
+        label:c=>` ${c.dataset.label}: ${round(c.parsed.y,1)} mm`
+      }}}
+    }
+  });
+
+  showChart('loadPP','cPP');
+  if(S.charts.precipP)S.charts.precipP.destroy();
+  const ppDatasets=MODELS
+    .filter(m=>S.data[m.id]?.hourly?.precipitation_probability)
+    .map(m=>({
+      label:m.name,data:S.data[m.id].hourly.precipitation_probability,
+      borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
+    }));
+  if(ppDatasets.length){
+    S.charts.precipP=new Chart($('cPP'),{
+      type:'line',data:{labels,datasets:ppDatasets},
+      options:{...chartDefaults,
+        scales:{...chartDefaults.scales,
+          y:{...chartDefaults.scales.y,min:0,max:100,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'%'}}
+        },
+        plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
+          title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
+          label:c=>` ${c.dataset.label}: ${r0(c.parsed.y)}%`
+        }}}
+      }
+    });
+  } else {
+    $('cPP').replaceWith(Object.assign(document.createElement('p'),{textContent:'Nokrišņu varbūtības dati nav pieejami šiem modeļiem.',style:'color:var(--t3);font-size:13px;padding:1rem 0'}));
+  }
+}
+
+// ─── WIND CHART ──────────────────────────────────────────────────────────────
+function buildWindChart(){
+  mkMultiSelector('windCardHd','windModels','Vēja ātrums 10m (km/h)',buildWindChart);
+
+  const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!base?.hourly?.time)return;
+  const chartDefaults=CD();
+  const labels=base.hourly.time.map(fmtHour);
+  const datasets=MODELS
+    .filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m)
+    .map(m=>({label:m.name,data:S.data[m.id].hourly.windspeed_10m,borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false}));
+  showChart('loadW','cW');
+  if(S.charts.wind)S.charts.wind.destroy();
+  S.charts.wind=new Chart($('cW'),{
+    type:'line',data:{labels,datasets},
+    options:{...chartDefaults,
+      scales:{...chartDefaults.scales,
+        y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' km/h'}}
+      },
+      plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
+        title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
+        label:c=>` ${c.dataset.label}: ${r0(c.parsed.y)} km/h`
+      }}}
+    }
+  });
+  buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m));
+}
+
+// ─── TABLE ───────────────────────────────────────────────────────────────────
+function buildTable(){
+  mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
+
+  const src=S.data[S.tableModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!src?.daily?.time)return;
+  const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
+         precipitation_probability_max:ppm,windspeed_10m_max:wmax,
+         relative_humidity_2m_mean:rh,weathercode:wc}=src.daily;
+  const tbody=$('tBody');
+  tbody.innerHTML='';
+  time.forEach((t,i)=>{
+    const mx=r0(tmax?.[i]),mn=r0(tmin?.[i]);
+    const icon=wIcon(wc?.[i]);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${fmtDate(t)}</td>
+      <td class="wcell" title="${wText(wc?.[i])}">${icon}</td>
+      <td class="${tempCls(mx)}">${mx!=null?mx+'°':'-'}</td>
+      <td class="${tempCls(mn)}">${mn!=null?mn+'°':'-'}</td>
+      <td>${ps?.[i]!=null?round(ps[i],1)+' mm':'-'}</td>
+      <td>${ppm?.[i]!=null?r0(ppm[i])+'%':'-'}</td>
+      <td>${wmax?.[i]!=null?r0(wmax[i])+' km/h':'-'}</td>
+      <td>${rh?.[i]!=null?r0(rh[i])+'%':'-'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  $('loadTbl').style.display='none';
+  $('forecastTable').style.display='table';
+}
+
+// ─── CURRENT METRICS ─────────────────────────────────────────────────────────
+function updateMetrics(){
+  const ecmwf=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!ecmwf)return;
+  const c=ecmwf.current;
+  if(c){
+    $('curTemp').innerHTML=`${r0(c.temperature_2m)}<span>°C</span>`;
+    $('curDesc').innerHTML='<span class="wico">'+wIcon(c.weathercode)+'</span>'+wText(c.weathercode);
+    $('windNow').innerHTML=`${r0(c.windspeed_10m)}<span>km/h</span>`;
+    $('windDir').textContent=`Virziens: ${wDir(c.winddirection_10m)}`;
+    $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
+    $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm`;
+  }
+  if(ecmwf.daily?.temperature_2m_max?.[0]!=null){
+    $('todayMax').innerHTML=`${r0(ecmwf.daily.temperature_2m_max[0])}<span>°C</span>`;
+    $('todayMin').textContent=`Min: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
+  }
+  $('lastUpdate').textContent=`Atjaunots: ${new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'})}`;
+}
+
+// ─── FETCH ───────────────────────────────────────────────────────────────────
+async function fetchModel(m){
+  const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
+  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode';
+  const cur='temperature_2m,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(r.status);
+  return r.json();
+}
+
+async function loadAll(){
+  let loaded=0;
+  S.data={};
+  $('loadT').style.display='flex';
+  $('loadT').innerHTML=`<div class="spinner"></div>Ielādē datus no <span id="loadCount">0</span>/${MODELS.length} modeļiem...`;
+
+  const results=await Promise.allSettled(MODELS.map(m=>
+    fetchModel(m).then(d=>{
+      S.data[m.id]=d;
+      loaded++;
+      $('loadCount').textContent=loaded;
+      return {id:m.id,d};
+    })
+  ));
+
+  if(!Object.keys(S.data).length){
+    ['loadT','loadP','loadPP','loadW','loadTbl'].forEach(id=>{
+      $(id).innerHTML='<div class="err">Neizdevās ielādēt datus. Pārbaudiet interneta savienojumu.</div>';
+    });
+    return;
+  }
+
+  updateMetrics();
+  rebuildTempChart();
+  buildPrecipCharts();
+  buildWindChart();
+  buildTable();
+}
+
+// ─── CITY SEARCH ─────────────────────────────────────────────────────────────
+async function searchCity(){
+  const val=$('cityInput').value.trim();
+  if(!val)return;
+  const drop=$('cityDrop');
+  drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Meklē...</div>';
+  drop.style.display='block';
+  try{
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=en`);
+    const d=await r.json();
+    if(!d.results?.length){
+      drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Pilsēta netika atrasta</div>';
+      return;
+    }
+    drop.innerHTML='';
+    d.results.forEach(g=>{
+      const opt=document.createElement('div');
+      opt.className='city-opt';
+      const sub=[g.admin1,g.country].filter(Boolean).join(', ');
+      opt.innerHTML=`<div class="co-name">${g.name}</div><div class="co-sub">${sub}${g.timezone?' · '+g.timezone:''}</div>`;
+      opt.onclick=()=>{ drop.style.display='none'; $('cityInput').value=g.name; selectCity(g); };
+      drop.appendChild(opt);
+    });
+  }catch(e){
+    drop.innerHTML=`<div class="city-opt" style="color:#e66767;cursor:default">Kļūda: ${e.message}</div>`;
+  }
+}
+
+async function selectCity(g){
+  S.lat=g.latitude; S.lon=g.longitude;
+  S.city=g.name; S.country=g.country||'';
+  $('cityName').textContent=g.name;
+  $('heroSub').textContent=`${[g.admin1,g.country].filter(Boolean).join(', ')} · ${g.timezone||''}`;
+
+  Object.values(S.charts).forEach(c=>c?.destroy?.());
+  S.charts={}; S.data={};
+
+  ['loadP','loadPP','loadW','loadTbl'].forEach(id=>{
+    const el=$(id); el.style.display='flex';
+    el.innerHTML='<div class="spinner"></div>Ielādē...';
+  });
+  ['cT','cP','cPP','cW'].forEach(id=>{const c=$(id);if(c)c.style.display='none';});
+  $('forecastTable').style.display='none';
+
+  buildToggles();
+  await loadAll();
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sa'))$('cityDrop').style.display='none';
+});
+
+$('cityInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchCity();});
+
+// ─── THEME ───────────────────────────────────────────────────────────────────
+const TT_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="22.5"/><line x1="3.9" y1="3.9" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.1" y2="20.1"/><line x1="1.5" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="22.5" y2="12"/><line x1="3.9" y1="20.1" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.1" y2="3.9"/></svg>';
+const TT_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+function renderThemeIcon(){
+  const t=document.documentElement.getAttribute('data-theme');
+  const el=$('themeToggle');
+  if(el)el.innerHTML=t==='light'?TT_MOON:TT_SUN;
+}
+function rerenderCharts(){
+  if(Object.keys(S.data).length){rebuildTempChart();buildPrecipCharts();buildWindChart();}
+}
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  try{localStorage.setItem('theme',t);}catch(e){}
+  renderThemeIcon();
+  rerenderCharts();
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+  setTheme(cur==='light'?'dark':'light');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderThemeIcon();
+buildToggles();
+buildModelInfo();
+loadAll();
