@@ -1,4 +1,6 @@
-// ─── MODEĻI ───────────────────────────────────────────────────────────────────
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+// id: Open-Meteo model identifier | res: grid resolution | days: forecast horizon
+// dash: Chart.js borderDash pattern (empty = solid line)
 const MODELS = [
   { id:'ecmwf_ifs025',              name:'ECMWF IFS',    flag:'🇪🇺', org:'ECMWF',               res:'9km',   days:10, color:'#2a78d6', dash:[] },
   { id:'ecmwf_aifs025',            name:'ECMWF AIFS',   flag:'🇪🇺', org:'ECMWF (AI)',           res:'25km',  days:10, color:'#29b6f6', dash:[] },
@@ -17,22 +19,24 @@ const MODELS = [
   { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK',   flag:'🇩🇰', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
 ];
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
+// Models available in the daily forecast table selector
 const TABLE_MODELS=[
   {id:'ecmwf_ifs025', name:'ECMWF IFS'},
   {id:'icon_eu', name:'ICON-EU'},
   {id:'metno_seamless', name:'MET Norway'},
 ];
 
+// ─── STATE ────────────────────────────────────────────────────────────────────
+// Single mutable state object — all UI reads from here, all updates write here
 const S = {
-  lat:56.946, lon:24.106,
+  lat:56.946, lon:24.106,       // default: Riga, Latvia
   city:'Rīga', country:'Latvija',
-  active: new Set(MODELS.map(m=>m.id)),
+  active: new Set(MODELS.map(m=>m.id)), // which models are shown on the temp chart
   tableModel:   'ecmwf_ifs025',
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
-  data: {},
-  charts: {},
+  data: {},    // keyed by model id, holds raw Open-Meteo API responses
+  charts: {},  // keyed by chart name, holds Chart.js instances
 };
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -41,8 +45,10 @@ const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-const CACHE_TTL=60*60*1000;
+const CACHE_TTL=60*60*1000; // 1 hour in ms
+// Prefix is bumped when API request variables change, to invalidate stale entries
 const CACHE_PFX='wx3_';
+
 function getCached(id,lat,lon){
   try{
     const raw=localStorage.getItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`);
@@ -51,15 +57,19 @@ function getCached(id,lat,lon){
     return Date.now()-ts<CACHE_TTL?d:null;
   }catch{return null;}
 }
+
 function setCache(id,lat,lon,d){
   try{localStorage.setItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
 }
 
 // ─── URL STATE ───────────────────────────────────────────────────────────────
+// Encodes current location into the URL so forecast links can be shared
 function updateURL(){
   const p=new URLSearchParams({lat:S.lat,lon:S.lon,city:S.city,country:S.country});
   history.replaceState(null,'','?'+p);
 }
+
+// Restores location from URL params on page load (skips if no coords present)
 function loadFromURL(){
   const p=new URLSearchParams(location.search);
   if(!p.has('lat')||!p.has('lon'))return;
@@ -71,6 +81,7 @@ function loadFromURL(){
   $('heroSub').textContent=S.country;
 }
 
+// Returns a CSS class name for temperature colour coding
 function tempCls(t){
   if(t==null)return '';
   if(t>=28)return 'tc-hot';
@@ -79,12 +90,15 @@ function tempCls(t){
   return 'tc-cold';
 }
 
+// Converts degrees to a 16-point compass abbreviation (Latvian)
+// Z=N, A=E, D=S, R=W — e.g. ZA = NE, DDR = SSW
 function wDir(deg){
   if(deg==null)return '-';
   const d=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
   return d[Math.round(deg/22.5)%16];
 }
 
+// ─── WEATHER ICONS / TEXT ────────────────────────────────────────────────────
 const WICONS={
   clear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="22.5"/><line x1="3.9" y1="3.9" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.1" y2="20.1"/><line x1="1.5" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="22.5" y2="12"/><line x1="3.9" y1="20.1" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.1" y2="3.9"/></svg>',
   partly:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6.5" r="2.6"/><line x1="16.5" y1="1.6" x2="16.5" y2="3"/><line x1="21.4" y1="6.5" x2="20" y2="6.5"/><line x1="20" y1="3" x2="19" y2="4"/><path d="M16 19H7.5A4.5 4.5 0 0 1 6.7 10.1 6 6 0 0 1 18 11a4 4 0 0 1-2 8z"/></svg>',
@@ -95,6 +109,8 @@ const WICONS={
   snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>',
   thunder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>',
 };
+
+// Maps WMO weather interpretation codes to icon keys
 function wKey(c){
   if(c==null)return null;
   if(c<=1)return 'clear';
@@ -110,10 +126,12 @@ function wKey(c){
   if(c<=99)return 'thunder';
   return 'thunder';
 }
+
 const WTEXT={clear:'Skaidrs',partly:'Mākoņains',cloud:'Apmācies',fog:'Migla',drizzle:'Smidzina',rain:'Lietus',snow:'Sniegs',thunder:'Pērkons'};
 function wIcon(c){const k=wKey(c);return k?WICONS[k]:'';}
 function wText(c){const k=wKey(c);return k?WTEXT[k]:'-';}
 
+// Formats an ISO datetime string to short date label used on chart x-axis
 function fmtHour(isoStr){
   const d=new Date(isoStr);
   return d.toLocaleDateString('lv-LV',{month:'short',day:'numeric'});
@@ -125,7 +143,7 @@ function fmtDate(isoStr){
   return `<span class="dl">${dn[d.getDay()]}</span> ${d.toLocaleDateString('lv-LV',{day:'numeric',month:'long'})}`;
 }
 
-// ─── TAB ─────────────────────────────────────────────────────────────────────
+// ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab,btn){
   document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
@@ -134,6 +152,7 @@ function switchTab(tab,btn){
 }
 
 // ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
+// Renders the toggle buttons for the temperature chart model selector
 function buildToggles(){
   const wrap=$('modelToggles');
   wrap.innerHTML='';
@@ -178,6 +197,7 @@ function buildToggles(){
 }
 
 // ─── MODEL INFO LIST ─────────────────────────────────────────────────────────
+// Builds the "Models" tab with colour dot, flag, name, org, resolution and days
 function buildModelInfo(){
   const wrap=$('modelInfoList');
   wrap.innerHTML='';
@@ -195,7 +215,9 @@ function buildModelInfo(){
   });
 }
 
-// ─── CHART HELPERS ───────────────────────────────────────────────────────────
+// ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
+// Returns a Chart.js options object using current CSS theme variables.
+// Called on every chart build so colours update correctly after theme toggle.
 function CD(){
   const cs=getComputedStyle(document.body);
   const v=n=>cs.getPropertyValue(n).trim();
@@ -217,7 +239,10 @@ function CD(){
     }
   },
   scales:{
-    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:16,maxRotation:0,autoSkip:true,callback:function(val,index,ticks){const cur=this.getLabelForValue(val);if(index>0&&this.getLabelForValue(ticks[index-1].value)===cur)return '';return cur;}},grid:{color:v('--chart-grid')}},
+    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:16,maxRotation:0,autoSkip:true,
+        // Suppress duplicate date labels when multiple hourly ticks share the same day string
+        callback:function(val,index,ticks){const cur=this.getLabelForValue(val);if(index>0&&this.getLabelForValue(ticks[index-1].value)===cur)return '';return cur;}},
+      grid:{color:v('--chart-grid')}},
     y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}}
   }
   };
@@ -278,7 +303,8 @@ function rebuildTempChart(){
   buildLegend('legT',MODELS.filter(m=>S.data[m.id]&&S.active.has(m.id)));
 }
 
-// ─── PRECIP CHART ────────────────────────────────────────────────────────────
+// ─── PRECIPITATION CHART ─────────────────────────────────────────────────────
+// Single-model mode renders a bar chart; multi-model renders overlaid line charts
 function mkModelSelector(containerId,stateKey,title,onSelect){
   const hd=$(containerId);
   hd.innerHTML=`<span class="card-title">${title}</span>`;
@@ -316,6 +342,7 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
     b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
     b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
     b.onclick=()=>{
+      // Prevent deselecting the last active model
       if(S[stateKey].has(m.id)){if(S[stateKey].size<=1)return;S[stateKey].delete(m.id);}
       else S[stateKey].add(m.id);
       onSelect();
@@ -325,6 +352,7 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
   hd.appendChild(wrap);
 }
 
+// Formats a full readable timestamp for chart tooltips
 function fmtTooltipTitle(timeArr,idx){
   const d=new Date(timeArr[idx]);
   const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
@@ -365,6 +393,7 @@ function buildPrecipCharts(){
     }
   });
 
+  // Precipitation probability chart — always shows all available models
   showChart('loadPP','cPP');
   if(S.charts.precipP)S.charts.precipP.destroy();
   const ppDatasets=MODELS
@@ -419,7 +448,7 @@ function buildWindChart(){
   buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m));
 }
 
-// ─── TABLE ───────────────────────────────────────────────────────────────────
+// ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
   mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
 
@@ -452,6 +481,7 @@ function buildTable(){
 }
 
 // ─── CURRENT METRICS ─────────────────────────────────────────────────────────
+// Populates the metrics row and hero sunrise/sunset using ECMWF as primary source
 function updateMetrics(){
   const ecmwf=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!ecmwf)return;
@@ -476,6 +506,7 @@ function updateMetrics(){
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
   const srcEl=$('metricsSrc');
   if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel}`;
+  // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
     const fmt=iso=>new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
     const rise=fmt(ecmwf.daily.sunrise[0]),set=fmt(ecmwf.daily.sunset[0]);
@@ -485,7 +516,8 @@ function updateMetrics(){
   }
 }
 
-// ─── FETCH ───────────────────────────────────────────────────────────────────
+// ─── DATA FETCHING ────────────────────────────────────────────────────────────
+// Returns cached data if fresh, otherwise fetches from Open-Meteo API
 async function fetchModel(m){
   const hit=getCached(m.id,S.lat,S.lon);
   if(hit)return hit;
@@ -500,13 +532,14 @@ async function fetchModel(m){
   return data;
 }
 
+// Fetches all models in parallel; individual failures are silently skipped
 async function loadAll(){
   let loaded=0;
   S.data={};
   $('loadT').style.display='flex';
   $('loadT').innerHTML=`<div class="spinner"></div>Ielādē datus no <span id="loadCount">0</span>/${MODELS.length} modeļiem...`;
 
-  const results=await Promise.allSettled(MODELS.map(m=>
+  await Promise.allSettled(MODELS.map(m=>
     fetchModel(m).then(d=>{
       S.data[m.id]=d;
       loaded++;
@@ -547,6 +580,7 @@ async function searchCity(){
     d.results.forEach(g=>{
       const opt=document.createElement('div');
       opt.className='city-opt';
+      // Use textContent (not innerHTML) to prevent XSS from API-returned city names
       const nm=document.createElement('div');
       nm.className='co-name';
       nm.textContent=g.name;
@@ -563,6 +597,7 @@ async function searchCity(){
   }
 }
 
+// Updates state, URL, recent history and reloads all model data for the new location
 async function selectCity(g){
   S.lat=g.latitude; S.lon=g.longitude;
   S.city=g.name; S.country=g.country||'';
@@ -585,36 +620,44 @@ async function selectCity(g){
   await loadAll();
 }
 
+// Close city dropdown when clicking outside the search area
 document.addEventListener('click',e=>{
   if(!e.target.closest('.sa'))$('cityDrop').style.display='none';
 });
 
 $('cityInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchCity();});
+// Show recent searches when the input is focused and empty
 $('cityInput').addEventListener('focus',()=>{if(!$('cityInput').value.trim())showRecent();});
 
-// ─── THEME ───────────────────────────────────────────────────────────────────
+// ─── THEME ────────────────────────────────────────────────────────────────────
 const TT_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="22.5"/><line x1="3.9" y1="3.9" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.1" y2="20.1"/><line x1="1.5" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="22.5" y2="12"/><line x1="3.9" y1="20.1" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.1" y2="3.9"/></svg>';
 const TT_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
 function renderThemeIcon(){
   const t=document.documentElement.getAttribute('data-theme');
   const el=$('themeToggle');
   if(el)el.innerHTML=t==='light'?TT_MOON:TT_SUN;
 }
+
+// Charts must be rebuilt after theme switch so CSS variable colours are re-read
 function rerenderCharts(){
   if(Object.keys(S.data).length){rebuildTempChart();buildPrecipCharts();buildWindChart();}
 }
+
 function setTheme(t){
   document.documentElement.setAttribute('data-theme',t);
   try{localStorage.setItem('theme',t);}catch(e){}
   renderThemeIcon();
   rerenderCharts();
 }
+
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
   setTheme(cur==='light'?'dark':'light');
 }
 
-// ─── RECENT CITIES ───────────────────────────────────────────────────────────
+// ─── RECENT CITIES ────────────────────────────────────────────────────────────
+// Keeps the 5 most recently selected cities in localStorage; deduplicates by proximity
 function saveRecent(g){
   try{
     let r=JSON.parse(localStorage.getItem('recent_cities')||'[]');
@@ -623,6 +666,7 @@ function saveRecent(g){
     localStorage.setItem('recent_cities',JSON.stringify(r.slice(0,5)));
   }catch{}
 }
+
 function showRecent(){
   const drop=$('cityDrop');
   try{
@@ -646,19 +690,21 @@ function showRecent(){
   }catch{}
 }
 
-// ─── SHARE ───────────────────────────────────────────────────────────────────
+// ─── SHARE ────────────────────────────────────────────────────────────────────
 function shareWA(){
   const url=window.location.href;
   const text=`Laika prognoze — ${S.city} | prognoze.lv`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
 }
+
 function shareTG(){
   const url=window.location.href;
   const text=`Laika prognoze — ${S.city}`;
   window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank');
 }
 
-// ─── GEOLOCATION ─────────────────────────────────────────────────────────────
+// ─── GEOLOCATION ──────────────────────────────────────────────────────────────
+// Uses Nominatim reverse geocoding to resolve browser coordinates to a city name
 async function locateMe(){
   if(!navigator.geolocation)return;
   const btn=document.querySelector('.lbtn');
@@ -680,7 +726,7 @@ async function locateMe(){
   );
 }
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 loadFromURL();
 renderThemeIcon();
 buildToggles();
