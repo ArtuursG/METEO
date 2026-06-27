@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Laika prognoze - modeļu salīdzinājums</title>
+<meta name="description" content="Bezmaksas meteoroloģiskās prognozes vietne — 15 pasaules vadošo laikapstākļu modeļu salīdzinājums.">
+<meta property="og:title" content="Laika prognoze — modeļu salīdzinājums">
+<meta property="og:description" content="15 pasaules vadošo laikapstākļu modeļu prognozes vienā vietnē. ECMWF, GFS, ICON, MET Norway un citi.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://artuursg.github.io/METEO/">
+<meta name="theme-color" content="#0d0d0c">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +21,7 @@
 <body>
 
 <header>
-  <a class="logo" href="#">laiks<span>.lv</span></a>
+  <a class="logo" href="#">prognoze<span>.lv</span></a>
   <div class="sa">
     <div class="sw">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--t3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -33,13 +40,16 @@
     <span class="hero-sub" id="heroSub">Latvija · EEST (UTC+3)</span>
   </div>
 
-  <div class="metrics" id="metricsRow">
+  <div class="metrics" id="metricsRow" style="margin-bottom:.5rem">
     <div class="mc"><div class="mc-label">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc">Ielādē...</div></div>
+    <div class="mc"><div class="mc-label">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
     <div class="mc"><div class="mc-label">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
     <div class="mc"><div class="mc-label">Vējš</div><div class="mc-val" id="windNow">-<span>km/h</span></div><div class="mc-sub" id="windDir">-</div></div>
     <div class="mc"><div class="mc-label">Mitrums</div><div class="mc-val" id="humNow">-<span>%</span></div><div class="mc-sub" id="precipNow">Nokrišņi: -</div></div>
     <div class="mc"><div class="mc-label">Modeļi</div><div class="mc-val" id="activeCount">-</div><div class="mc-sub">aktīvi modeļi</div></div>
   </div>
+
+  <div id="metricsSrc" class="metrics-src"></div>
 
   <div class="tab-bar">
     <button class="tb active" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span>Temperatūra</span></button>
