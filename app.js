@@ -11,9 +11,8 @@ const MODELS = [
   { id:'metno_seamless',            name:'MET Norway',    flag:'🇳🇴', org:'MET Norway',           res:'1km',   days:10, color:'#B75074', dash:[5,2,1,2] },
   { id:'meteofrance_seamless',      name:'Météo-France',  flag:'🇫🇷', org:'Météo-France',        res:'1.5km', days:4,  color:'#805CD3', dash:[7,2] },
   { id:'jma_seamless',              name:'JMA',           flag:'🇯🇵', org:'JMA (Japan)',          res:'13km',  days:11, color:'#A9852E', dash:[4,4] },
-  { id:'arpae_cosmo_seamless',      name:'ARPAE COSMO',   flag:'🇮🇹', org:'ItaliaMeteo (Italy)',  res:'2.8km', days:5,  color:'#008080', dash:[2,4] },
   { id:'cma_grapes_global',         name:'CMA GRAPES',    flag:'🇨🇳', org:'CMA (China)',          res:'15km',  days:10, color:'#d63384', dash:[1,3] },
-  { id:'icon_d2',                   name:'ICON-D2',       flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)',        res:'2km',   days:2,  color:'#00bcd4', dash:[9,2] },
+  { id:'meteofrance_arpege_europe', name:'ARPEGE Europe', flag:'🇫🇷', org:'Météo-France',         res:'10km',  days:4,  color:'#0891b2', dash:[2,4] },
   { id:'knmi_harmonie_arome_europe',name:'HARMONIE NL',   flag:'🇳🇱', org:'KNMI (Netherlands)',   res:'2.5km', days:2,  color:'#4caf50', dash:[6,1,2,1] },
   { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK',   flag:'🇩🇰', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
 ];
