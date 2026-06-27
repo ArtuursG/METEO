@@ -40,6 +40,37 @@ const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
 
+// ─── CACHE ───────────────────────────────────────────────────────────────────
+const CACHE_TTL=60*60*1000;
+const CACHE_PFX='wx_';
+function getCached(id,lat,lon){
+  try{
+    const raw=localStorage.getItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`);
+    if(!raw)return null;
+    const{ts,d}=JSON.parse(raw);
+    return Date.now()-ts<CACHE_TTL?d:null;
+  }catch{return null;}
+}
+function setCache(id,lat,lon,d){
+  try{localStorage.setItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
+}
+
+// ─── URL STATE ───────────────────────────────────────────────────────────────
+function updateURL(){
+  const p=new URLSearchParams({lat:S.lat,lon:S.lon,city:S.city,country:S.country});
+  history.replaceState(null,'','?'+p);
+}
+function loadFromURL(){
+  const p=new URLSearchParams(location.search);
+  if(!p.has('lat')||!p.has('lon'))return;
+  S.lat=parseFloat(p.get('lat'));
+  S.lon=parseFloat(p.get('lon'));
+  S.city=p.get('city')||S.city;
+  S.country=p.get('country')||S.country;
+  $('cityName').textContent=S.city;
+  $('heroSub').textContent=S.country;
+}
+
 function tempCls(t){
   if(t==null)return '';
   if(t>=28)return 'tc-hot';
@@ -442,13 +473,17 @@ function updateMetrics(){
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function fetchModel(m){
+  const hit=getCached(m.id,S.lat,S.lon);
+  if(hit)return hit;
   const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
   const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean';
   const cur='temperature_2m,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
   const r=await fetch(url);
   if(!r.ok)throw new Error(r.status);
-  return r.json();
+  const data=await r.json();
+  setCache(m.id,S.lat,S.lon,data);
+  return data;
 }
 
 async function loadAll(){
@@ -512,7 +547,8 @@ async function selectCity(g){
   S.lat=g.latitude; S.lon=g.longitude;
   S.city=g.name; S.country=g.country||'';
   $('cityName').textContent=g.name;
-  $('heroSub').textContent=`${[g.admin1,g.country].filter(Boolean).join(', ')} · ${g.timezone||''}`;
+  $('heroSub').textContent=`${[g.admin1,g.country].filter(Boolean).join(', ')}${g.timezone?' · '+g.timezone:''}`;
+  updateURL();
 
   Object.values(S.charts).forEach(c=>c?.destroy?.());
   S.charts={}; S.data={};
@@ -556,7 +592,30 @@ function toggleTheme(){
   setTheme(cur==='light'?'dark':'light');
 }
 
+// ─── GEOLOCATION ─────────────────────────────────────────────────────────────
+async function locateMe(){
+  if(!navigator.geolocation)return;
+  const btn=document.querySelector('.lbtn');
+  if(btn)btn.classList.add('loading');
+  navigator.geolocation.getCurrentPosition(
+    async pos=>{
+      if(btn)btn.classList.remove('loading');
+      const{latitude:lat,longitude:lon}=pos.coords;
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=lv`);
+        const d=await r.json();
+        const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'Mana atrašanās vieta';
+        selectCity({latitude:lat,longitude:lon,name:city,country:d.address?.country||'',admin1:d.address?.state||'',timezone:''});
+      }catch{
+        selectCity({latitude:lat,longitude:lon,name:'Mana atrašanās vieta',country:'',admin1:'',timezone:''});
+      }
+    },
+    ()=>{if(btn)btn.classList.remove('loading');}
+  );
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
+loadFromURL();
 renderThemeIcon();
 buildToggles();
 buildModelInfo();
