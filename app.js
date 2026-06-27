@@ -93,13 +93,12 @@ function tempCls(t){
   return 'tc-cold';
 }
 
-// Returns an SVG arrow rotated to the wind direction, paired with a short label
+// Returns a rotated Unicode arrow + direction label; Unicode avoids mobile SVG rendering issues
 function wDir(deg){
   if(deg==null)return '-';
   const labels=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
   const label=labels[Math.round(deg/22.5)%16];
-  const arrow=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline-block;vertical-align:middle;transform:rotate(${deg}deg)"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg> ${label}`;
-  return arrow;
+  return `<span style="display:inline-block;transform:rotate(${deg}deg);font-size:13px;line-height:1">↑</span> ${label}`;
 }
 
 // ─── WEATHER ICONS / TEXT ────────────────────────────────────────────────────
