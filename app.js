@@ -93,12 +93,13 @@ function tempCls(t){
   return 'tc-cold';
 }
 
-// Converts degrees to a 16-point compass abbreviation (Latvian)
-// Z=N, A=E, D=S, R=W — e.g. ZA = NE, DDR = SSW
+// Returns an SVG arrow rotated to the wind direction, paired with a short label
 function wDir(deg){
   if(deg==null)return '-';
-  const d=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
-  return d[Math.round(deg/22.5)%16];
+  const labels=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
+  const label=labels[Math.round(deg/22.5)%16];
+  const arrow=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline-block;vertical-align:middle;transform:rotate(${deg}deg)"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg> ${label}`;
+  return arrow;
 }
 
 // ─── WEATHER ICONS / TEXT ────────────────────────────────────────────────────
@@ -544,7 +545,7 @@ function updateMetrics(){
     const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
     $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
     $('windNow').innerHTML=`${windConv(c.windspeed_10m)}<span>${S.windUnit}</span>`;
-    $('windDir').textContent=`Virziens: ${wDir(c.winddirection_10m)}`;
+    $('windDir').innerHTML=`Virziens: ${wDir(c.winddirection_10m)}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
     $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm`;
   }
