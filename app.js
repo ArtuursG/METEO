@@ -540,8 +540,14 @@ async function searchCity(){
     d.results.forEach(g=>{
       const opt=document.createElement('div');
       opt.className='city-opt';
-      const sub=[g.admin1,g.country].filter(Boolean).join(', ');
-      opt.innerHTML=`<div class="co-name">${g.name}</div><div class="co-sub">${sub}${g.timezone?' · '+g.timezone:''}</div>`;
+      const nm=document.createElement('div');
+      nm.className='co-name';
+      nm.textContent=g.name;
+      const sb=document.createElement('div');
+      sb.className='co-sub';
+      sb.textContent=[g.admin1,g.country].filter(Boolean).join(', ')+(g.timezone?' · '+g.timezone:'');
+      opt.appendChild(nm);
+      opt.appendChild(sb);
       opt.onclick=()=>{ drop.style.display='none'; $('cityInput').value=g.name; selectCity(g); };
       drop.appendChild(opt);
     });
