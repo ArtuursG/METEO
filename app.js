@@ -20,7 +20,7 @@ const MODELS = [
 // ─── STATE ────────────────────────────────────────────────────────────────────
 const TABLE_MODELS=[
   {id:'ecmwf_ifs025', name:'ECMWF IFS'},
-  {id:'icon_seamless', name:'ICON'},
+  {id:'icon_eu', name:'ICON-EU'},
   {id:'metno_seamless', name:'MET Norway'},
 ];
 
@@ -29,8 +29,8 @@ const S = {
   city:'Rīga', country:'Latvija',
   active: new Set(MODELS.map(m=>m.id)),
   tableModel:   'ecmwf_ifs025',
-  precipModels: new Set(['ecmwf_ifs025','icon_seamless','metno_seamless']),
-  windModels:   new Set(['ecmwf_ifs025','icon_seamless','metno_seamless']),
+  precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
+  windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   data: {},
   charts: {},
 };
