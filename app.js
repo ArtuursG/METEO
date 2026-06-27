@@ -44,13 +44,13 @@ const S = {
 const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
-// Converts km/h to m/s when that unit is active; always rounds to 1 decimal in m/s
-const windConv=kmh=>kmh==null?null:S.windUnit==='m/s'?Math.round(kmh/3.6*10)/10:Math.round(kmh);
+// API returns m/s (wind_speed_unit=ms); converts to km/h only when that unit is selected
+const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(v*10)/10;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000; // 1 hour in ms
 // Prefix is bumped when API request variables change, to invalidate stale entries
-const CACHE_PFX='wx3_';
+const CACHE_PFX='wx4_';
 
 function getCached(id,lat,lon){
   try{
@@ -551,7 +551,7 @@ async function fetchModel(m){
   const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
   const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean,sunrise,sunset';
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
   const r=await fetch(url);
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
