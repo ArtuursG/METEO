@@ -42,7 +42,7 @@ const r0=v=>v!=null?Math.round(v):null;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000;
-const CACHE_PFX='wx_';
+const CACHE_PFX='wx2_';
 function getCached(id,lat,lon){
   try{
     const raw=localStorage.getItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`);
@@ -459,6 +459,10 @@ function updateMetrics(){
   if(c){
     $('curTemp').innerHTML=`${r0(c.temperature_2m)}<span>°C</span>`;
     $('curDesc').innerHTML='<span class="wico">'+wIcon(c.weathercode)+'</span>'+wText(c.weathercode);
+    const fl=r0(c.apparent_temperature);
+    $('feelsLike').innerHTML=`${fl!=null?fl:'-'}<span>°C</span>`;
+    const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
+    $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
     $('windNow').innerHTML=`${r0(c.windspeed_10m)}<span>km/h</span>`;
     $('windDir').textContent=`Virziens: ${wDir(c.winddirection_10m)}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
@@ -469,6 +473,9 @@ function updateMetrics(){
     $('todayMin').textContent=`Min: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
   }
   $('lastUpdate').textContent=`Atjaunots: ${new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'})}`;
+  const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
+  const srcEl=$('metricsSrc');
+  if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel}`;
 }
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
@@ -477,7 +484,7 @@ async function fetchModel(m){
   if(hit)return hit;
   const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
   const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean';
-  const cur='temperature_2m,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
+  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
   const r=await fetch(url);
   if(!r.ok)throw new Error(r.status);
