@@ -223,10 +223,12 @@ function buildModelInfo(){
 Chart.register({
   id:'crosshair',
   afterDraw(chart){
-    if(!chart.tooltip._active?.length)return;
+    const active=chart.tooltip?._active;
+    if(!active?.length)return;
     const ctx=chart.ctx;
-    const x=chart.tooltip._active[0].element.x;
-    const{top,bottom}=chart.scales.y;
+    const x=active[0].element.x;
+    const{top,bottom,left,right}=chart.chartArea;
+    if(x<left||x>right)return;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x,top);
