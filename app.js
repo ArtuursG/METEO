@@ -35,6 +35,7 @@ const S = {
   tableModel:   'ecmwf_ifs025',
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
+  windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   charts: {},  // keyed by chart name, holds Chart.js instances
 };
@@ -43,6 +44,8 @@ const S = {
 const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
+// Converts km/h to m/s when that unit is active; always rounds to 1 decimal in m/s
+const windConv=kmh=>kmh==null?null:S.windUnit==='m/s'?Math.round(kmh/3.6*10)/10:Math.round(kmh);
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000; // 1 hour in ms
@@ -422,7 +425,19 @@ function buildPrecipCharts(){
 
 // ─── WIND CHART ──────────────────────────────────────────────────────────────
 function buildWindChart(){
-  mkMultiSelector('windCardHd','windModels','Vēja ātrums 10m (km/h)',buildWindChart);
+  mkMultiSelector('windCardHd','windModels',`Vēja ātrums 10m (${S.windUnit})`,buildWindChart);
+
+  // Unit toggle — inserted between the title and the model selector
+  const unitDiv=document.createElement('div');
+  unitDiv.style.cssText='display:flex;gap:4px;margin-left:auto';
+  ['m/s','km/h'].forEach(u=>{
+    const b=document.createElement('button');
+    b.className='mt'+(S.windUnit===u?' on':'');
+    b.textContent=u;
+    b.onclick=()=>setWindUnit(u);
+    unitDiv.appendChild(b);
+  });
+  $('windCardHd').insertBefore(unitDiv,$('windCardHd').children[1]);
 
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
@@ -430,22 +445,34 @@ function buildWindChart(){
   const labels=base.hourly.time.map(fmtHour);
   const datasets=MODELS
     .filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m)
-    .map(m=>({label:m.name,data:S.data[m.id].hourly.windspeed_10m,borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false}));
+    .map(m=>({
+      label:m.name,
+      data:S.data[m.id].hourly.windspeed_10m.map(v=>windConv(v)),
+      borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
+    }));
   showChart('loadW','cW');
   if(S.charts.wind)S.charts.wind.destroy();
   S.charts.wind=new Chart($('cW'),{
     type:'line',data:{labels,datasets},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
-        y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' km/h'}}
+        y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' '+S.windUnit}}
       },
       plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
         title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
-        label:c=>` ${c.dataset.label}: ${r0(c.parsed.y)} km/h`
+        label:c=>` ${c.dataset.label}: ${c.parsed.y} ${S.windUnit}`
       }}}
     }
   });
   buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m));
+}
+
+function setWindUnit(u){
+  S.windUnit=u;
+  try{localStorage.setItem('wind_unit',u);}catch{}
+  updateMetrics();
+  buildWindChart();
+  buildTable();
 }
 
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
@@ -470,7 +497,7 @@ function buildTable(){
       <td class="${tempCls(mn)}">${mn!=null?mn+'°':'-'}</td>
       <td>${ps?.[i]!=null?round(ps[i],1)+' mm':'-'}</td>
       <td>${ppm?.[i]!=null?r0(ppm[i])+'%':'-'}</td>
-      <td>${wmax?.[i]!=null?r0(wmax[i])+' km/h':'-'}</td>
+      <td>${wmax?.[i]!=null?windConv(wmax[i])+' '+S.windUnit:'-'}</td>
       <td>${cc?.[i]!=null?r0(cc[i])+'%':'-'}</td>
       <td>${rh?.[i]!=null?r0(rh[i])+'%':'-'}</td>
     `;
@@ -493,7 +520,7 @@ function updateMetrics(){
     $('feelsLike').innerHTML=`${fl!=null?fl:'-'}<span>°C</span>`;
     const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
     $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
-    $('windNow').innerHTML=`${r0(c.windspeed_10m)}<span>km/h</span>`;
+    $('windNow').innerHTML=`${windConv(c.windspeed_10m)}<span>${S.windUnit}</span>`;
     $('windDir').textContent=`Virziens: ${wDir(c.winddirection_10m)}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
     $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm`;
