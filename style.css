@@ -84,6 +84,10 @@ header{
 .sw input::placeholder{color:var(--t3)}
 .sbtn{background:var(--acc);color:var(--acc-ink);border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;white-space:nowrap;font-weight:500;transition:opacity .15s}
 .sbtn:hover{opacity:.88}
+.lbtn{background:var(--s2);color:var(--t2);border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:color .15s,border-color .15s,background .15s}
+.lbtn:hover{color:var(--t);border-color:var(--b2);background:var(--s3)}
+.lbtn svg{width:16px;height:16px}
+.lbtn.loading{opacity:.5;pointer-events:none}
 
 /* theme toggle */
 .tt{margin-left:auto;flex-shrink:0;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--t2);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
