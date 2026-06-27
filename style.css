@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   laiks.lv - minimalist theme · dark + light
+   prognoze.lv - minimalist theme · dark + light
    ───────────────────────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -118,6 +118,8 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 .mc-sub{font-size:12px;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:5px}
 .wico{display:inline-flex;color:var(--t2)}
 .wico svg{width:14px;height:14px;stroke-width:1.7}
+
+.metrics-src{font-size:11px;color:var(--t3);text-align:right;margin-bottom:1.5rem;font-family:'IBM Plex Mono',ui-monospace,monospace}
 
 /* ── TABS ───────────────────────────────────────────────────────────────────── */
 .tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:2rem;overflow-x:auto;scrollbar-width:none}
