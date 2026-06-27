@@ -611,36 +611,46 @@ async function loadAll(){
 }
 
 // ─── CITY SEARCH ─────────────────────────────────────────────────────────────
+let _searchTimer=null;
+let _searchCtrl=null;
+
+// Renders geocoding results into the dropdown
+function renderSearchResults(results){
+  const drop=$('cityDrop');
+  drop.innerHTML='';
+  results.forEach(g=>{
+    const opt=document.createElement('div');
+    opt.className='city-opt';
+    // Use textContent (not innerHTML) to prevent XSS from API-returned city names
+    const nm=document.createElement('div'); nm.className='co-name'; nm.textContent=g.name;
+    const sb=document.createElement('div'); sb.className='co-sub';
+    sb.textContent=[g.admin1,g.country].filter(Boolean).join(', ')+(g.timezone?' · '+g.timezone:'');
+    opt.appendChild(nm); opt.appendChild(sb);
+    opt.onclick=()=>{ drop.style.display='none'; $('cityInput').value=g.name; selectCity(g); };
+    drop.appendChild(opt);
+  });
+  drop.style.display='block';
+}
+
 async function searchCity(){
   const val=$('cityInput').value.trim();
   if(!val)return;
+  // Cancel any in-flight request before starting a new one
+  if(_searchCtrl)_searchCtrl.abort();
+  _searchCtrl=new AbortController();
   const drop=$('cityDrop');
   drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Meklē...</div>';
   drop.style.display='block';
   try{
-    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=en`);
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=en`,{signal:_searchCtrl.signal});
     const d=await r.json();
     if(!d.results?.length){
       drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Pilsēta netika atrasta</div>';
       return;
     }
-    drop.innerHTML='';
-    d.results.forEach(g=>{
-      const opt=document.createElement('div');
-      opt.className='city-opt';
-      // Use textContent (not innerHTML) to prevent XSS from API-returned city names
-      const nm=document.createElement('div');
-      nm.className='co-name';
-      nm.textContent=g.name;
-      const sb=document.createElement('div');
-      sb.className='co-sub';
-      sb.textContent=[g.admin1,g.country].filter(Boolean).join(', ')+(g.timezone?' · '+g.timezone:'');
-      opt.appendChild(nm);
-      opt.appendChild(sb);
-      opt.onclick=()=>{ drop.style.display='none'; $('cityInput').value=g.name; selectCity(g); };
-      drop.appendChild(opt);
-    });
+    renderSearchResults(d.results);
   }catch(e){
+    if(e.name==='AbortError')return; // superseded by a newer request — ignore silently
     drop.innerHTML=`<div class="city-opt" style="color:#e66767;cursor:default">Kļūda: ${e.message}</div>`;
   }
 }
@@ -673,7 +683,16 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.sa'))$('cityDrop').style.display='none';
 });
 
-$('cityInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchCity();});
+$('cityInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){clearTimeout(_searchTimer);searchCity();}
+});
+// Autocomplete: wait 300ms after user stops typing, min 2 chars, max 1 active request
+$('cityInput').addEventListener('input',()=>{
+  const val=$('cityInput').value.trim();
+  clearTimeout(_searchTimer);
+  if(val.length<2){$('cityDrop').style.display='none';return;}
+  _searchTimer=setTimeout(searchCity,300);
+});
 // Show recent searches when the input is focused and empty
 $('cityInput').addEventListener('focus',()=>{if(!$('cityInput').value.trim())showRecent();});
 
