@@ -605,6 +605,18 @@ function toggleTheme(){
   setTheme(cur==='light'?'dark':'light');
 }
 
+// ─── SHARE ───────────────────────────────────────────────────────────────────
+function shareWA(){
+  const url=window.location.href;
+  const text=`Laika prognoze — ${S.city} | prognoze.lv`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
+}
+function shareTG(){
+  const url=window.location.href;
+  const text=`Laika prognoze — ${S.city}`;
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank');
+}
+
 // ─── GEOLOCATION ─────────────────────────────────────────────────────────────
 async function locateMe(){
   if(!navigator.geolocation)return;
