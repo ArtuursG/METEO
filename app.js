@@ -51,8 +51,8 @@ function tempCls(t){
 
 function wDir(deg){
   if(deg==null)return '-';
-  const d=['Z','ZZA','ZA','DAZ','A','DAD','D','ZAD'];
-  return d[Math.round(deg/45)%8];
+  const d=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
+  return d[Math.round(deg/22.5)%16];
 }
 
 const WICONS={
@@ -397,7 +397,7 @@ function buildTable(){
   if(!src?.daily?.time)return;
   const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
          precipitation_probability_max:ppm,windspeed_10m_max:wmax,
-         relative_humidity_2m_mean:rh,weathercode:wc}=src.daily;
+         relative_humidity_2m_mean:rh,weathercode:wc,cloudcover_mean:cc}=src.daily;
   const tbody=$('tBody');
   tbody.innerHTML='';
   time.forEach((t,i)=>{
@@ -412,6 +412,7 @@ function buildTable(){
       <td>${ps?.[i]!=null?round(ps[i],1)+' mm':'-'}</td>
       <td>${ppm?.[i]!=null?r0(ppm[i])+'%':'-'}</td>
       <td>${wmax?.[i]!=null?r0(wmax[i])+' km/h':'-'}</td>
+      <td>${cc?.[i]!=null?r0(cc[i])+'%':'-'}</td>
       <td>${rh?.[i]!=null?r0(rh[i])+'%':'-'}</td>
     `;
     tbody.appendChild(tr);
@@ -443,7 +444,7 @@ function updateMetrics(){
 // ─── FETCH ───────────────────────────────────────────────────────────────────
 async function fetchModel(m){
   const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
-  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode';
+  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean';
   const cur='temperature_2m,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
   const r=await fetch(url);
