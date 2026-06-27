@@ -218,6 +218,27 @@ function buildModelInfo(){
   });
 }
 
+// ─── CROSSHAIR PLUGIN ────────────────────────────────────────────────────────
+// Draws a vertical dashed line at the hovered x position across all charts
+Chart.register({
+  id:'crosshair',
+  afterDraw(chart){
+    if(!chart.tooltip._active?.length)return;
+    const ctx=chart.ctx;
+    const x=chart.tooltip._active[0].element.x;
+    const{top,bottom}=chart.scales.y;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x,top);
+    ctx.lineTo(x,bottom);
+    ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(150,150,150,.35)';
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.restore();
+  }
+});
+
 // ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
 // Returns a Chart.js options object using current CSS theme variables.
 // Called on every chart build so colours update correctly after theme toggle.
