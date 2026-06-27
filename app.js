@@ -42,7 +42,7 @@ const r0=v=>v!=null?Math.round(v):null;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000;
-const CACHE_PFX='wx2_';
+const CACHE_PFX='wx3_';
 function getCached(id,lat,lon){
   try{
     const raw=localStorage.getItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`);
@@ -476,6 +476,13 @@ function updateMetrics(){
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
   const srcEl=$('metricsSrc');
   if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel}`;
+  if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
+    const fmt=iso=>new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+    const rise=fmt(ecmwf.daily.sunrise[0]),set=fmt(ecmwf.daily.sunset[0]);
+    const sunEl=$('heroSun');
+    if(sunEl)sunEl.innerHTML=
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/></svg>${rise}&nbsp;&nbsp;<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/><path d="M19 14l-7 5-7-5" stroke-width="1.5"/></svg>${set}`;
+  }
 }
 
 // ─── FETCH ───────────────────────────────────────────────────────────────────
@@ -483,7 +490,7 @@ async function fetchModel(m){
   const hit=getCached(m.id,S.lat,S.lon);
   if(hit)return hit;
   const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
-  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean';
+  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean,sunrise,sunset';
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16`;
   const r=await fetch(url);
@@ -562,6 +569,7 @@ async function selectCity(g){
   $('cityName').textContent=g.name;
   $('heroSub').textContent=`${[g.admin1,g.country].filter(Boolean).join(', ')}${g.timezone?' · '+g.timezone:''}`;
   updateURL();
+  saveRecent(g);
 
   Object.values(S.charts).forEach(c=>c?.destroy?.());
   S.charts={}; S.data={};
@@ -582,6 +590,7 @@ document.addEventListener('click',e=>{
 });
 
 $('cityInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchCity();});
+$('cityInput').addEventListener('focus',()=>{if(!$('cityInput').value.trim())showRecent();});
 
 // ─── THEME ───────────────────────────────────────────────────────────────────
 const TT_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="22.5"/><line x1="3.9" y1="3.9" x2="5.3" y2="5.3"/><line x1="18.7" y1="18.7" x2="20.1" y2="20.1"/><line x1="1.5" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="22.5" y2="12"/><line x1="3.9" y1="20.1" x2="5.3" y2="18.7"/><line x1="18.7" y1="5.3" x2="20.1" y2="3.9"/></svg>';
@@ -603,6 +612,38 @@ function setTheme(t){
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
   setTheme(cur==='light'?'dark':'light');
+}
+
+// ─── RECENT CITIES ───────────────────────────────────────────────────────────
+function saveRecent(g){
+  try{
+    let r=JSON.parse(localStorage.getItem('recent_cities')||'[]');
+    r=r.filter(c=>!(Math.abs(c.lat-g.latitude)<0.01&&Math.abs(c.lon-g.longitude)<0.01));
+    r.unshift({name:g.name,country:g.country||'',lat:g.latitude,lon:g.longitude,admin1:g.admin1||'',timezone:g.timezone||''});
+    localStorage.setItem('recent_cities',JSON.stringify(r.slice(0,5)));
+  }catch{}
+}
+function showRecent(){
+  const drop=$('cityDrop');
+  try{
+    const r=JSON.parse(localStorage.getItem('recent_cities')||'[]');
+    if(!r.length)return;
+    drop.innerHTML='';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='padding:7px 13px 4px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px';
+    lbl.textContent='Nesenie meklējumi';
+    drop.appendChild(lbl);
+    r.forEach(c=>{
+      const opt=document.createElement('div');
+      opt.className='city-opt';
+      const nm=document.createElement('div'); nm.className='co-name'; nm.textContent=c.name;
+      const sb=document.createElement('div'); sb.className='co-sub'; sb.textContent=[c.admin1,c.country].filter(Boolean).join(', ');
+      opt.appendChild(nm); opt.appendChild(sb);
+      opt.onclick=()=>{drop.style.display='none';$('cityInput').value=c.name;selectCity({latitude:c.lat,longitude:c.lon,name:c.name,country:c.country,admin1:c.admin1,timezone:c.timezone});};
+      drop.appendChild(opt);
+    });
+    drop.style.display='block';
+  }catch{}
 }
 
 // ─── SHARE ───────────────────────────────────────────────────────────────────

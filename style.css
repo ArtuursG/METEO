@@ -107,9 +107,13 @@ header{
 main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 
 /* ── HERO ───────────────────────────────────────────────────────────────────── */
-.hero{display:flex;align-items:baseline;gap:16px;margin-bottom:2rem;flex-wrap:wrap}
-.hero h1{font-size:34px;font-weight:600;letter-spacing:-0.9px}
+.hero{display:flex;flex-direction:column;gap:5px;margin-bottom:2rem}
+.hero-top{display:flex;align-items:center;gap:12px}
+.hero-city{display:flex;align-items:baseline;gap:10px;flex:1}
+.hero-city h1{font-size:34px;font-weight:600;letter-spacing:-0.9px}
 .hero-sub{color:var(--t3);font-size:13px;font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:-.1px}
+.hero-sun{display:flex;align-items:center;gap:5px;color:var(--t3);font-size:13px;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.hero-sun svg{width:14px;height:14px;flex-shrink:0}
 
 /* ── SHARE ──────────────────────────────────────────────────────────────────── */
 .share-btns{display:flex;gap:6px;align-items:center;margin-left:auto}
@@ -208,7 +212,7 @@ footer a:hover{text-decoration:underline}
 
   /* Saturs */
   main{padding:1.2rem .9rem .9rem}
-  .hero h1{font-size:24px}
+  .hero-top h1{font-size:24px}
   .hero{margin-bottom:1.2rem;gap:8px}
   .metrics{margin-bottom:1.2rem}
   .metrics{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
