@@ -562,8 +562,9 @@ function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
 function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
 
 function buildUVChart(){
-  // Use ECMWF as primary; fall back to first model with uv_index
-  const src=Object.values(S.data).find(d=>d?.hourly?.uv_index);
+  // Prefer ECMWF; fall back to any model with actual (non-null) UV values
+  const hasUV=d=>d?.hourly?.uv_index?.some(v=>v!=null);
+  const src=[S.data['ecmwf_ifs025'],...Object.values(S.data)].find(hasUV);
   const meta=$('uvMeta');
   if(!src?.hourly?.time){
     if(meta)meta.textContent='Nav datu';
