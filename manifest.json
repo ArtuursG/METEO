@@ -1,0 +1,19 @@
+{
+  "name": "prognoze.lv",
+  "short_name": "prognoze.lv",
+  "description": "Laika prognoze — 15 modeļu salīdzinājums",
+  "start_url": "/METEO/",
+  "scope": "/METEO/",
+  "display": "standalone",
+  "background_color": "#0d0d0c",
+  "theme_color": "#0d0d0c",
+  "lang": "lv",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
