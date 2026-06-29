@@ -1,4 +1,4 @@
-const CACHE = 'prognoze-v3';
+const CACHE = 'prognoze-v4';
 const SHELL = [
   '/METEO/',
   '/METEO/index.html',
