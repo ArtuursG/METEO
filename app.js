@@ -510,12 +510,14 @@ function buildCloudChart(){
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
   const cd=CD();
-  const labels=base.hourly.time.map(fmtHour);
+  const cap=5*24; // 5 days × 24 hours
+  const times=base.hourly.time.slice(0,cap);
+  const labels=times.map(fmtHour);
   const datasets=MODELS
     .filter(m=>S.cloudModels.has(m.id)&&S.data[m.id]?.hourly?.cloud_cover)
     .map(m=>({
       label:m.name,
-      data:S.data[m.id].hourly.cloud_cover,
+      data:S.data[m.id].hourly.cloud_cover.slice(0,cap),
       borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
     }));
   showChart('loadCl','cCl');
@@ -527,7 +529,7 @@ function buildCloudChart(){
         y:{...cd.scales.y,min:0,max:100,ticks:{...cd.scales.y.ticks,callback:v=>v+'%'}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
-        title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
+        title:items=>fmtTooltipTitle(times,items[0].dataIndex),
         label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y)}%`
       }}}
     }
