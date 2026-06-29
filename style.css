@@ -79,6 +79,7 @@ header{
 
 .sa{position:relative;display:flex;align-items:center;gap:8px;flex:1;max-width:460px}
 .sw{display:flex;align-items:center;gap:9px;background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:0 13px;flex:1;transition:border-color .15s,background .35s}
+.sw svg{color:var(--t3);flex-shrink:0}
 .sw:focus-within{border-color:var(--b2)}
 .sw input{background:none;border:none;outline:none;color:var(--t);font-size:14px;padding:9px 0;width:100%}
 .sw input::placeholder{color:var(--t3)}
@@ -152,7 +153,7 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 
 /* ── MODEL TOGGLES ──────────────────────────────────────────────────────────── */
 .mt-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.1rem}
-.mt{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--t3);transition:border-color .15s,color .15s,background .15s;user-select:none}
+.mt{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:11px;font-family:inherit;cursor:pointer;color:var(--t3);transition:border-color .15s,color .15s,background .15s;-webkit-user-select:none;user-select:none}
 .mt:hover{color:var(--t2);border-color:var(--b2)}
 .mt.on{border-color:var(--b2);color:var(--t);background:var(--s2)}
 .mt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -195,6 +196,10 @@ tr:hover td{background:var(--s2)}
 /* ── RADAR ──────────────────────────────────────────────────────────────────── */
 #radarMap{height:460px;border-radius:8px;overflow:hidden;background:var(--s2);margin-bottom:1rem}
 .radar-ctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.radar-time{font-size:12px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace;margin-left:4px}
+.radar-status{font-size:12px;color:var(--t3);margin-left:8px}
+.card-meta{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace}
+#metricsRow{margin-bottom:.5rem}
 /* Override Leaflet link colour to match theme */
 .leaflet-container a{color:var(--acc)}
 
