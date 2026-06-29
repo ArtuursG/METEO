@@ -11,6 +11,11 @@
 <meta property="og:url" content="https://artuursg.github.io/METEO/">
 <meta name="theme-color" content="#0d0d0c">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="prognoze.lv">
+<link rel="apple-touch-icon" href="favicon.svg">
 <script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -137,5 +142,10 @@
 </footer>
 
 <script src="app.js"></script>
+<script>
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/METEO/sw.js');
+  }
+</script>
 </body>
 </html>
