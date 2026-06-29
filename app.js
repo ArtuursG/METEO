@@ -848,20 +848,22 @@ async function locateMe(auto=false){
   if(!navigator.geolocation){ if(auto) loadAll(); return; }
   const btn=document.querySelector('.lbtn');
   if(btn)btn.classList.add('loading');
-  if(auto) $('heroSub').textContent='Nosaka atrašanās vietu...';
   navigator.geolocation.getCurrentPosition(
     async pos=>{
       if(btn)btn.classList.remove('loading');
       const{latitude:lat,longitude:lon}=pos.coords;
+      // Start loading immediately with placeholder name; Nominatim updates it in background
+      selectCity({latitude:lat,longitude:lon,name:'Pašreizējā atrašanās vieta',country:'',admin1:'',timezone:''});
       try{
         const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=lv`);
         const d=await r.json();
         const a=d.address||{};
-        const city=a.city||a.town||a.village||a.municipality||a.suburb||a.neighbourhood||a.county||d.display_name?.split(',')[0]||'Mana atrašanās vieta';
-        selectCity({latitude:lat,longitude:lon,name:city,country:d.address?.country||'',admin1:d.address?.state||'',timezone:''});
-      }catch{
-        selectCity({latitude:lat,longitude:lon,name:'Mana atrašanās vieta',country:'',admin1:'',timezone:''});
-      }
+        const city=a.city||a.town||a.village||a.municipality||a.suburb||a.neighbourhood||a.county||d.display_name?.split(',')[0]||'';
+        if(city){ $('cityName').textContent=city; S.city=city; }
+        const country=d.address?.country||'';
+        if(country){ $('heroSub').textContent=country; S.country=country; }
+        updateURL();
+      }catch{ /* keep placeholder name */ }
     },
     ()=>{ if(btn)btn.classList.remove('loading'); if(auto) loadAll(); },
     {timeout:5000}
