@@ -16,6 +16,8 @@ const MODELS = [
   { id:'meteofrance_arpege_europe', name:'ARPEGE Europe', flag:'🇫🇷', org:'Météo-France',         res:'10km',  days:4,  color:'#0891b2', dash:[2,4] },
   { id:'knmi_harmonie_arome_europe',name:'HARMONIE NL',   flag:'🇳🇱', org:'KNMI (Netherlands)',   res:'2.5km', days:2,  color:'#4caf50', dash:[6,1,2,1] },
   { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK',   flag:'🇩🇰', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
+  { id:'gfs_graphcast025',          name:'GraphCast',     flag:'🇺🇸', org:'Google DeepMind',      res:'25km',  days:10, color:'#ff7043', dash:[5,1,1,1] },
+  { id:'icon_d2_eps',               name:'ICON-D2-EPS',   flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)', res:'2km', days:2, color:'#78909c', dash:[2,1] },
 ];
 
 // Models available in the daily forecast table selector
