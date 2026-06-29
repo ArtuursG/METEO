@@ -573,18 +573,32 @@ function updateMetrics(){
 }
 
 // ─── DATA FETCHING ────────────────────────────────────────────────────────────
-// Returns cached data if fresh, otherwise fetches from Open-Meteo API
+// Returns cached data if fresh, otherwise fetches from Open-Meteo API.
+// Falls back through reduced variable sets because some models (e.g. access_global)
+// don't support precipitation_probability or cloud_cover_mean.
 async function fetchModel(m){
   const hit=getCached(m.id,S.lat,S.lon);
   if(hit)return hit;
-  const vars='temperature_2m,precipitation,precipitation_probability,wind_speed_10m';
-  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
-  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
-  const base=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
 
-  // Try with current conditions; some models reject certain current variables with 400
-  let r=await fetch(`${base}&current=${cur}`);
-  if(r.status===400) r=await fetch(base);
+  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
+  const mk=(h,d,c='')=>{
+    let u=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${h}&daily=${d}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
+    if(c)u+=`&current=${c}`;
+    return u;
+  };
+
+  const h1='temperature_2m,precipitation,precipitation_probability,wind_speed_10m';
+  const d1='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
+  // Reduced: no precipitation_probability (deterministic models don't have it)
+  const h2='temperature_2m,precipitation,wind_speed_10m';
+  const d2='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
+  // Minimal: also drop cloud_cover_mean
+  const d3='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,sunrise,sunset';
+
+  let r=await fetch(mk(h1,d1,cur)); // full
+  if(r.status===400) r=await fetch(mk(h1,d1));  // no current
+  if(r.status===400) r=await fetch(mk(h2,d2));  // no probability
+  if(r.status===400) r=await fetch(mk(h2,d3));  // no probability + no cloud cover
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
   setCache(m.id,S.lat,S.lon,data);
@@ -820,12 +834,13 @@ async function initRadar(){
     _rMap.invalidateSize(); // recalculate size after tab becomes visible
     return;
   }
-  _rMap=L.map('radarMap',{maxZoom:18}).setView([S.lat,S.lon],6);
+  _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
 
   // Light base tiles — CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
-    maxZoom:18,
+    maxZoom:19,
+    maxNativeZoom:18,
     subdomains:'abcd'
   }).addTo(_rMap);
 
