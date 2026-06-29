@@ -140,6 +140,7 @@ function fmtHour(isoStr){
   return d.toLocaleDateString('lv-LV',{month:'short',day:'numeric'});
 }
 
+// Formats an ISO date string to a Latvian weekday + date for the forecast table
 function fmtDate(isoStr){
   const d=new Date(isoStr);
   const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
@@ -274,11 +275,13 @@ function CD(){
   };
 }
 
+// Hides the loading spinner and shows the canvas
 function showChart(loadId,canvasId){
   $(loadId).style.display='none';
   $(canvasId).style.display='block';
 }
 
+// Renders coloured line swatches below a chart
 function buildLegend(legId,models){
   const wrap=$(legId);
   if(!wrap)return;
@@ -490,6 +493,7 @@ function buildWindChart(){
   buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m));
 }
 
+// Persists the selected unit and rebuilds all wind displays (metrics, chart, table)
 function setWindUnit(u){
   S.windUnit=u;
   try{localStorage.setItem('wind_unit',u);}catch{}
@@ -634,6 +638,7 @@ function renderSearchResults(results){
   drop.style.display='block';
 }
 
+// Geocodes the current input value; called by debounced input handler and Enter key
 async function searchCity(){
   const val=$('cityInput').value.trim();
   if(!val)return;
@@ -713,6 +718,7 @@ function rerenderCharts(){
   if(Object.keys(S.data).length){rebuildTempChart();buildPrecipCharts();buildWindChart();}
 }
 
+// Applies theme, saves to localStorage and redraws charts with updated CSS colours
 function setTheme(t){
   document.documentElement.setAttribute('data-theme',t);
   try{localStorage.setItem('theme',t);}catch(e){}
@@ -721,7 +727,7 @@ function setTheme(t){
 }
 
 function toggleTheme(){
-  const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+  const cur=document.documentElement.getAttribute('data-theme');
   setTheme(cur==='light'?'dark':'light');
 }
 
@@ -736,6 +742,7 @@ function saveRecent(g){
   }catch{}
 }
 
+// Shows the last 5 searched cities when the input is focused and empty
 function showRecent(){
   const drop=$('cityDrop');
   try{
@@ -760,12 +767,14 @@ function showRecent(){
 }
 
 // ─── SHARE ────────────────────────────────────────────────────────────────────
+// Opens WhatsApp share sheet with city name and current URL (includes lat/lon params)
 function shareWA(){
   const url=window.location.href;
   const text=`Laika prognoze — ${S.city} | prognoze.lv`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
 }
 
+// Opens Telegram share sheet with city name and current URL
 function shareTG(){
   const url=window.location.href;
   const text=`Laika prognoze — ${S.city}`;
