@@ -809,6 +809,7 @@ async function locateMe(){
 
 // ─── RADAR ────────────────────────────────────────────────────────────────────
 let _rMap=null, _rLayer=null, _rFrames=[], _rIdx=0, _rTimer=null;
+let _blitzWS=null, _blitzMarkers=[], _blitzCleanTimer=null;
 
 // Lazy-initializes the Leaflet map; safe to call multiple times
 async function initRadar(){
@@ -819,13 +820,15 @@ async function initRadar(){
   }
   _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
 
-  // Base tiles — OpenStreetMap (HTTPS only)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
-    maxZoom:18
+  // Dark base tiles — CartoDB Dark Matter (better contrast for radar colours)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Zibeni: <a href="https://www.blitzortung.org" target="_blank">Blitzortung</a>',
+    maxZoom:19,
+    subdomains:'abcd'
   }).addTo(_rMap);
 
   await loadRadarFrames();
+  connectBlitzortung();
 }
 
 async function loadRadarFrames(){
@@ -882,6 +885,69 @@ function radarTogglePlay(){
     const next=(_rIdx+1)%_rFrames.length;
     showRadarFrame(next);updateRadarUI();
   },500);
+}
+
+// ─── LIGHTNING (BLITZORTUNG) ──────────────────────────────────────────────────
+// Blitzortung provides real-time community lightning strike data via WebSocket
+const BLITZ_SERVERS=[
+  'wss://ws.blitzortung.org:8002/',
+  'wss://ws.blitzortung.org:8006/',
+  'wss://ws.blitzortung.org:8007/',
+];
+
+function connectBlitzortung(){
+  if(!_rMap)return;
+  if(_blitzWS&&(_blitzWS.readyState===WebSocket.OPEN||_blitzWS.readyState===WebSocket.CONNECTING))return;
+
+  const url=BLITZ_SERVERS[Math.floor(Math.random()*BLITZ_SERVERS.length)];
+  _blitzWS=new WebSocket(url);
+
+  _blitzWS.onopen=()=>{
+    // Some servers require an initial handshake message
+    try{_blitzWS.send(JSON.stringify({version:2}));}catch{}
+  };
+
+  _blitzWS.onmessage=e=>{
+    try{
+      const d=JSON.parse(e.data);
+      // Strike data contains lat/lon; time is nanoseconds since epoch
+      if(d.lat!=null&&d.lon!=null){
+        addLightningMarker(d.lat,d.lon);
+      }
+    }catch{}
+  };
+
+  // Reconnect on unexpected close
+  _blitzWS.onclose=()=>{ setTimeout(connectBlitzortung,5000); };
+  _blitzWS.onerror=()=>{ _blitzWS.close(); };
+
+  // Periodically fade and remove old markers
+  if(!_blitzCleanTimer)_blitzCleanTimer=setInterval(cleanLightningMarkers,5000);
+}
+
+function addLightningMarker(lat,lon){
+  if(!_rMap)return;
+  const m=L.circleMarker([lat,lon],{
+    radius:4,
+    color:'#ffe066',
+    fillColor:'#ffffff',
+    fillOpacity:1,
+    weight:2,
+    opacity:1
+  }).addTo(_rMap);
+  _blitzMarkers.push({m,born:Date.now()});
+}
+
+// Fades out markers older than 5 min, removes those older than 10 min
+function cleanLightningMarkers(){
+  const now=Date.now();
+  _blitzMarkers=_blitzMarkers.filter(({m,born})=>{
+    const age=(now-born)/1000;
+    if(age>600){_rMap.removeLayer(m);return false;}
+    const op=Math.max(0.08,1-age/600);
+    m.setStyle({opacity:op,fillOpacity:op});
+    return true;
+  });
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
