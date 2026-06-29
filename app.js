@@ -874,10 +874,10 @@ function radarStep(dir){
 function radarTogglePlay(){
   if(_rTimer){
     clearInterval(_rTimer);_rTimer=null;
-    $('radarPlayBtn').textContent='▶ Animēt';
+    $('radarPlayBtn').textContent='▶';
     return;
   }
-  $('radarPlayBtn').textContent='⏸ Apturēt';
+  $('radarPlayBtn').textContent='⏸';
   _rTimer=setInterval(()=>{
     const next=(_rIdx+1)%_rFrames.length;
     showRadarFrame(next);updateRadarUI();
