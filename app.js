@@ -785,7 +785,8 @@ async function locateMe(){
       try{
         const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=lv`);
         const d=await r.json();
-        const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'Mana atrašanās vieta';
+        const a=d.address||{};
+        const city=a.city||a.town||a.village||a.municipality||a.suburb||a.neighbourhood||a.county||d.display_name?.split(',')[0]||'Mana atrašanās vieta';
         selectCity({latitude:lat,longitude:lon,name:city,country:d.address?.country||'',admin1:d.address?.state||'',timezone:''});
       }catch{
         selectCity({latitude:lat,longitude:lon,name:'Mana atrašanās vieta',country:'',admin1:'',timezone:''});
