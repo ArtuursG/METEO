@@ -21,7 +21,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -71,6 +73,7 @@
     <button class="tb" onclick="switchTab('wind',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg><span>Vējš</span></button>
     <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Tabula</span></button>
     <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Modeļi</span></button>
+    <button class="tb" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span>Radars</span></button>
   </div>
 
   <div class="tc">
@@ -122,6 +125,23 @@
             </tr></thead>
             <tbody id="tBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-radar">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Nokrišņu radars</span>
+          <span style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace">Dati: RainViewer</span>
+        </div>
+        <div id="radarMap"></div>
+        <div class="radar-ctrl">
+          <button class="mt" id="radarPrev" onclick="radarStep(-1)">◀</button>
+          <button class="mt" id="radarPlayBtn" onclick="radarTogglePlay()">▶ Animēt</button>
+          <button class="mt" id="radarNext" onclick="radarStep(1)">▶</button>
+          <span id="radarTime" style="font-size:12px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:4px">-</span>
+          <span id="radarStatus" style="font-size:12px;color:var(--t3);margin-left:8px"></span>
         </div>
       </div>
     </div>
