@@ -575,22 +575,12 @@ function buildUVChart(){
   const modelName=MODELS.find(m=>S.data[m.id]===src)?.name||'';
   if(meta)meta.textContent=modelName;
 
-  // Aggregate hourly → daily max UV (standard weather-app presentation)
-  const dailyMax={};
-  src.hourly.time.forEach((t,i)=>{
-    const day=t.slice(0,10);
-    const v=src.hourly.uv_index[i];
-    if(v!=null) dailyMax[day]=Math.max(dailyMax[day]??0, v);
-  });
-  const days=Object.keys(dailyMax);
-  const vals=days.map(d=>dailyMax[d]??0);
-
-  const dn=['Sv','Pr','Ot','Tr','Ce','Pk','Se'];
-  const labels=days.map(d=>{
-    const dt=new Date(d+'T12:00:00');
-    const mo=dt.toLocaleDateString('lv-LV',{month:'short'}).replace('.','.');
-    return `${dn[dt.getDay()]} ${dt.getDate()}. ${mo}`;
-  });
+  // Hourly chart: start from current hour, show 5 days ahead
+  const now=new Date();
+  const startIdx=Math.max(0,src.hourly.time.findIndex(t=>new Date(t)>=now));
+  const times=src.hourly.time.slice(startIdx,startIdx+5*24);
+  const vals=src.hourly.uv_index.slice(startIdx,startIdx+5*24);
+  const labels=times.map(fmtHour);
 
   const cd=CD();
   showChart('loadUV','cUV');
@@ -598,20 +588,22 @@ function buildUVChart(){
   S.charts.uv=new Chart($('cUV'),{
     type:'bar',
     data:{labels,datasets:[{
-      data:vals,
-      backgroundColor:vals.map(uvColor),
+      data:vals.map(v=>v??0),
+      backgroundColor:vals.map(v=>uvColor(v??0)),
       borderWidth:0,
-      borderRadius:4,
+      borderRadius:3,
+      barPercentage:0.85,
+      categoryPercentage:0.85,
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxRotation:0,autoSkip:false}},
-        y:{...cd.scales.y,min:0,suggestedMax:11,
-           ticks:{...cd.scales.y.ticks,stepSize:1,callback:v=>'UV '+v}}
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:20}},
+        y:{...cd.scales.y,min:0,suggestedMax:8,
+           ticks:{...cd.scales.y.ticks,stepSize:1,callback:v=>v>0?v:''}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
-        title:items=>labels[items[0].dataIndex],
-        label:c=>` UV ${Math.round(c.parsed.y)} · ${uvLabel(c.parsed.y)}`
+        title:items=>fmtTooltipTitle(times,items[0].dataIndex),
+        label:c=>c.parsed.y>0?` UV ${Math.round(c.parsed.y)} · ${uvLabel(c.parsed.y)}`:' Nav UV'
       }}}
     }
   });
@@ -619,13 +611,22 @@ function buildUVChart(){
   const leg=$('legUV');
   if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
 
-  // Daily UV table
-  const tbl=$('uvTable'), tbody=$('uvBody');
-  if(tbl&&tbody){
+  // Daily UV table — next 5 calendar days, daily max from full hourly data
+  const today=new Date().toISOString().slice(0,10);
+  const dailyMax={};
+  src.hourly.time.forEach((t,i)=>{
+    const d=t.slice(0,10);
+    if(d<today) return;
+    const v=src.hourly.uv_index[i];
+    if(v!=null) dailyMax[d]=Math.max(dailyMax[d]??0,v);
+  });
+  const days=Object.keys(dailyMax).sort().slice(0,5);
+  const tbl=$('uvTable'),tbody=$('uvBody');
+  if(tbl&&tbody&&days.length){
     const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
-    tbody.innerHTML=days.map((d,i)=>{
+    tbody.innerHTML=days.map(d=>{
       const dt=new Date(d+'T12:00:00');
-      const v=Math.round(vals[i]);
+      const v=Math.round(dailyMax[d]);
       const lv=UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4];
       return `<tr><td>${dn[dt.getDay()]}, ${dt.getDate()}. ${dt.toLocaleDateString('lv-LV',{month:'long'})}</td><td><strong>${v}</strong></td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:${lv.color};color:#fff;font-size:12px">${lv.label}</span></td></tr>`;
     }).join('');
