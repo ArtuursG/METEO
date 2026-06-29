@@ -611,27 +611,6 @@ function buildUVChart(){
   const leg=$('legUV');
   if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
 
-  // Daily UV table — next 5 calendar days, daily max from full hourly data
-  const today=new Date().toISOString().slice(0,10);
-  const dailyMax={};
-  src.hourly.time.forEach((t,i)=>{
-    const d=t.slice(0,10);
-    if(d<today) return;
-    const v=src.hourly.uv_index[i];
-    if(v!=null) dailyMax[d]=Math.max(dailyMax[d]??0,v);
-  });
-  const days=Object.keys(dailyMax).sort().slice(0,5);
-  const tbl=$('uvTable'),tbody=$('uvBody');
-  if(tbl&&tbody&&days.length){
-    const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
-    tbody.innerHTML=days.map(d=>{
-      const dt=new Date(d+'T12:00:00');
-      const v=Math.round(dailyMax[d]);
-      const lv=UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4];
-      return `<tr><td>${dn[dt.getDay()]}, ${dt.getDate()}. ${dt.toLocaleDateString('lv-LV',{month:'long'})}</td><td><strong>${v}</strong></td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:${lv.color};color:#fff;font-size:12px">${lv.label}</span></td></tr>`;
-    }).join('');
-    tbl.style.display='table';
-  }
 }
 
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
