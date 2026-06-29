@@ -842,11 +842,13 @@ function shareTG(){
 }
 
 // ─── GEOLOCATION ──────────────────────────────────────────────────────────────
-// Uses Nominatim reverse geocoding to resolve browser coordinates to a city name
-async function locateMe(){
-  if(!navigator.geolocation)return;
+// Uses Nominatim reverse geocoding to resolve browser coordinates to a city name.
+// Pass auto=true on page load: shows status text and falls back to loadAll() on failure.
+async function locateMe(auto=false){
+  if(!navigator.geolocation){ if(auto) loadAll(); return; }
   const btn=document.querySelector('.lbtn');
   if(btn)btn.classList.add('loading');
+  if(auto) $('heroSub').textContent='Nosaka atrašanās vietu...';
   navigator.geolocation.getCurrentPosition(
     async pos=>{
       if(btn)btn.classList.remove('loading');
@@ -861,7 +863,8 @@ async function locateMe(){
         selectCity({latitude:lat,longitude:lon,name:'Mana atrašanās vieta',country:'',admin1:'',timezone:''});
       }
     },
-    ()=>{if(btn)btn.classList.remove('loading');}
+    ()=>{ if(btn)btn.classList.remove('loading'); if(auto) loadAll(); },
+    {timeout:5000}
   );
 }
 
@@ -951,4 +954,9 @@ loadFromURL();
 renderThemeIcon();
 buildToggles();
 buildModelInfo();
-loadAll();
+// If URL already has coordinates (shared link), load immediately; otherwise auto-geolocate
+if(new URLSearchParams(location.search).has('lat')){
+  loadAll();
+}else{
+  locateMe(true);
+}
