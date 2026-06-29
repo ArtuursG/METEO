@@ -25,28 +25,28 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Temperature, feels like (apparent temperature), today's max/min
 - Wind speed with **rotating direction arrow** and 16-point compass label (Latvian: Z/A/D/R = N/E/S/W)
 - Humidity and current precipitation
-- Sunrise and sunset times with **moon phase icon** (monochrome SVG, pure math — no API call)
+- Sunrise and sunset times with **moon phase icon** (monochrome SVG, pure math - no API call)
 - All metrics sourced from ECMWF IFS (falls back to first available model)
 
 ### Precipitation radar
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
 - Step through frames manually (◀ ▶) or play as animation
 - Light **CartoDB Positron** base map
-- Lazy-initialised — Leaflet only loads when the Radar tab is opened
+- Lazy-initialised - Leaflet only loads when the Radar tab is opened
 
 ### City search
-- **Auto-geolocation** on page load — requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
-- **Live autocomplete** — suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
+- **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
+- **Live autocomplete** - suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
 - Browser **geolocation** button also available in the search bar
-- **Recent search history** — last 5 cities shown when search is focused and empty (localStorage)
-- Shareable URLs — location encoded in query params (`?lat=&lon=&city=&country=`); shared links skip auto-geolocation
+- **Recent search history** - last 5 cities shown when search is focused and empty (localStorage)
+- Shareable URLs - location encoded in query params (`?lat=&lon=&city=&country=`); shared links skip auto-geolocation
 
 ### Share
 - WhatsApp and Telegram share buttons with pre-filled city name and current URL
 
 ### UI / Theme
 - Light and dark theme (saved to localStorage, applied before page render to avoid flash)
-- Fully **mobile responsive** — adapted header and layout for small screens
+- Fully **mobile responsive** - adapted header and layout for small screens
 - Installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
 
 ---
@@ -100,10 +100,10 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 
 ### Key implementation details
 
-- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 14 requests saved per location per hour. Prefix `wx6_` — bumped when API request parameters change to invalidate stale data.
+- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 14 requests saved per location per hour. Prefix `wx6_` - bumped when API request parameters change to invalidate stale data.
 - **Parallel fetching** - all 14 models fetched simultaneously with `Promise.allSettled`; individual failures silently skipped.
 - **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 5 progressively reduced variable sets: full → no current → no precipitation probability → no UV index → no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
-- **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped — a plain array existence check is insufficient.
+- **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped - a plain array existence check is insufficient.
 - **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) → dark slate (overcast).
 - **Moon phase** - computed client-side using a reference new moon (Jan 6 2000 18:14 UTC) and the 29.53-day synodic cycle. Rendered as a monochrome SVG using two SVG arcs: an outer semicircle (the lit hemisphere boundary) and an elliptical terminator arc whose sweep direction flips between crescent and gibbous phases.
 - **Auto-geolocation** - on load without URL coords, `getCurrentPosition` is called immediately. Loading starts with a placeholder city name; Nominatim resolves the real name in the background without blocking data fetch. If geolocation is denied or times out (5 s), falls back to the default location (Rīga).
