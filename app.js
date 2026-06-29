@@ -559,10 +559,24 @@ function buildUVChart(){
   const modelName=MODELS.find(m=>S.data[m.id]===src)?.name||'';
   if(meta)meta.textContent=modelName;
 
-  const labels=src.hourly.time.map(fmtHour);
-  const vals=src.hourly.uv_index;
-  const cd=CD();
+  // Aggregate hourly → daily max UV (standard weather-app presentation)
+  const dailyMax={};
+  src.hourly.time.forEach((t,i)=>{
+    const day=t.slice(0,10);
+    const v=src.hourly.uv_index[i];
+    if(v!=null) dailyMax[day]=Math.max(dailyMax[day]??0, v);
+  });
+  const days=Object.keys(dailyMax);
+  const vals=days.map(d=>dailyMax[d]??0);
 
+  const dn=['Sv','Pr','Ot','Tr','Ce','Pk','Se'];
+  const labels=days.map(d=>{
+    const dt=new Date(d+'T12:00:00');
+    const mo=dt.toLocaleDateString('lv-LV',{month:'short'}).replace('.','.');
+    return `${dn[dt.getDay()]} ${dt.getDate()}. ${mo}`;
+  });
+
+  const cd=CD();
   showChart('loadUV','cUV');
   if(S.charts.uv)S.charts.uv.destroy();
   S.charts.uv=new Chart($('cUV'),{
@@ -571,20 +585,21 @@ function buildUVChart(){
       data:vals,
       backgroundColor:vals.map(uvColor),
       borderWidth:0,
-      borderRadius:3,
+      borderRadius:4,
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        y:{...cd.scales.y,min:0,ticks:{...cd.scales.y.ticks,stepSize:1}}
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxRotation:0,autoSkip:false}},
+        y:{...cd.scales.y,min:0,suggestedMax:11,
+           ticks:{...cd.scales.y.ticks,stepSize:1,callback:v=>'UV '+v}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
-        title:items=>fmtTooltipTitle(src.hourly.time,items[0].dataIndex),
+        title:items=>labels[items[0].dataIndex],
         label:c=>` UV ${Math.round(c.parsed.y)} · ${uvLabel(c.parsed.y)}`
       }}}
     }
   });
 
-  // Static UV level legend
   const leg=$('legUV');
   if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
 }
