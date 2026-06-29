@@ -580,8 +580,11 @@ async function fetchModel(m){
   const vars='temperature_2m,precipitation,precipitation_probability,wind_speed_10m';
   const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
-  const r=await fetch(url);
+  const base=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
+
+  // Try with current conditions; some models reject certain current variables with 400
+  let r=await fetch(`${base}&current=${cur}`);
+  if(r.status===400) r=await fetch(base);
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
   setCache(m.id,S.lat,S.lon,data);
@@ -817,12 +820,12 @@ async function initRadar(){
     _rMap.invalidateSize(); // recalculate size after tab becomes visible
     return;
   }
-  _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
+  _rMap=L.map('radarMap',{maxZoom:18}).setView([S.lat,S.lon],6);
 
   // Light base tiles — CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
-    maxZoom:19,
+    maxZoom:18,
     subdomains:'abcd'
   }).addTo(_rMap);
 
