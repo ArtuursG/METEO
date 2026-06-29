@@ -562,7 +562,8 @@ function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
 function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
 
 function buildUVChart(){
-  // Prefer ECMWF → GFS → any model with actual (non-null) UV values
+  // Some models return uv_index:[null,null,...] instead of omitting the field — .some() is needed
+  // because a plain truthiness check would select those models and render as invisible all-zero bars.
   const hasUV=d=>d?.hourly?.uv_index?.some(v=>v!=null);
   const src=[S.data['ecmwf_ifs025'],S.data['gfs_seamless'],...Object.values(S.data)].find(hasUV);
   const meta=$('uvMeta');
@@ -669,7 +670,8 @@ function moonPhaseInfo(){
     // Terminator ellipse x-radius shrinks from r (quarter) to 0 (quarter) symmetrically
     const ex=(Math.abs(Math.cos(frac*2*Math.PI))*r).toFixed(2);
     const outerSweep=waxing?1:0; // right (waxing) or left (waning) semicircle
-    // Gibbous phases (between quarters): terminator sweeps 1, crescent phases: 0
+    // Terminator arc must curve toward the lit hemisphere to close the shape.
+    // Between the two quarter moons (gibbous illumination) the sweep direction flips.
     const termSweep=(frac>0.25&&frac<0.75)?1:0;
     const outline=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="0.7" opacity="0.35"/>`;
     const lit=`<path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 ${outerSweep} ${cx} ${cy+r} A ${ex} ${r} 0 0 ${termSweep} ${cx} ${cy-r} Z" fill="currentColor"/>`;
