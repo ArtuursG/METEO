@@ -809,7 +809,6 @@ async function locateMe(){
 
 // ─── RADAR ────────────────────────────────────────────────────────────────────
 let _rMap=null, _rLayer=null, _rFrames=[], _rIdx=0, _rTimer=null;
-let _blitzWS=null, _blitzMarkers=[], _blitzCleanTimer=null;
 
 // Lazy-initializes the Leaflet map; safe to call multiple times
 async function initRadar(){
@@ -822,13 +821,12 @@ async function initRadar(){
 
   // Light base tiles — CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Zibeni: <a href="https://www.blitzortung.org" target="_blank">Blitzortung</a>',
+    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
     maxZoom:19,
     subdomains:'abcd'
   }).addTo(_rMap);
 
   await loadRadarFrames();
-  connectBlitzortung();
 }
 
 async function loadRadarFrames(){
@@ -887,97 +885,6 @@ function radarTogglePlay(){
   },500);
 }
 
-// ─── LIGHTNING (BLITZORTUNG) ──────────────────────────────────────────────────
-// Blitzortung provides real-time community lightning strike data via WebSocket
-const BLITZ_SERVERS=[
-  'wss://ws.blitzortung.org:8002/',
-  'wss://ws.blitzortung.org:8006/',
-  'wss://ws.blitzortung.org:8007/',
-  'wss://ws.blitzortung.org:8100/',
-  'wss://ws.blitzortung.org:8101/',
-];
-
-function setBlitzStatus(text){
-  const el=$('blitzStatus');
-  if(el)el.textContent=text;
-}
-
-function connectBlitzortung(){
-  if(!_rMap)return;
-  if(_blitzWS&&(_blitzWS.readyState===WebSocket.OPEN||_blitzWS.readyState===WebSocket.CONNECTING))return;
-
-  const url=BLITZ_SERVERS[Math.floor(Math.random()*BLITZ_SERVERS.length)];
-  console.log('[Blitzortung] connecting to',url);
-  _blitzWS=new WebSocket(url);
-
-  _blitzWS.onopen=()=>{
-    console.log('[Blitzortung] connected');
-    setBlitzStatus('⚡ savienots');
-    // Send empty subscription object — required by most Blitzortung server versions
-    try{_blitzWS.send('{}');}catch{}
-  };
-
-  _blitzWS.onmessage=e=>{
-    // Handle binary frames gracefully (some servers send gzip)
-    if(e.data instanceof ArrayBuffer||e.data instanceof Blob){
-      console.log('[Blitzortung] binary frame, skipping');
-      return;
-    }
-    try{
-      const d=JSON.parse(e.data);
-      // Blitzortung server versions use different field names
-      const lat=d.lat??d.lati??d.latitude;
-      const lon=d.lon??d.long??d.longitude??d.lng;
-      if(lat!=null&&lon!=null){
-        addLightningMarker(Number(lat),Number(lon));
-      } else {
-        // Log first few unexpected packets to help diagnose format changes
-        console.log('[Blitzortung] unknown packet:',JSON.stringify(d).slice(0,120));
-      }
-    }catch(err){
-      console.warn('[Blitzortung] parse error:',err.message,
-        typeof e.data==='string'?e.data.slice(0,80):'?');
-    }
-  };
-
-  _blitzWS.onclose=evt=>{
-    console.log('[Blitzortung] closed',evt.code,evt.reason||'');
-    setBlitzStatus('');
-    setTimeout(connectBlitzortung,5000);
-  };
-  _blitzWS.onerror=()=>{
-    console.error('[Blitzortung] connection error — retrying in 5 s');
-    setBlitzStatus('');
-    _blitzWS.close();
-  };
-
-  if(!_blitzCleanTimer)_blitzCleanTimer=setInterval(cleanLightningMarkers,5000);
-}
-
-function addLightningMarker(lat,lon){
-  if(!_rMap)return;
-  const m=L.circleMarker([lat,lon],{
-    radius:4,
-    color:'#ffe066',
-    fillColor:'#ffffff',
-    fillOpacity:1,
-    weight:2,
-    opacity:1
-  }).addTo(_rMap);
-  _blitzMarkers.push({m,born:Date.now()});
-}
-
-// Fades out markers older than 5 min, removes those older than 10 min
-function cleanLightningMarkers(){
-  const now=Date.now();
-  _blitzMarkers=_blitzMarkers.filter(({m,born})=>{
-    const age=(now-born)/1000;
-    if(age>600){_rMap.removeLayer(m);return false;}
-    const op=Math.max(0.08,1-age/600);
-    m.setStyle({opacity:op,fillOpacity:op});
-    return true;
-  });
-}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 loadFromURL();
