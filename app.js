@@ -536,15 +536,36 @@ function buildTable(){
 }
 
 // ─── CURRENT METRICS ─────────────────────────────────────────────────────────
-// Returns moon phase emoji and Latvian name for today based on lunar cycle math
+// Returns a monochrome SVG moon phase icon and Latvian name based on lunar cycle math
 function moonPhaseInfo(){
   const ref=new Date('2000-01-06T18:14:00Z'); // reference new moon (Jan 6, 2000)
   const cycle=29.53058867;
   const days=((Date.now()-ref)/86400000%cycle+cycle)%cycle;
-  const i=Math.floor(days/cycle*8)%8;
-  const emojis=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-  const names=['Jaunmēness','Pieaugošs pusmēness','Pirmais ceturksnis','Pieaugošs','Pilnmēness','Dilstošs','Pēdējais ceturksnis','Dilstošs pusmēness'];
-  return {emoji:emojis[i],name:names[i]};
+  const frac=days/cycle; // 0=new, 0.5=full, 1=new
+  const i=Math.floor(frac*8)%8;
+  const names=['Jaunmēness','Augošs pusmēness','Pirmais ceturksnis','Augošs','Pilnmēness','Dilstošs','Pēdējais ceturksnis','Dilstošs pusmēness'];
+
+  // Build SVG using two arcs: outer semicircle + terminator ellipse
+  const r=6,s=16,cx=8,cy=8;
+  let svg;
+  if(frac<0.02||frac>0.98){
+    // New moon — just a circle outline
+    svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`;
+  } else if(frac>0.48&&frac<0.52){
+    // Full moon — filled circle
+    svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor"/></svg>`;
+  } else {
+    const waxing=frac<0.5;
+    // Terminator ellipse x-radius shrinks from r (quarter) to 0 (quarter) symmetrically
+    const ex=(Math.abs(Math.cos(frac*2*Math.PI))*r).toFixed(2);
+    const outerSweep=waxing?1:0; // right (waxing) or left (waning) semicircle
+    // Gibbous phases (between quarters): terminator sweeps 1, crescent phases: 0
+    const termSweep=(frac>0.25&&frac<0.75)?1:0;
+    const outline=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="0.7" opacity="0.35"/>`;
+    const lit=`<path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 ${outerSweep} ${cx} ${cy+r} A ${ex} ${r} 0 0 ${termSweep} ${cx} ${cy-r} Z" fill="currentColor"/>`;
+    svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}">${outline}${lit}</svg>`;
+  }
+  return {svg, name:names[i]};
 }
 
 // Populates the metrics row and hero sunrise/sunset using ECMWF as primary source
@@ -579,7 +600,7 @@ function updateMetrics(){
     const sunEl=$('heroSun');
     const moon=moonPhaseInfo();
     if(sunEl)sunEl.innerHTML=
-      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/></svg>${rise}&nbsp;&nbsp;<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/><path d="M19 14l-7 5-7-5" stroke-width="1.5"/></svg>${set}<span class="hero-sun-sep">·</span><span class="hero-moon" title="${moon.name}">${moon.emoji}</span><span class="hero-moon-name">${moon.name}</span>`;
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/></svg>${rise}&nbsp;&nbsp;<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v2M4.22 4.22l1.42 1.42M18.36 4.22l-1.42 1.42M2 10h2M20 10h2"/><path d="M5 19h14"/><path d="M19 14l-7 5-7-5" stroke-width="1.5"/></svg>${set}<span class="hero-sun-sep">·</span><span class="hero-moon" title="${moon.name}">${moon.svg}</span><span class="hero-moon-name">${moon.name}</span>`;
   }
 }
 
