@@ -834,7 +834,7 @@ async function initRadar(){
     _rMap.invalidateSize(); // recalculate size after tab becomes visible
     return;
   }
-  _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
+  _rMap=L.map('radarMap',{maxZoom:13}).setView([S.lat,S.lon],6);
 
   // Light base tiles — CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
