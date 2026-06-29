@@ -8,7 +8,6 @@ const MODELS = [
   { id:'icon_seamless',             name:'ICON (global)', flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)',        res:'11km',  days:7,  color:'#eda100', dash:[4,2] },
   { id:'icon_eu',                   name:'ICON-EU',       flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)',        res:'7km',   days:5,  color:'#eb6834', dash:[2,2] },
   { id:'gem_seamless',              name:'GEM',           flag:'🇨🇦', org:'Canadian Weather Service', res:'15km',  days:10, color:'#e34948', dash:[8,4] },
-  { id:'access_global',             name:'ACCESS-G',      flag:'🇦🇺', org:'BOM (Australia)',      res:'12km',  days:10, color:'#9085e9', dash:[10,3,2,3] },
   { id:'ukmo_seamless',             name:'UKMO',          flag:'🇬🇧', org:'Met Office (UK)',      res:'10km',  days:7,  color:'#e87ba4', dash:[3,3] },
   { id:'metno_seamless',            name:'MET Norway',    flag:'🇳🇴', org:'MET Norway',           res:'1km',   days:10, color:'#B75074', dash:[5,2,1,2] },
   { id:'meteofrance_seamless',      name:'Météo-France',  flag:'🇫🇷', org:'Météo-France',        res:'1.5km', days:4,  color:'#805CD3', dash:[7,2] },

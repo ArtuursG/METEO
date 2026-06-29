@@ -1,6 +1,6 @@
 # prognoze.lv - Weather Forecast Model Comparison
 
-Free meteorological forecast site displaying **15 leading global weather models** simultaneously for easy comparison.
+Free meteorological forecast site displaying **14 leading global weather models** simultaneously for easy comparison.
 
 - **[Open site](https://artuursg.github.io/METEO/)**
 
@@ -59,17 +59,16 @@ Free meteorological forecast site displaying **15 leading global weather models*
 | 4 | ICON (global) | DWD (Germany) | 11 km | 7 |
 | 5 | ICON-EU | DWD (Germany) | 7 km | 5 |
 | 6 | GEM | Canadian Weather Service | 15 km | 10 |
-| 7 | ACCESS-G | BOM (Australia) | 12 km | 10 |
-| 8 | UKMO | Met Office (UK) | 10 km | 7 |
-| 9 | MET Norway | MET Norway | 1 km | 10 |
-| 10 | Meteo-France | Meteo-France | 1.5 km | 4 |
-| 11 | ARPEGE Europe | Meteo-France | 10 km | 4 |
-| 12 | JMA | JMA (Japan) | 13 km | 11 |
-| 13 | CMA GRAPES | CMA (China) | 15 km | 10 |
-| 14 | HARMONIE NL | KNMI (Netherlands) | 2.5 km | 2 |
-| 15 | HARMONIE DK | DMI (Denmark) | 2 km | 3 |
+| 7 | UKMO | Met Office (UK) | 10 km | 7 |
+| 8 | MET Norway | MET Norway | 1 km | 10 |
+| 9 | Meteo-France | Meteo-France | 1.5 km | 4 |
+| 10 | ARPEGE Europe | Meteo-France | 10 km | 4 |
+| 11 | JMA | JMA (Japan) | 13 km | 11 |
+| 12 | CMA GRAPES | CMA (China) | 15 km | 10 |
+| 13 | HARMONIE NL | KNMI (Netherlands) | 2.5 km | 2 |
+| 14 | HARMONIE DK | DMI (Denmark) | 2 km | 3 |
 
-All 15 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions. Regional models (HARMONIE NL, HARMONIE DK) are skipped automatically for cities outside their geographic coverage.
+All 14 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions. Regional models (HARMONIE NL, HARMONIE DK) are skipped automatically for cities outside their geographic coverage.
 
 ---
 
