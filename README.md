@@ -9,22 +9,23 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ## Features
 
 ### Forecast charts
-- **Temperature** - hourly 2m temperature for up to 16 days, all 15 models overlaid on one chart; toggle each model on/off
+- **Temperature** - hourly 2m temperature for up to 16 days, all 14 models overlaid on one chart; toggle each model on/off
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly % from all models that provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
+- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear → overcast)
+- **UV index** - hourly UV index starting from the current hour, next 5 days; colour-coded bars (Low → Extreme); ECMWF IFS primary, GFS fallback
 - **Crosshair** - vertical dashed line follows the cursor across all charts for precise value reading
 
 ### Daily forecast table
 - Day-by-day summary: max/min temperature, precipitation, precipitation probability, max wind, cloud cover, humidity
 - Switchable between ECMWF IFS, ICON-EU and MET Norway
-- Temperature colour coding: hot / warm / cool / cold
 
 ### Current conditions (metrics row)
 - Temperature, feels like (apparent temperature), today's max/min
 - Wind speed with **rotating direction arrow** and 16-point compass label (Latvian: Z/A/D/R = N/E/S/W)
 - Humidity and current precipitation
-- Sunrise and sunset times (from ECMWF daily data)
+- Sunrise and sunset times with **moon phase icon** (monochrome SVG, pure math — no API call)
 - All metrics sourced from ECMWF IFS (falls back to first available model)
 
 ### Precipitation radar
@@ -34,10 +35,11 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Lazy-initialised — Leaflet only loads when the Radar tab is opened
 
 ### City search
+- **Auto-geolocation** on page load — requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
 - **Live autocomplete** — suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
-- Browser **geolocation** button with Nominatim reverse geocoding and extended address fallback chain
+- Browser **geolocation** button also available in the search bar
 - **Recent search history** — last 5 cities shown when search is focused and empty (localStorage)
-- Shareable URLs — location encoded in query params (`?lat=&lon=&city=&country=`)
+- Shareable URLs — location encoded in query params (`?lat=&lon=&city=&country=`); shared links skip auto-geolocation
 
 ### Share
 - WhatsApp and Telegram share buttons with pre-filled city name and current URL
@@ -45,7 +47,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ### UI / Theme
 - Light and dark theme (saved to localStorage, applied before page render to avoid flash)
 - Fully **mobile responsive** — adapted header and layout for small screens
-- **PWA** — installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
+- Installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
 
 ---
 
@@ -68,7 +70,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 | 13 | HARMONIE NL | KNMI (Netherlands) | 2.5 km | 2 |
 | 14 | HARMONIE DK | DMI (Denmark) | 2 km | 3 |
 
-All 14 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions. Regional models (HARMONIE NL, HARMONIE DK) are skipped automatically for cities outside their geographic coverage.
+All 14 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions and UV index. Regional models (HARMONIE NL, HARMONIE DK) are skipped automatically for cities outside their geographic coverage.
 
 ---
 
@@ -89,7 +91,7 @@ All 14 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 ```
 index.html            - structure and markup
 style.css             - CSS custom properties for light/dark theme, responsive layout
-app.js                - all application logic (~920 lines, depends on Chart.js and Leaflet)
+app.js                - all application logic (~1080 lines, depends on Chart.js and Leaflet)
 sw.js                 - service worker for PWA offline caching
 manifest.json         - PWA manifest (name, icons, display mode)
 favicon.svg           - inline SVG icon (sun + cloud)
@@ -98,9 +100,13 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 
 ### Key implementation details
 
-- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 15 requests saved per location per hour. Prefix `wx5_` — bumped when API request parameters change to invalidate stale data.
-- **Parallel fetching** - all 15 models fetched simultaneously with `Promise.allSettled`; individual failures silently skipped.
-- **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 4 progressively reduced variable sets: full → no current → no precipitation probability → no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
+- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 14 requests saved per location per hour. Prefix `wx6_` — bumped when API request parameters change to invalidate stale data.
+- **Parallel fetching** - all 14 models fetched simultaneously with `Promise.allSettled`; individual failures silently skipped.
+- **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 5 progressively reduced variable sets: full → no current → no precipitation probability → no UV index → no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
+- **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped — a plain array existence check is insufficient.
+- **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) → dark slate (overcast).
+- **Moon phase** - computed client-side using a reference new moon (Jan 6 2000 18:14 UTC) and the 29.53-day synodic cycle. Rendered as a monochrome SVG using two SVG arcs: an outer semicircle (the lit hemisphere boundary) and an elliptical terminator arc whose sweep direction flips between crescent and gibbous phases.
+- **Auto-geolocation** - on load without URL coords, `getCurrentPosition` is called immediately. Loading starts with a placeholder city name; Nominatim resolves the real name in the background without blocking data fetch. If geolocation is denied or times out (5 s), falls back to the default location (Rīga).
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.
 - **Live autocomplete** - 300ms debounce on input + `AbortController` ensures max 1 active geocoding request regardless of typing speed.
 - **Crosshair plugin** - custom Chart.js plugin registered globally via `Chart.register()`; draws a vertical dashed line at the hovered x position using `chartArea` bounds.
@@ -108,7 +114,6 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
-- **PWA offline** - service worker caches the app shell (HTML/CSS/JS) on install; API calls bypass the SW cache and use the localStorage layer instead.
 
 ---
 
