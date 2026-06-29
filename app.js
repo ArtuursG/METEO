@@ -34,7 +34,7 @@ const S = {
   tableModel:   'ecmwf_ifs025',
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
-  cloudModels:  new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
+  cloudModel:   'ecmwf_ifs025',
   windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   charts: {},  // keyed by chart name, holds Chart.js instances
@@ -505,36 +505,49 @@ function setWindUnit(u){
 }
 
 // ─── CLOUD COVER CHART ───────────────────────────────────────────────────────
+const CLOUD_LEVELS=[
+  {max:25,  label:'Skaidrs',          color:'#9fd8ef'},
+  {max:50,  label:'Daļēji mākoņains', color:'#7bafc8'},
+  {max:75,  label:'Mākoņains',        color:'#8595a3'},
+  {max:100, label:'Apmācies',         color:'#5e6e7a'},
+];
+const cloudColor=v=>(CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).color;
+const cloudLabel=v=>(CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).label;
+
 function buildCloudChart(){
-  mkMultiSelector('cloudCardHd','cloudModels','Mākoņu sega (%) - modeļu salīdzinājums',buildCloudChart);
-  const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
-  if(!base?.hourly?.time)return;
+  mkModelSelector('cloudCardHd','cloudModel','Mākoņu sega (%)',buildCloudChart);
+  const src=S.data[S.cloudModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!src?.hourly?.time)return;
   const cd=CD();
-  const cap=5*24; // 5 days × 24 hours
-  const times=base.hourly.time.slice(0,cap);
+  const cap=5*24;
+  const times=src.hourly.time.slice(0,cap);
   const labels=times.map(fmtHour);
-  const datasets=MODELS
-    .filter(m=>S.cloudModels.has(m.id)&&S.data[m.id]?.hourly?.cloud_cover)
-    .map(m=>({
-      label:m.name,
-      data:S.data[m.id].hourly.cloud_cover.slice(0,cap),
-      borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
-    }));
+  const vals=(src.hourly.cloud_cover||[]).slice(0,cap);
   showChart('loadCl','cCl');
   if(S.charts.cloud)S.charts.cloud.destroy();
   S.charts.cloud=new Chart($('cCl'),{
-    type:'line',data:{labels,datasets},
+    type:'bar',
+    data:{labels,datasets:[{
+      data:vals,
+      backgroundColor:vals.map(v=>cloudColor(v??0)),
+      borderWidth:0,
+      borderRadius:0,
+      barPercentage:1.0,
+      categoryPercentage:1.0,
+    }]},
     options:{...cd,
       scales:{...cd.scales,
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:16}},
         y:{...cd.scales.y,min:0,max:100,ticks:{...cd.scales.y.ticks,callback:v=>v+'%'}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
         title:items=>fmtTooltipTitle(times,items[0].dataIndex),
-        label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y)}%`
+        label:c=>` ${Math.round(c.parsed.y)}% · ${cloudLabel(c.parsed.y)}`
       }}}
     }
   });
-  buildLegend('legCl',MODELS.filter(m=>S.cloudModels.has(m.id)&&S.data[m.id]?.hourly?.cloud_cover));
+  const leg=$('legCl');
+  if(leg) leg.innerHTML=CLOUD_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
 }
 
 // ─── UV INDEX CHART ───────────────────────────────────────────────────────────
