@@ -34,6 +34,7 @@ const S = {
   tableModel:   'ecmwf_ifs025',
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
+  cloudModels:  new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   charts: {},  // keyed by chart name, holds Chart.js instances
@@ -49,7 +50,7 @@ const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000; // 1 hour in ms
 // Prefix is bumped when API request variables change, to invalidate stale entries
-const CACHE_PFX='wx5_';
+const CACHE_PFX='wx6_';
 
 function getCached(id,lat,lon){
   try{
@@ -503,6 +504,91 @@ function setWindUnit(u){
   buildTable();
 }
 
+// ─── CLOUD COVER CHART ───────────────────────────────────────────────────────
+function buildCloudChart(){
+  mkMultiSelector('cloudCardHd','cloudModels','Mākoņu sega (%) - modeļu salīdzinājums',buildCloudChart);
+  const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  if(!base?.hourly?.time)return;
+  const cd=CD();
+  const labels=base.hourly.time.map(fmtHour);
+  const datasets=MODELS
+    .filter(m=>S.cloudModels.has(m.id)&&S.data[m.id]?.hourly?.cloud_cover)
+    .map(m=>({
+      label:m.name,
+      data:S.data[m.id].hourly.cloud_cover,
+      borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
+    }));
+  showChart('loadCl','cCl');
+  if(S.charts.cloud)S.charts.cloud.destroy();
+  S.charts.cloud=new Chart($('cCl'),{
+    type:'line',data:{labels,datasets},
+    options:{...cd,
+      scales:{...cd.scales,
+        y:{...cd.scales.y,min:0,max:100,ticks:{...cd.scales.y.ticks,callback:v=>v+'%'}}
+      },
+      plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
+        title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
+        label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y)}%`
+      }}}
+    }
+  });
+  buildLegend('legCl',MODELS.filter(m=>S.cloudModels.has(m.id)&&S.data[m.id]?.hourly?.cloud_cover));
+}
+
+// ─── UV INDEX CHART ───────────────────────────────────────────────────────────
+const UV_LEVELS=[
+  {max:2, label:'Zems',       color:'#57a838'},
+  {max:5, label:'Mērens',     color:'#f5c518'},
+  {max:7, label:'Augsts',     color:'#f77f00'},
+  {max:10,label:'Ļoti augsts',color:'#e8292a'},
+  {max:Infinity,label:'Ārkārtējs',color:'#9b4dca'},
+];
+function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
+function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
+
+function buildUVChart(){
+  // Use ECMWF as primary; fall back to first model with uv_index
+  const src=Object.values(S.data).find(d=>d?.hourly?.uv_index);
+  const meta=$('uvMeta');
+  if(!src?.hourly?.time){
+    if(meta)meta.textContent='Nav datu';
+    $('loadUV').style.display='none';
+    return;
+  }
+
+  const modelName=MODELS.find(m=>S.data[m.id]===src)?.name||'';
+  if(meta)meta.textContent=modelName;
+
+  const labels=src.hourly.time.map(fmtHour);
+  const vals=src.hourly.uv_index;
+  const cd=CD();
+
+  showChart('loadUV','cUV');
+  if(S.charts.uv)S.charts.uv.destroy();
+  S.charts.uv=new Chart($('cUV'),{
+    type:'bar',
+    data:{labels,datasets:[{
+      data:vals,
+      backgroundColor:vals.map(uvColor),
+      borderWidth:0,
+      borderRadius:3,
+    }]},
+    options:{...cd,
+      scales:{...cd.scales,
+        y:{...cd.scales.y,min:0,ticks:{...cd.scales.y.ticks,stepSize:1}}
+      },
+      plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
+        title:items=>fmtTooltipTitle(src.hourly.time,items[0].dataIndex),
+        label:c=>` UV ${Math.round(c.parsed.y)} · ${uvLabel(c.parsed.y)}`
+      }}}
+    }
+  });
+
+  // Static UV level legend
+  const leg=$('legUV');
+  if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
+}
+
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
   mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
@@ -619,20 +705,23 @@ async function fetchModel(m){
     return u;
   };
 
-  const h1='temperature_2m,precipitation,precipitation_probability,wind_speed_10m';
+  const h1='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
   const d1='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
-  // Reduced: no precipitation_probability (deterministic models don't have it)
-  const h2='temperature_2m,precipitation,wind_speed_10m';
+  // No precipitation_probability (deterministic models don't have it)
+  const h2='temperature_2m,precipitation,wind_speed_10m,cloud_cover,uv_index';
   const d2='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
+  // No uv_index (some regional models don't support it)
+  const h3='temperature_2m,precipitation,wind_speed_10m,cloud_cover';
   // Minimal: also drop cloud_cover_mean
   const d3='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,sunrise,sunset';
 
   // Cascade: some models reject variables they don't support with 400 instead of returning null.
   // Regional models (e.g. harmonie_knmi) also 400 for locations outside their geographic coverage.
   let r=await fetch(mk(h1,d1,cur)); // full request
-  if(r.status===400) r=await fetch(mk(h1,d1));  // drop current (some models reject certain current vars)
-  if(r.status===400) r=await fetch(mk(h2,d2));  // drop precipitation_probability (deterministic models)
-  if(r.status===400) r=await fetch(mk(h2,d3));  // drop cloud_cover_mean too
+  if(r.status===400) r=await fetch(mk(h1,d1));  // drop current
+  if(r.status===400) r=await fetch(mk(h2,d2));  // drop precipitation_probability
+  if(r.status===400) r=await fetch(mk(h3,d2));  // drop uv_index
+  if(r.status===400) r=await fetch(mk(h3,d3));  // drop cloud_cover_mean too
   if(!r.ok){
     console.warn(`[fetchModel] ${m.id} (${m.name}) failed all fallbacks — skipping`);
     throw new Error(r.status);
@@ -659,7 +748,7 @@ async function loadAll(){
   ));
 
   if(!Object.keys(S.data).length){
-    ['loadT','loadP','loadPP','loadW','loadTbl'].forEach(id=>{
+    ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{
       $(id).innerHTML='<div class="err">Neizdevās ielādēt datus. Pārbaudiet interneta savienojumu.</div>';
     });
     return;
@@ -669,6 +758,8 @@ async function loadAll(){
   rebuildTempChart();
   buildPrecipCharts();
   buildWindChart();
+  buildCloudChart();
+  buildUVChart();
   buildTable();
 }
 
