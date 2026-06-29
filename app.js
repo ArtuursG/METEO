@@ -595,11 +595,13 @@ async function fetchModel(m){
   // Minimal: also drop cloud_cover_mean
   const d3='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,sunrise,sunset';
 
-  let r=await fetch(mk(h1,d1,cur)); // full
-  if(r.status===400) r=await fetch(mk(h1,d1));  // no current
-  if(r.status===400) r=await fetch(mk(h2,d2));  // no probability
-  if(r.status===400) r=await fetch(mk(h2,d3));  // no probability + no cloud cover
-  if(!r.ok)throw new Error(r.status);
+  // Cascade: some models reject variables they don't support with 400 instead of returning null.
+  // Regional models (e.g. harmonie_knmi) also 400 for locations outside their geographic coverage.
+  let r=await fetch(mk(h1,d1,cur)); // full request
+  if(r.status===400) r=await fetch(mk(h1,d1));  // drop current (some models reject certain current vars)
+  if(r.status===400) r=await fetch(mk(h2,d2));  // drop precipitation_probability (deterministic models)
+  if(r.status===400) r=await fetch(mk(h2,d3));  // drop cloud_cover_mean too
+  if(!r.ok)throw new Error(r.status);           // give up — Promise.allSettled skips this model
   const data=await r.json();
   setCache(m.id,S.lat,S.lon,data);
   return data;
@@ -677,7 +679,11 @@ async function searchCity(){
     renderSearchResults(d.results);
   }catch(e){
     if(e.name==='AbortError')return; // superseded by a newer request — ignore silently
-    drop.innerHTML=`<div class="city-opt" style="color:#e66767;cursor:default">Kļūda: ${e.message}</div>`;
+    const errEl=document.createElement('div');
+    errEl.className='city-opt';
+    errEl.style.cssText='color:#e66767;cursor:default';
+    errEl.textContent=`Kļūda: ${e.message}`;
+    drop.appendChild(errEl);
   }
 }
 

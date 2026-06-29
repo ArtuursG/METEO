@@ -27,6 +27,12 @@ Free meteorological forecast site displaying **15 leading global weather models*
 - Sunrise and sunset times (from ECMWF daily data)
 - All metrics sourced from ECMWF IFS (falls back to first available model)
 
+### Precipitation radar
+- Interactive **RainViewer** radar map with past observations and short-range nowcast
+- Step through frames manually (◀ ▶) or play as animation
+- Light **CartoDB Positron** base map
+- Lazy-initialised — Leaflet only loads when the Radar tab is opened
+
 ### City search
 - **Live autocomplete** — suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
 - Browser **geolocation** button with Nominatim reverse geocoding and extended address fallback chain
@@ -63,7 +69,7 @@ Free meteorological forecast site displaying **15 leading global weather models*
 | 14 | HARMONIE NL | KNMI (Netherlands) | 2.5 km | 2 |
 | 15 | HARMONIE DK | DMI (Denmark) | 2 km | 3 |
 
-All 15 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions.
+All 15 models cover Latvia. ICON-EU and MET Norway are default models for the precipitation and wind charts. ECMWF IFS is the primary source for current conditions. Regional models (HARMONIE NL, HARMONIE DK) are skipped automatically for cities outside their geographic coverage.
 
 ---
 
@@ -71,9 +77,12 @@ All 15 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 
 - **HTML / CSS / JavaScript** - no framework, no build tools
 - **[Chart.js 4.4.1](https://www.chartjs.org/)** - interactive charts (CDN, SRI integrity hash)
+- **[Leaflet 1.9.4](https://leafletjs.com/)** - interactive radar map (CDN, SRI integrity hash)
 - **[Open-Meteo API](https://open-meteo.com/)** - free meteorological data (CC BY 4.0), no API key required
 - **[Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)** - city search with live autocomplete
 - **[Nominatim](https://nominatim.openstreetmap.org/)** - reverse geocoding for browser geolocation
+- **[RainViewer](https://www.rainviewer.com/api.html)** - free precipitation radar tiles, no API key required
+- **[CartoDB Positron](https://carto.com/basemaps/)** - light minimal base map tiles
 - **GitHub Pages** - free static hosting via GitHub Actions
 
 ## Architecture
@@ -81,7 +90,7 @@ All 15 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 ```
 index.html            - structure and markup
 style.css             - CSS custom properties for light/dark theme, responsive layout
-app.js                - all application logic (~800 lines, no dependencies beyond Chart.js)
+app.js                - all application logic (~920 lines, depends on Chart.js and Leaflet)
 sw.js                 - service worker for PWA offline caching
 manifest.json         - PWA manifest (name, icons, display mode)
 favicon.svg           - inline SVG icon (sun + cloud)
@@ -90,13 +99,16 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 
 ### Key implementation details
 
-- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 15 requests saved per location per hour. Prefix `wx4_` — bumped when API request parameters change to invalidate stale data.
+- **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 15 requests saved per location per hour. Prefix `wx5_` — bumped when API request parameters change to invalidate stale data.
 - **Parallel fetching** - all 15 models fetched simultaneously with `Promise.allSettled`; individual failures silently skipped.
+- **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 4 progressively reduced variable sets: full → no current → no precipitation probability → no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.
 - **Live autocomplete** - 300ms debounce on input + `AbortController` ensures max 1 active geocoding request regardless of typing speed.
 - **Crosshair plugin** - custom Chart.js plugin registered globally via `Chart.register()`; draws a vertical dashed line at the hovered x position using `chartArea` bounds.
+- **Radar** - Leaflet map lazy-initialised on first tab open. RainViewer frames fetched from their public JSON API; each frame is a tile layer added/removed on step. Radar tiles capped at `maxNativeZoom: 6` (Leaflet upscales for closer views). Map zoom capped at 13.
+- **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
-- **XSS prevention** - city search results use `textContent` instead of `innerHTML` for all API-returned strings.
+- **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
 - **PWA offline** - service worker caches the app shell (HTML/CSS/JS) on install; API calls bypass the SW cache and use the localStorage layer instead.
 
 ---
@@ -121,4 +133,4 @@ The app opens fullscreen without browser chrome and works offline for the app sh
 
 ---
 
-Data: [Open-Meteo](https://open-meteo.com) - License: CC BY 4.0
+Data: [Open-Meteo](https://open-meteo.com) - License: CC BY 4.0 · Radar: [RainViewer](https://www.rainviewer.com)
