@@ -153,6 +153,8 @@ function switchTab(tab,btn){
   document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
   btn.classList.add('active');
   $('tab-'+tab).classList.add('on');
+  // Radar map initializes lazily on first open (no requests until tab is clicked)
+  if(tab==='radar')initRadar();
 }
 
 // ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
@@ -803,6 +805,83 @@ async function locateMe(){
     },
     ()=>{if(btn)btn.classList.remove('loading');}
   );
+}
+
+// ─── RADAR ────────────────────────────────────────────────────────────────────
+let _rMap=null, _rLayer=null, _rFrames=[], _rIdx=0, _rTimer=null;
+
+// Lazy-initializes the Leaflet map; safe to call multiple times
+async function initRadar(){
+  if(_rMap){
+    _rMap.setView([S.lat,S.lon],6);
+    _rMap.invalidateSize(); // recalculate size after tab becomes visible
+    return;
+  }
+  _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
+
+  // Base tiles — OpenStreetMap (HTTPS only)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
+    maxZoom:18
+  }).addTo(_rMap);
+
+  await loadRadarFrames();
+}
+
+async function loadRadarFrames(){
+  try{
+    $('radarStatus').textContent='Ielādē...';
+    const r=await fetch('https://api.rainviewer.com/public/weather-maps.json');
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    // Combine past observations with nowcast frames
+    _rFrames=[...(d.radar.past||[]),...(d.radar.nowcast||[])];
+    if(!_rFrames.length)throw new Error('empty');
+    showRadarFrame(_rFrames.length-1); // show most recent frame first
+    updateRadarUI();
+    $('radarStatus').textContent='';
+  }catch{
+    $('radarStatus').textContent='Neizdevās ielādēt radara datus.';
+  }
+}
+
+function showRadarFrame(idx){
+  if(_rLayer)_rMap.removeLayer(_rLayer);
+  const f=_rFrames[idx];
+  // Tile URL hardcoded to known RainViewer domain — no user input involved
+  _rLayer=L.tileLayer(
+    `https://tilecache.rainviewer.com${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
+    {opacity:0.65,tileSize:256,zIndex:2}
+  ).addTo(_rMap);
+  _rIdx=idx;
+}
+
+function updateRadarUI(){
+  if(!_rFrames.length)return;
+  const t=new Date(_rFrames[_rIdx].time*1000);
+  const label=t.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+  const isLatest=_rIdx===_rFrames.length-1;
+  $('radarTime').textContent=isLatest?`Tagad · ${label}`:label;
+  $('radarPrev').disabled=_rIdx===0;
+  $('radarNext').disabled=isLatest;
+}
+
+function radarStep(dir){
+  const next=_rIdx+dir;
+  if(next>=0&&next<_rFrames.length){showRadarFrame(next);updateRadarUI();}
+}
+
+function radarTogglePlay(){
+  if(_rTimer){
+    clearInterval(_rTimer);_rTimer=null;
+    $('radarPlayBtn').textContent='▶ Animēt';
+    return;
+  }
+  $('radarPlayBtn').textContent='⏸ Apturēt';
+  _rTimer=setInterval(()=>{
+    const next=(_rIdx+1)%_rFrames.length;
+    showRadarFrame(next);updateRadarUI();
+  },500);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
