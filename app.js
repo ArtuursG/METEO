@@ -601,7 +601,10 @@ async function fetchModel(m){
   if(r.status===400) r=await fetch(mk(h1,d1));  // drop current (some models reject certain current vars)
   if(r.status===400) r=await fetch(mk(h2,d2));  // drop precipitation_probability (deterministic models)
   if(r.status===400) r=await fetch(mk(h2,d3));  // drop cloud_cover_mean too
-  if(!r.ok)throw new Error(r.status);           // give up — Promise.allSettled skips this model
+  if(!r.ok){
+    console.warn(`[fetchModel] ${m.id} (${m.name}) failed all fallbacks — skipping`);
+    throw new Error(r.status);
+  }
   const data=await r.json();
   setCache(m.id,S.lat,S.lon,data);
   return data;
