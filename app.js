@@ -562,9 +562,9 @@ function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
 function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
 
 function buildUVChart(){
-  // Prefer ECMWF; fall back to any model with actual (non-null) UV values
+  // Prefer ECMWF → GFS → any model with actual (non-null) UV values
   const hasUV=d=>d?.hourly?.uv_index?.some(v=>v!=null);
-  const src=[S.data['ecmwf_ifs025'],...Object.values(S.data)].find(hasUV);
+  const src=[S.data['ecmwf_ifs025'],S.data['gfs_seamless'],...Object.values(S.data)].find(hasUV);
   const meta=$('uvMeta');
   if(!src?.hourly?.time){
     if(meta)meta.textContent='Nav datu';
@@ -618,6 +618,19 @@ function buildUVChart(){
 
   const leg=$('legUV');
   if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
+
+  // Daily UV table
+  const tbl=$('uvTable'), tbody=$('uvBody');
+  if(tbl&&tbody){
+    const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
+    tbody.innerHTML=days.map((d,i)=>{
+      const dt=new Date(d+'T12:00:00');
+      const v=Math.round(vals[i]);
+      const lv=UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4];
+      return `<tr><td>${dn[dt.getDay()]}, ${dt.getDate()}. ${dt.toLocaleDateString('lv-LV',{month:'long'})}</td><td><strong>${v}</strong></td><td><span style="display:inline-block;padding:2px 10px;border-radius:4px;background:${lv.color};color:#fff;font-size:12px">${lv.label}</span></td></tr>`;
+    }).join('');
+    tbl.style.display='table';
+  }
 }
 
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
