@@ -50,7 +50,7 @@ const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000; // 1 hour in ms
 // Prefix is bumped when API request variables change, to invalidate stale entries
-const CACHE_PFX='wx4_';
+const CACHE_PFX='wx5_';
 
 function getCached(id,lat,lon){
   try{
@@ -472,10 +472,10 @@ function buildWindChart(){
   const chartDefaults=CD();
   const labels=base.hourly.time.map(fmtHour);
   const datasets=MODELS
-    .filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m)
+    .filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.wind_speed_10m)
     .map(m=>({
       label:m.name,
-      data:S.data[m.id].hourly.windspeed_10m.map(v=>windConv(v)),
+      data:S.data[m.id].hourly.wind_speed_10m.map(v=>windConv(v)),
       borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
     }));
   showChart('loadW','cW');
@@ -492,7 +492,7 @@ function buildWindChart(){
       }}}
     }
   });
-  buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.windspeed_10m));
+  buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.wind_speed_10m));
 }
 
 // Persists the selected unit and rebuilds all wind displays (metrics, chart, table)
@@ -511,8 +511,8 @@ function buildTable(){
   const src=S.data[S.tableModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!src?.daily?.time)return;
   const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
-         precipitation_probability_max:ppm,windspeed_10m_max:wmax,
-         relative_humidity_2m_mean:rh,weathercode:wc,cloudcover_mean:cc}=src.daily;
+         precipitation_probability_max:ppm,wind_speed_10m_max:wmax,
+         relative_humidity_2m_mean:rh,weather_code:wc,cloud_cover_mean:cc}=src.daily;
   const tbody=$('tBody');
   tbody.innerHTML='';
   time.forEach((t,i)=>{
@@ -544,13 +544,13 @@ function updateMetrics(){
   const c=ecmwf.current;
   if(c){
     $('curTemp').innerHTML=`${r0(c.temperature_2m)}<span>°C</span>`;
-    $('curDesc').innerHTML='<span class="wico">'+wIcon(c.weathercode)+'</span>'+wText(c.weathercode);
+    $('curDesc').innerHTML='<span class="wico">'+wIcon(c.weather_code)+'</span>'+wText(c.weather_code);
     const fl=r0(c.apparent_temperature);
     $('feelsLike').innerHTML=`${fl!=null?fl:'-'}<span>°C</span>`;
     const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
     $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
-    $('windNow').innerHTML=`${windConv(c.windspeed_10m)}<span>${S.windUnit}</span>`;
-    $('windDir').innerHTML=`Virziens: ${wDir(c.winddirection_10m)}`;
+    $('windNow').innerHTML=`${windConv(c.wind_speed_10m)}<span>${S.windUnit}</span>`;
+    $('windDir').innerHTML=`Virziens: ${wDir(c.wind_direction_10m)}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
     $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm`;
   }
@@ -577,9 +577,9 @@ function updateMetrics(){
 async function fetchModel(m){
   const hit=getCached(m.id,S.lat,S.lon);
   if(hit)return hit;
-  const vars='temperature_2m,precipitation,precipitation_probability,windspeed_10m';
-  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,relative_humidity_2m_mean,weathercode,cloudcover_mean,sunrise,sunset';
-  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,windspeed_10m,winddirection_10m,weathercode,precipitation';
+  const vars='temperature_2m,precipitation,precipitation_probability,wind_speed_10m';
+  const dvars='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
+  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${vars}&daily=${dvars}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
   const r=await fetch(url);
   if(!r.ok)throw new Error(r.status);
