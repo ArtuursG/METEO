@@ -32,7 +32,7 @@
   <a class="logo" href="#">prognoze<span>.lv</span></a>
   <div class="sa">
     <div class="sw">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--t3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="cityInput" placeholder="Meklēt pilsētu...">
     </div>
     <button class="sbtn" onclick="searchCity()">Meklēt</button>
@@ -57,7 +57,7 @@
     <span class="hero-sun" id="heroSun"></span>
   </div>
 
-  <div class="metrics" id="metricsRow" style="margin-bottom:.5rem">
+  <div class="metrics" id="metricsRow">
     <div class="mc"><div class="mc-label">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc">Ielādē...</div></div>
     <div class="mc"><div class="mc-label">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
     <div class="mc"><div class="mc-label">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
@@ -82,7 +82,7 @@
       <div class="card">
         <div class="card-hd">
           <span class="card-title">Temperatūra 2m - modeļu salīdzinājums (16 dienas)</span>
-          <span style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace" id="lastUpdate"></span>
+          <span class="card-meta" id="lastUpdate"></span>
         </div>
         <div class="model-info">Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma</div>
         <div class="mt-wrap" id="modelToggles"></div>
@@ -134,15 +134,15 @@
       <div class="card">
         <div class="card-hd">
           <span class="card-title">Nokrišņu radars</span>
-          <span style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace">Dati: RainViewer</span>
+          <span class="card-meta">Dati: RainViewer</span>
         </div>
         <div id="radarMap"></div>
         <div class="radar-ctrl">
           <button class="mt" id="radarPrev" onclick="radarStep(-1)">◀</button>
           <button class="mt" id="radarPlayBtn" onclick="radarTogglePlay()">▶</button>
           <button class="mt" id="radarNext" onclick="radarStep(1)">▶</button>
-          <span id="radarTime" style="font-size:12px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:4px">-</span>
-          <span id="radarStatus" style="font-size:12px;color:var(--t3);margin-left:8px"></span>
+          <span id="radarTime" class="radar-time">-</span>
+          <span id="radarStatus" class="radar-status"></span>
         </div>
       </div>
     </div>
