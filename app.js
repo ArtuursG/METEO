@@ -834,7 +834,7 @@ async function initRadar(){
     _rMap.invalidateSize(); // recalculate size after tab becomes visible
     return;
   }
-  _rMap=L.map('radarMap',{maxZoom:18}).setView([S.lat,S.lon],6);
+  _rMap=L.map('radarMap').setView([S.lat,S.lon],6);
 
   // Light base tiles — CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
@@ -870,7 +870,8 @@ function showRadarFrame(idx){
   // Tile URL hardcoded to known RainViewer domain — no user input involved
   _rLayer=L.tileLayer(
     `https://tilecache.rainviewer.com${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
-    {opacity:0.65,tileSize:256,zIndex:2}
+    // maxNativeZoom: radar tiles only go to z=6; Leaflet upscales beyond that instead of showing error
+    {opacity:0.65,tileSize:256,zIndex:2,maxNativeZoom:6}
   ).addTo(_rMap);
   _rIdx=idx;
 }
