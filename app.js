@@ -50,19 +50,19 @@ const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_TTL=60*60*1000; // 1 hour in ms
 // Prefix is bumped when API request variables change, to invalidate stale entries
-const CACHE_PFX='wx6_';
+const CACHE_PFX='wx7_';
 
-function getCached(id,lat,lon){
+function getCached(lat,lon){
   try{
-    const raw=localStorage.getItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`);
+    const raw=localStorage.getItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`);
     if(!raw)return null;
     const{ts,d}=JSON.parse(raw);
     return Date.now()-ts<CACHE_TTL?d:null;
   }catch{return null;}
 }
 
-function setCache(id,lat,lon,d){
-  try{localStorage.setItem(`${CACHE_PFX}${id}_${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
+function setCache(lat,lon,d){
+  try{localStorage.setItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
 }
 
 // ─── URL STATE ───────────────────────────────────────────────────────────────
@@ -428,7 +428,7 @@ function buildPrecipCharts(){
   showChart('loadPP','cPP');
   if(S.charts.precipP)S.charts.precipP.destroy();
   const ppDatasets=MODELS
-    .filter(m=>S.data[m.id]?.hourly?.precipitation_probability)
+    .filter(m=>S.data[m.id]?.hourly?.precipitation_probability?.some(v=>v!=null))
     .map(m=>({
       label:m.name,data:S.data[m.id].hourly.precipitation_probability,
       borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
@@ -717,61 +717,61 @@ function updateMetrics(){
 }
 
 // ─── DATA FETCHING ────────────────────────────────────────────────────────────
-// Returns cached data if fresh, otherwise fetches from Open-Meteo API.
-// Falls back through reduced variable sets because some models (e.g. access_global)
-// don't support precipitation_probability or cloud_cover_mean.
-async function fetchModel(m){
-  const hit=getCached(m.id,S.lat,S.lon);
+// Open-Meteo supports comma-separated models in one request: each hourly/daily
+// variable comes back suffixed per model (temperature_2m_ecmwf_ifs025, ...), sharing
+// one time array sized to the longest model horizon. Models unsupported at a variable
+// come back null-filled rather than 400; models outside their geographic coverage are
+// silently omitted from the response. This means no per-model fallback cascade is needed.
+async function fetchAllModels(){
+  const hit=getCached(S.lat,S.lon);
   if(hit)return hit;
 
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
-  const mk=(h,d,c='')=>{
-    let u=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${m.id}&hourly=${h}&daily=${d}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
-    if(c)u+=`&current=${c}`;
-    return u;
-  };
+  const h='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
+  const d='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
+  const models=MODELS.map(m=>m.id).join(',');
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${models}&hourly=${h}&daily=${d}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
 
-  const h1='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
-  const d1='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
-  // No precipitation_probability (deterministic models don't have it)
-  const h2='temperature_2m,precipitation,wind_speed_10m,cloud_cover,uv_index';
-  const d2='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
-  // No uv_index (some regional models don't support it)
-  const h3='temperature_2m,precipitation,wind_speed_10m,cloud_cover';
-  // Minimal: also drop cloud_cover_mean
-  const d3='temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,sunrise,sunset';
-
-  // Cascade: some models reject variables they don't support with 400 instead of returning null.
-  // Regional models (e.g. harmonie_knmi) also 400 for locations outside their geographic coverage.
-  let r=await fetch(mk(h1,d1,cur)); // full request
-  if(r.status===400) r=await fetch(mk(h1,d1));  // drop current
-  if(r.status===400) r=await fetch(mk(h2,d2));  // drop precipitation_probability
-  if(r.status===400) r=await fetch(mk(h3,d2));  // drop uv_index
-  if(r.status===400) r=await fetch(mk(h3,d3));  // drop cloud_cover_mean too
-  if(!r.ok){
-    console.warn(`[fetchModel] ${m.id} (${m.name}) failed all fallbacks — skipping`);
-    throw new Error(r.status);
-  }
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(r.status);
   const data=await r.json();
-  setCache(m.id,S.lat,S.lon,data);
+  setCache(S.lat,S.lon,data);
   return data;
 }
 
-// Fetches all models in parallel; individual failures are silently skipped
+// Splits the combined multi-model response back into the per-model {hourly,daily,current}
+// shape the rest of the app expects in S.data[modelId]. A model with no suffixed
+// temperature_2m key was geographically out of coverage and is skipped entirely.
+function splitCombined(raw){
+  const out={};
+  MODELS.forEach((m,i)=>{
+    const tKey=`temperature_2m_${m.id}`;
+    if(!(raw.hourly?.[tKey]))return;
+    const hourly={time:raw.hourly.time};
+    Object.keys(raw.hourly).forEach(k=>{
+      if(k.endsWith(`_${m.id}`))hourly[k.slice(0,-(m.id.length+1))]=raw.hourly[k];
+    });
+    const daily={time:raw.daily?.time};
+    Object.keys(raw.daily||{}).forEach(k=>{
+      if(k.endsWith(`_${m.id}`))daily[k.slice(0,-(m.id.length+1))]=raw.daily[k];
+    });
+    out[m.id]={hourly,daily};
+    if(i===0)out[m.id].current=raw.current;
+  });
+  return out;
+}
+
+// Fetches all models in one request; skips models missing from the response
 async function loadAll(){
-  let loaded=0;
   S.data={};
   $('loadT').style.display='flex';
-  $('loadT').innerHTML=`<div class="spinner"></div>Ielādē datus no <span id="loadCount">0</span>/${MODELS.length} modeļiem...`;
+  $('loadT').innerHTML='<div class="spinner"></div>Ielādē...';
 
-  await Promise.allSettled(MODELS.map(m=>
-    fetchModel(m).then(d=>{
-      S.data[m.id]=d;
-      loaded++;
-      $('loadCount').textContent=loaded;
-      return {id:m.id,d};
-    })
-  ));
+  try{
+    S.data=splitCombined(await fetchAllModels());
+  }catch(e){
+    console.warn('[loadAll] combined fetch failed',e);
+  }
 
   if(!Object.keys(S.data).length){
     ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{
