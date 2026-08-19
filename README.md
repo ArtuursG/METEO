@@ -30,9 +30,16 @@ Free meteorological forecast site displaying **14 leading global weather models*
 
 ### Precipitation radar
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
-- Step through frames manually (◀ ▶) or play as animation
-- Light **CartoDB Positron** base map
+- Scrubber slider through frames, or play as animation
+- 5 selectable base maps (light, dark, OpenStreetMap, topographic, satellite) plus toggleable overlay layers, all via a Leaflet layer control
 - Lazy-initialised - Leaflet only loads when the Radar tab is opened
+
+### Weather stations (Radar tab)
+- **LVC road weather stations** (68 stations, [transportdata.gov.lv](https://www.transportdata.gov.lv), CC0) - air/road-surface temperature, humidity, precipitation, wind, friction, snow/ice depth, road condition
+- **LVĢMC meteorological stations** (26-34 stations depending on sensor coverage, [data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi), CC0) - air/apparent temperature, wind, humidity, pressure, precipitation, visibility, UV index, lightning strikes
+- Each network is an independent toggleable map layer; markers are small labelled temperature badges that auto-declutter (hide when they'd overlap) as you zoom
+- A sortable table below the map mirrors whichever layer(s) are active; both active at once switches to tabs instead of stacking
+- Clicking a station opens a dedicated page with 24h/48h temperature, hourly min/max, and wind history charts plus a locator map
 
 ### City search
 - **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
@@ -83,19 +90,31 @@ All 14 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 - **[Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)** - city search with live autocomplete
 - **[Nominatim](https://nominatim.openstreetmap.org/)** - reverse geocoding for browser geolocation
 - **[RainViewer](https://www.rainviewer.com/api.html)** - free precipitation radar tiles, no API key required
-- **[CartoDB Positron](https://carto.com/basemaps/)** - light minimal base map tiles
+- **[CartoDB](https://carto.com/basemaps/), OpenStreetMap, OpenTopoMap, Esri** - selectable base map tiles
+- **[transportdata.gov.lv](https://www.transportdata.gov.lv)** - LVC road weather station data (DATEX II XML), CC0, requires an API key
+- **[data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi)** - LVĢMC meteorological station data (CSV), CC0, no API key required
+- **Cloudflare Workers + [D1](https://developers.cloudflare.com/d1/)** - proxy the two station data sources (CORS, and for LVC, secret storage and history accumulation - see `cloudflare-worker/`)
 - **GitHub Pages** - free static hosting via GitHub Actions
 
 ## Architecture
 
 ```
-index.html            - structure and markup
-style.css             - CSS custom properties for light/dark theme, responsive layout
-app.js                - all application logic (~1080 lines, depends on Chart.js and Leaflet)
-sw.js                 - service worker for PWA offline caching
-manifest.json         - PWA manifest (name, icons, display mode)
-favicon.svg           - inline SVG icon (sun + cloud)
-apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
+index.html                            - structure and markup
+style.css                             - CSS custom properties for light/dark theme, responsive layout
+app.js                                - all application logic, depends on Chart.js and Leaflet
+sw.js                                 - service worker for PWA offline caching
+manifest.json                         - PWA manifest (name, icons, display mode)
+favicon.svg                           - inline SVG icon (sun + cloud)
+apple-touch-icon.png                  - 180x180 PNG icon for iOS home screen
+
+stacija.html / stacija.js             - LVC station detail page (standalone, own script)
+stacija-lvgmc.html / stacija-lvgmc.js - LVĢMC station detail page (standalone, own script)
+
+cloudflare-worker/
+  lvc-meteo-proxy.js    - parses the LVC DATEX II feed, accumulates history in D1 on a Cron Trigger
+  lvgmc-meteo-proxy.js  - fetches/parses the LVĢMC CSV, no D1 needed (source keeps its own 48h window)
+  schema.sql            - D1 table definitions for lvc-meteo-proxy
+  wrangler.toml / wrangler-lvgmc.toml - Worker deploy config
 ```
 
 ### Key implementation details
@@ -110,7 +129,11 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.
 - **Live autocomplete** - 300ms debounce on input + `AbortController` ensures max 1 active geocoding request regardless of typing speed.
 - **Crosshair plugin** - custom Chart.js plugin registered globally via `Chart.register()`; draws a vertical dashed line at the hovered x position using `chartArea` bounds.
-- **Radar** - Leaflet map lazy-initialised on first tab open. RainViewer frames fetched from their public JSON API; each frame is a tile layer added/removed on step. Radar tiles capped at `maxNativeZoom: 6` (Leaflet upscales for closer views). Map zoom capped at 13.
+- **Radar** - Leaflet map lazy-initialised on first tab open. RainViewer frames fetched from their public JSON API; each frame is a tile layer added/removed on step. Radar tiles capped at `maxNativeZoom: 6` (Leaflet upscales for closer views); rendered in a dedicated Leaflet pane with a fixed z-index so it stays above whichever base map is selected. Map zoom capped at 13.
+- **LVC weather stations** - the live DATEX II feed only exposes ~30 min of history, so a Cloudflare Worker on a 15-min Cron Trigger parses it and accumulates readings in D1; the site reads the accumulated 24h window from D1 instead of hitting the feed directly. The API key is a Cloudflare Secret, never present in any committed file or client-side code.
+- **LVĢMC weather stations** - the public CSV already carries a 48h rolling window, so no database is needed; a Worker fetches/parses it and serves it through Cloudflare's Cache API (10 min TTL) purely to add CORS headers, since the source doesn't send them. Precipitation-only gauge stations (no temperature sensor) are filtered out of the table/map, matching how other public displays of this data handle them.
+- **Station min/max charts** - LVĢMC's `HATMN`/`HATMX` parameters are genuine hourly min/max, so they chart directly. LVC only reports a since-midnight running min/max (a step function, not a smooth line), so the station page instead buckets its own ~15 min readings by calendar hour and computes min/max per bucket client-side.
+- **Marker declutter** - each station marker is a small `divIcon` badge (not a pin + separate label); on every `zoomend`/`moveend`, badges whose screen-space bounding boxes would overlap are hidden (closest to the map centre wins), and re-shown once there's room.
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
@@ -137,4 +160,4 @@ The app opens fullscreen without browser chrome and works offline for the app sh
 
 ---
 
-Data: [Open-Meteo](https://open-meteo.com) - License: CC BY 4.0 · Radar: [RainViewer](https://www.rainviewer.com)
+Data: [Open-Meteo](https://open-meteo.com) - License: CC BY 4.0 · Radar: [RainViewer](https://www.rainviewer.com) · Road weather: [LVC / transportdata.gov.lv](https://www.transportdata.gov.lv) (CC0) · Weather stations: [LVĢMC / data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi) (CC0)
