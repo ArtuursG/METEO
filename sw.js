@@ -38,7 +38,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(e.request)
         .then(r => {
-          // Clone synchronously before caches.open() — body can't be cloned after respondWith streams it
+          // Clone synchronously before caches.open() - body can't be cloned after respondWith streams it
           if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
           return r;
         })
@@ -47,7 +47,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // JS/CSS: stale-while-revalidate — serve cache, update in background
+  // JS/CSS: stale-while-revalidate - serve cache, update in background
   if (url.endsWith('.js') || url.endsWith('.css')) {
     e.respondWith(
       caches.open(CACHE).then(cache =>
