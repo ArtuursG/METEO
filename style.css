@@ -199,13 +199,66 @@ tr:hover td{background:var(--s2)}
 
 /* ── RADAR ──────────────────────────────────────────────────────────────────── */
 #radarMap{height:460px;border-radius:8px;overflow:hidden;background:var(--s2);margin-bottom:1rem}
-.radar-ctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.radar-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.radar-slider{flex:1;min-width:120px;accent-color:var(--acc);height:4px;cursor:pointer}
 .radar-time{font-size:12px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace;margin-left:4px}
 .radar-status{font-size:12px;color:var(--t3);margin-left:8px}
 .card-meta{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace}
 #metricsRow{margin-bottom:.5rem}
 /* Override Leaflet link colour to match theme */
 .leaflet-container a{color:var(--acc)}
+.leaflet-control-layers{background:var(--panel);color:var(--t2);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.25);border:1px solid var(--line)}
+.leaflet-control-layers-toggle{filter:invert(1)}
+:root[data-theme="light"] .leaflet-control-layers-toggle{filter:none}
+.leaflet-control-layers-separator{border-top:1px solid var(--line)}
+.leaflet-control-layers label{color:var(--t2);font-size:12.5px}
+.leaflet-control-layers-base label{margin-bottom:2px}
+
+/* ── LVC STATION POPUP / TABLE ─────────────────────────────────────────────── */
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--t2);border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.leaflet-popup-tip{background:var(--panel)}
+.lvc-popup{font-size:12.5px;line-height:1.5;min-width:180px}
+.lvc-popup h4{margin:0 0 2px;font-size:13px;color:var(--t)}
+.lvc-popup .lvc-dist{color:var(--t3);font-size:11px;margin-bottom:8px}
+.lvc-popup table{width:100%;font-size:12px;min-width:0}
+.lvc-popup td{padding:3px 0;border:none;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.lvc-popup td:first-child{color:var(--t3);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding-right:10px;white-space:nowrap}
+#lvcTable th[data-sort],#lvgmcTable th[data-sort]{cursor:pointer;-webkit-user-select:none;user-select:none}
+#lvcTable th[data-sort]:hover,#lvgmcTable th[data-sort]:hover{color:var(--t2)}
+#lvcTable th.sort-on,#lvgmcTable th.sort-on{color:var(--t)}
+#lvcTable tbody tr,#lvgmcTable tbody tr{cursor:pointer}
+#lvcTable td:first-child,#lvgmcTable td:first-child{color:var(--acc)}
+#lvcTable tbody tr:hover td:first-child,#lvgmcTable tbody tr:hover td:first-child{text-decoration:underline}
+
+.lvc-marker-icon{background:transparent;border:none}
+.lvc-temp-badge{
+  display:inline-block; /* KRITISKI: bloka elements 0x0 vecākā (Leaflet iconSize:[0,0])
+    citādi sabrūk uz platumu:0 un fona kastīte pārklāj tikai daļu teksta */
+  position:relative;left:0;top:0;transform:translate(-50%,-50%);
+  background:rgba(70,70,66,.88);color:#fff;border-radius:4px;
+  padding:1px 5px;font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:10.5px;font-weight:500;white-space:nowrap;cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+  transition:transform .12s ease;
+}
+.lvc-temp-badge:hover{transform:translate(-50%,-50%) scale(1.35);z-index:1000}
+.lvc-temp-badge.lvc-hidden{opacity:0;pointer-events:none}
+.lvc-temp-badge.badge-lvgmc{background:rgba(37,58,92,.9)} /* zilgana - lai atšķirtu no LVC (neitrāli tumša) */
+
+/* ── STACIJAS LAPA (stacija.html) ──────────────────────────────────────────── */
+.st-detail-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.st-detail-grid>div{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.st-detail-grid>div:nth-child(odd){border-right:1px solid var(--line)}
+.st-detail-grid .lbl{color:var(--t3)}
+.st-detail-grid .val{color:var(--t2);font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;text-align:right}
+#stMiniMap{height:220px;border-radius:8px;overflow:hidden;background:var(--s2)}
+.st-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12.5px;color:var(--t3);margin-top:1rem}
+.st-info-grid b{color:var(--t2);font-weight:500}
+@media(max-width:600px){
+  .st-detail-grid{grid-template-columns:1fr}
+  .st-detail-grid>div:nth-child(odd){border-right:none}
+  .st-info-grid{grid-template-columns:1fr}
+}
 
 /* ── FOOTER ─────────────────────────────────────────────────────────────────── */
 footer{text-align:center;padding:2rem 1rem;color:var(--t3);font-size:11px;border-top:1px solid var(--line);margin-top:2rem;line-height:1.7}
