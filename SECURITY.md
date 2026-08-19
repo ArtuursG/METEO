@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This is a single-page static site with no versioned releases — the `main`
+This is a single-page static site with no versioned releases - the `main`
 branch is always the deployed, supported version.
 
 ## Reporting a Vulnerability

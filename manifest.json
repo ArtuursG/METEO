@@ -1,7 +1,7 @@
 {
   "name": "prognoze.lv",
   "short_name": "prognoze.lv",
-  "description": "Laika prognoze — 15 modeļu salīdzinājums",
+  "description": "Laika prognoze - 15 modeļu salīdzinājums",
   "start_url": "/METEO/",
   "scope": "/METEO/",
   "display": "standalone",

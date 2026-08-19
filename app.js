@@ -26,7 +26,7 @@ const TABLE_MODELS=[
 ];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
-// Single mutable state object — all UI reads from here, all updates write here
+// Single mutable state object - all UI reads from here, all updates write here
 const S = {
   lat:56.946, lon:24.106,       // default: Riga, Latvia
   city:'Rīga', country:'Latvija',
@@ -424,7 +424,7 @@ function buildPrecipCharts(){
     }
   });
 
-  // Precipitation probability chart — always shows all available models
+  // Precipitation probability chart - always shows all available models
   showChart('loadPP','cPP');
   if(S.charts.precipP)S.charts.precipP.destroy();
   const ppDatasets=MODELS
@@ -455,7 +455,7 @@ function buildPrecipCharts(){
 function buildWindChart(){
   mkMultiSelector('windCardHd','windModels',`Vēja ātrums 10m (${S.windUnit})`,buildWindChart);
 
-  // Unit toggle — inserted between the title and the model selector
+  // Unit toggle - inserted between the title and the model selector
   const unitDiv=document.createElement('div');
   unitDiv.style.cssText='display:flex;gap:4px;margin-left:auto';
   ['m/s','km/h'].forEach(u=>{
@@ -562,7 +562,7 @@ function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
 function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
 
 function buildUVChart(){
-  // Some models return uv_index:[null,null,...] instead of omitting the field — .some() is needed
+  // Some models return uv_index:[null,null,...] instead of omitting the field - .some() is needed
   // because a plain truthiness check would select those models and render as invisible all-zero bars.
   const hasUV=d=>d?.hourly?.uv_index?.some(v=>v!=null);
   const src=[S.data['ecmwf_ifs025'],S.data['gfs_seamless'],...Object.values(S.data)].find(hasUV);
@@ -660,10 +660,10 @@ function moonPhaseInfo(){
   const r=6,s=16,cx=8,cy=8;
   let svg;
   if(frac<0.02||frac>0.98){
-    // New moon — just a circle outline
+    // New moon - just a circle outline
     svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`;
   } else if(frac>0.48&&frac<0.52){
-    // Full moon — filled circle
+    // Full moon - filled circle
     svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor"/></svg>`;
   } else {
     const waxing=frac<0.5;
@@ -830,7 +830,7 @@ async function searchCity(){
     }
     renderSearchResults(d.results);
   }catch(e){
-    if(e.name==='AbortError')return; // superseded by a newer request — ignore silently
+    if(e.name==='AbortError')return; // superseded by a newer request - ignore silently
     const errEl=document.createElement('div');
     errEl.className='city-opt';
     errEl.style.cssText='color:#e66767;cursor:default';
@@ -947,14 +947,14 @@ function showRecent(){
 // Opens WhatsApp share sheet with city name and current URL (includes lat/lon params)
 function shareWA(){
   const url=window.location.href;
-  const text=`Laika prognoze — ${S.city} | prognoze.lv`;
+  const text=`Laika prognoze - ${S.city} | prognoze.lv`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
 }
 
 // Opens Telegram share sheet with city name and current URL
 function shareTG(){
   const url=window.location.href;
-  const text=`Laika prognoze — ${S.city}`;
+  const text=`Laika prognoze - ${S.city}`;
   window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank');
 }
 
@@ -999,7 +999,7 @@ async function initRadar(){
   }
   _rMap=L.map('radarMap',{maxZoom:13}).setView([S.lat,S.lon],6);
 
-  // Light base tiles — CartoDB Positron
+  // Light base tiles - CartoDB Positron
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a> · Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',
     maxZoom:19,
@@ -1030,7 +1030,7 @@ async function loadRadarFrames(){
 function showRadarFrame(idx){
   if(_rLayer)_rMap.removeLayer(_rLayer);
   const f=_rFrames[idx];
-  // Tile URL hardcoded to known RainViewer domain — no user input involved
+  // Tile URL hardcoded to known RainViewer domain - no user input involved
   _rLayer=L.tileLayer(
     `https://tilecache.rainviewer.com${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
     // maxNativeZoom: radar tiles only go to z=6; Leaflet upscales beyond that instead of showing error
