@@ -75,7 +75,7 @@
     <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Tabula</span></button>
     <button class="tb" onclick="switchTab('cloud',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span>Mākoņi</span></button>
     <button class="tb" onclick="switchTab('uv',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>UV</span></button>
-    <button class="tb" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span>Radars</span></button>
+    <button class="tb" id="tabRadarBtn" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span>Radars</span></button>
     <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Modeļi</span></button>
   </div>
 
@@ -156,11 +156,66 @@
         </div>
         <div id="radarMap"></div>
         <div class="radar-ctrl">
-          <button class="mt" id="radarPrev" onclick="radarStep(-1)">◀</button>
           <button class="mt" id="radarPlayBtn" onclick="radarTogglePlay()">▶</button>
-          <button class="mt" id="radarNext" onclick="radarStep(1)">▶</button>
+          <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1">
           <span id="radarTime" class="radar-time">-</span>
           <span id="radarStatus" class="radar-status"></span>
+        </div>
+      </div>
+
+      <div class="card" id="stationTablesCard" style="display:none">
+        <div class="card-hd">
+          <span class="card-title">Meteostacijas</span>
+        </div>
+        <div class="mt-wrap" id="tableTabs" style="display:none">
+          <button class="mt on" id="tabLvcBtn" onclick="showStationTable('lvc')">Ceļa meteostacijas (LVC)</button>
+          <button class="mt" id="tabLvgmcBtn" onclick="showStationTable('lvgmc')">LVĢMC meteostacijas</button>
+        </div>
+
+        <div id="lvcTableWrap">
+          <div class="card-meta" id="lvcMeta" style="margin-bottom:.6rem">Dati: transportdata.gov.lv (LVC)</div>
+          <div class="tw">
+            <table id="lvcTable">
+              <thead>
+                <tr>
+                  <th data-sort="name">Stacija</th>
+                  <th data-sort="dist">Attālums</th>
+                  <th data-sort="time">Laiks</th>
+                  <th data-sort="airTemp">Gaisa t.</th>
+                  <th data-sort="surfaceTemp">Ceļa t.</th>
+                  <th data-sort="humidity">Mitrums</th>
+                  <th data-sort="precipMmH">Nokrišņi</th>
+                  <th data-sort="roadCondition">Ceļa stāvoklis</th>
+                  <th data-sort="minTemp">min t°</th>
+                  <th data-sort="maxTemp">max t°</th>
+                </tr>
+              </thead>
+              <tbody id="lvcBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="lvgmcTableWrap">
+          <div class="card-meta" id="lvgmcMeta" style="margin-bottom:.6rem">Dati: data.gov.lv (LVĢMC)</div>
+          <div class="tw">
+            <table id="lvgmcTable">
+              <thead>
+                <tr>
+                  <th data-sort="name">Stacija</th>
+                  <th data-sort="dist">Attālums</th>
+                  <th data-sort="time">Laiks</th>
+                  <th data-sort="airTemp">Gaisa t.</th>
+                  <th data-sort="feelsLike">Sajūtu t.</th>
+                  <th data-sort="windSpeed">Vējš</th>
+                  <th data-sort="humidity">Mitrums</th>
+                  <th data-sort="precipHour">Nokrišņi (h)</th>
+                  <th data-sort="minTemp">min t°</th>
+                  <th data-sort="maxTemp">max t°</th>
+                </tr>
+              </thead>
+              <tbody id="lvgmcBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -172,6 +227,7 @@
       </div>
     </div>
   </div>
+
 </main>
 
 <footer>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ceļa meteostacija - prognoze.lv</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">prognoze<span>.lv</span></a>
+  <div class="sa">
+    <a href="index.html#tab-radar" class="sbtn" style="text-decoration:none;display:inline-flex;align-items:center">← Atpakaļ uz radaru</a>
+  </div>
+  <button class="tt" id="themeToggle" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-city">
+        <h1 id="stName">Ielādē...</h1>
+        <span class="hero-sub" id="stSub">Ceļa meteostacija</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="metrics" id="stMetrics">
+    <div class="mc"><div class="mc-label">Gaisa temp.</div><div class="mc-val" id="stAirTemp">-<span>°C</span></div><div class="mc-sub" id="stTime">-</div></div>
+    <div class="mc"><div class="mc-label">Min (24h)</div><div class="mc-val" id="stMin">-<span>°C</span></div><div class="mc-sub" id="stMinTime">-</div></div>
+    <div class="mc"><div class="mc-label">Max (24h)</div><div class="mc-val" id="stMax">-<span>°C</span></div><div class="mc-sub" id="stMaxTime">-</div></div>
+    <div class="mc"><div class="mc-label">Ceļa virsmas temp.</div><div class="mc-val" id="stSurfTemp">-<span>°C</span></div><div class="mc-sub" id="stRoadCond">-</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Detalizēti rādījumi</span></div>
+    <div class="st-detail-grid">
+      <div><span class="lbl">Vējš</span><span class="val" id="dWind">-</span></div>
+      <div><span class="lbl">Gaisa mitrums</span><span class="val" id="dHum">-</span></div>
+      <div><span class="lbl">Vēja brāzmas</span><span class="val" id="dGust">-</span></div>
+      <div><span class="lbl">Atmosfēras spiediens</span><span class="val" id="dPressure">nav datu</span></div>
+      <div><span class="lbl">Nokrišņu daudzums</span><span class="val" id="dPrecip">-</span></div>
+      <div><span class="lbl">Rasas punkts</span><span class="val" id="dDew">-</span></div>
+      <div><span class="lbl">Redzamība</span><span class="val" id="dVis">-</span></div>
+      <div><span class="lbl">Sniega segas biezums</span><span class="val" id="dSnow">-</span></div>
+    </div>
+  </div>
+
+  <div class="tc">
+    <div class="on">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Temperatūra</span>
+          <span class="card-meta" id="stChartMeta"></span>
+        </div>
+        <div class="cw cw-tall"><div class="loading" id="stLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stChart" role="img" aria-label="24h temperatūras vēsture" style="display:none"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Temperatūra (24h) - min/max</span></div>
+        <div class="cw"><div class="loading" id="stMinMaxLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stMinMaxChart" role="img" aria-label="24h min/max temperatūra" style="display:none"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Vējš (24h)</span></div>
+        <div class="cw"><div class="loading" id="stWindLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stWindChart" role="img" aria-label="24h vēja vēsture" style="display:none"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Atrašanās vieta</span></div>
+        <div id="stMiniMap"></div>
+        <div class="st-info-grid">
+          <div>Stacijas nosaukums: <b id="stInfoName">-</b></div>
+          <div>Datu avots: <b><a href="https://www.transportdata.gov.lv" target="_blank">VSIA "Latvijas Valsts ceļi"</a></b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Dati: <a href="https://www.transportdata.gov.lv" target="_blank">transportdata.gov.lv</a> - Transporta nozares informācijas nacionālais piekļuves punkts (LVC ceļa meteostacijas) ·
+  <a href="index.html">← Atpakaļ uz prognoze.lv</a>
+</footer>
+
+<script src="stacija.js"></script>
+</body>
+</html>

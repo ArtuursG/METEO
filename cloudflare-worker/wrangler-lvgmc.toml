@@ -1,0 +1,7 @@
+name = "lvgmc-meteo-proxy"
+main = "lvgmc-meteo-proxy.js"
+compatibility_date = "2025-01-01"
+
+# Nav vajadzīgs Secrets vai D1 - dati publiski, bez atslēgas, avots pats
+# uztur vēsturi. Cache API (caches.default) izmantots tieši kodā, nekas
+# papildu jāiestata dashboard.
