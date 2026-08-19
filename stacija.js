@@ -9,7 +9,7 @@ const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const LVC_API='https://lvc-meteo-proxy.jkedainis.workers.dev/';
 
 const ROAD_COND_LV={dry:'Sauss',wet:'Slapjš',moist:'Mitrs',frost:'Sarma',iceOrSnowOnRoad:'Apledojums/sniegs',wetAndDirty:'Slapjš, netīrs'};
-const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'—';
+const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'-';
 
 const WIND_LABELS=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
 const windDirLv=deg=>deg==null?'':WIND_LABELS[Math.round(deg/22.5)%16];

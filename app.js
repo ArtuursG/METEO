@@ -1157,7 +1157,7 @@ let _lvcLayer=null, _lvcStations=[], _lvcRows=[], _lvcFetchedAt=0, _lvcSort={key
 const LVC_LABEL_W=38, LVC_LABEL_H=15, LVC_LABEL_GAP=3; // aptuvens marķiera uzraksta izmērs px, sadursmju noteikšanai
 
 const ROAD_COND_LV={dry:'Sauss',wet:'Slapjš',moist:'Mitrs',frost:'Sarma',iceOrSnowOnRoad:'Apledojums/sniegs',wetAndDirty:'Slapjš, netīrs'};
-const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'—';
+const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'-';
 
 // Haversine attālums km starp divām WGS84 koordinātēm
 function haversineKm(lat1,lon1,lat2,lon2){
@@ -1300,12 +1300,12 @@ function lvcPopupContent(s){
   box.appendChild(dist);
 
   const rows=[
-    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'—'],
-    ['Ceļa virsmas temp.',s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°C`:'—'],
-    ['Rasas punkts',s.dewPoint!=null?`${round(s.dewPoint,1)}°C`:'—'],
-    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'—'],
-    ['Nokrišņi',s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'—'],
-    ['Redzamība',s.visibilityM!=null?`${round(s.visibilityM/1000,1)} km`:'—'],
+    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
+    ['Ceļa virsmas temp.',s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°C`:'-'],
+    ['Rasas punkts',s.dewPoint!=null?`${round(s.dewPoint,1)}°C`:'-'],
+    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
+    ['Nokrišņi',s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'-'],
+    ['Redzamība',s.visibilityM!=null?`${round(s.visibilityM/1000,1)} km`:'-'],
     ['Ceļa stāvoklis',roadCondLv(s.roadCondition)],
   ];
   const tbl=document.createElement('table');
@@ -1323,7 +1323,7 @@ function lvcPopupContent(s){
   histBtn.style.marginTop='8px';
   histBtn.style.display='inline-block';
   histBtn.style.textDecoration='none';
-  histBtn.textContent='24h vēsture →';
+  histBtn.textContent='24h vēsture ->';
   histBtn.href=`stacija.html?id=${encodeURIComponent(s.id)}&name=${encodeURIComponent(s.name)}&lat=${s.lat}&lon=${s.lon}`;
   box.appendChild(histBtn);
 
@@ -1341,14 +1341,14 @@ function renderLvcTable(){
 
     const tdName=document.createElement('td'); tdName.textContent=s.name;
     const tdDist=document.createElement('td'); tdDist.textContent=`${round(s.dist,1)} km`;
-    const tdTime=document.createElement('td'); tdTime.textContent=s.time?fmtStationTime(s.time):'—';
-    const tdAir=document.createElement('td'); tdAir.textContent=s.airTemp!=null?`${round(s.airTemp,1)}°`:'—'; tdAir.className=tempCls(s.airTemp);
-    const tdSurf=document.createElement('td'); tdSurf.textContent=s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°`:'—'; tdSurf.className=tempCls(s.surfaceTemp);
-    const tdHum=document.createElement('td'); tdHum.textContent=s.humidity!=null?`${round(s.humidity,0)}%`:'—';
-    const tdPrecip=document.createElement('td'); tdPrecip.textContent=s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'—';
+    const tdTime=document.createElement('td'); tdTime.textContent=s.time?fmtStationTime(s.time):'-';
+    const tdAir=document.createElement('td'); tdAir.textContent=s.airTemp!=null?`${round(s.airTemp,1)}°`:'-'; tdAir.className=tempCls(s.airTemp);
+    const tdSurf=document.createElement('td'); tdSurf.textContent=s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°`:'-'; tdSurf.className=tempCls(s.surfaceTemp);
+    const tdHum=document.createElement('td'); tdHum.textContent=s.humidity!=null?`${round(s.humidity,0)}%`:'-';
+    const tdPrecip=document.createElement('td'); tdPrecip.textContent=s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'-';
     const tdCond=document.createElement('td'); tdCond.textContent=roadCondLv(s.roadCondition);
-    const tdMin=document.createElement('td'); tdMin.textContent=s.minTemp!=null?`${round(s.minTemp,1)}°`:'—'; tdMin.className=tempCls(s.minTemp);
-    const tdMax=document.createElement('td'); tdMax.textContent=s.maxTemp!=null?`${round(s.maxTemp,1)}°`:'—'; tdMax.className=tempCls(s.maxTemp);
+    const tdMin=document.createElement('td'); tdMin.textContent=s.minTemp!=null?`${round(s.minTemp,1)}°`:'-'; tdMin.className=tempCls(s.minTemp);
+    const tdMax=document.createElement('td'); tdMax.textContent=s.maxTemp!=null?`${round(s.maxTemp,1)}°`:'-'; tdMax.className=tempCls(s.maxTemp);
 
     tr.append(tdName,tdDist,tdTime,tdAir,tdSurf,tdHum,tdPrecip,tdCond,tdMin,tdMax);
     tbody.appendChild(tr);
@@ -1389,7 +1389,7 @@ function renderLvgmcRows(){
       return {...s, ...latest, dist:haversineKm(S.lat,S.lon,s.lat,s.lon)};
     })
     // Dažas LVĢMC stacijas mēra TIKAI nokrišņus/sniegu (nav temp./vēja/mitruma sensoru) -
-    // izlaižam tās, lai tabulā nav rindu ar gandrīz visur "—" (tāpat kā meteolapa.lv dara)
+    // izlaižam tās, lai tabulā nav rindu ar gandrīz visur "-" (tāpat kā meteolapa.lv dara)
     .filter(s=>s.airTemp!=null);
   sortLvgmcRows(_lvgmcSort.key,true);
 }
@@ -1454,16 +1454,16 @@ function lvgmcPopupContent(s){
   box.appendChild(dist);
 
   const rows=[
-    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'—'],
-    ['Sajūtu temp.',s.feelsLike!=null?`${round(s.feelsLike,1)}°C`:'—'],
-    ['24h min / max',(s.minTemp!=null&&s.maxTemp!=null)?`${round(s.minTemp,1)}° / ${round(s.maxTemp,1)}°`:'—'],
-    ['Vējš',s.windSpeed!=null?`${round(s.windSpeed,1)} m/s ${lvgmcWindDirLv(s.windDir)}`:'—'],
-    ['Brāzmas',s.windGust!=null?`${round(s.windGust,1)} m/s`:'—'],
-    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'—'],
-    ['Spiediens',s.pressure!=null?`${round(s.pressure,1)} hPa`:'—'],
-    ['Nokrišņi (h)',s.precipHour!=null?`${round(s.precipHour,1)} mm`:'—'],
-    ['Redzamība',s.visibility!=null?`${round(s.visibility/1000,1)} km`:'—'],
-    ['UV indekss',s.uv!=null?round(s.uv,0):'—'],
+    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
+    ['Sajūtu temp.',s.feelsLike!=null?`${round(s.feelsLike,1)}°C`:'-'],
+    ['24h min / max',(s.minTemp!=null&&s.maxTemp!=null)?`${round(s.minTemp,1)}° / ${round(s.maxTemp,1)}°`:'-'],
+    ['Vējš',s.windSpeed!=null?`${round(s.windSpeed,1)} m/s ${lvgmcWindDirLv(s.windDir)}`:'-'],
+    ['Brāzmas',s.windGust!=null?`${round(s.windGust,1)} m/s`:'-'],
+    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
+    ['Spiediens',s.pressure!=null?`${round(s.pressure,1)} hPa`:'-'],
+    ['Nokrišņi (h)',s.precipHour!=null?`${round(s.precipHour,1)} mm`:'-'],
+    ['Redzamība',s.visibility!=null?`${round(s.visibility/1000,1)} km`:'-'],
+    ['UV indekss',s.uv!=null?round(s.uv,0):'-'],
   ];
   const tbl=document.createElement('table');
   for(const[label,val]of rows){
@@ -1480,7 +1480,7 @@ function lvgmcPopupContent(s){
   histBtn.style.marginTop='8px';
   histBtn.style.display='inline-block';
   histBtn.style.textDecoration='none';
-  histBtn.textContent='24h vēsture →';
+  histBtn.textContent='24h vēsture ->';
   histBtn.href=`stacija-lvgmc.html?id=${encodeURIComponent(s.id)}&name=${encodeURIComponent(s.name)}&lat=${s.lat}&lon=${s.lon}`;
   box.appendChild(histBtn);
 
@@ -1498,14 +1498,14 @@ function renderLvgmcTable(){
 
     const tdName=document.createElement('td'); tdName.textContent=s.name;
     const tdDist=document.createElement('td'); tdDist.textContent=`${round(s.dist,1)} km`;
-    const tdTime=document.createElement('td'); tdTime.textContent=s.time?fmtStationTime(s.time):'—';
-    const tdAir=document.createElement('td'); tdAir.textContent=s.airTemp!=null?`${round(s.airTemp,1)}°`:'—'; tdAir.className=tempCls(s.airTemp);
-    const tdFeels=document.createElement('td'); tdFeels.textContent=s.feelsLike!=null?`${round(s.feelsLike,1)}°`:'—'; tdFeels.className=tempCls(s.feelsLike);
-    const tdWind=document.createElement('td'); tdWind.textContent=s.windSpeed!=null?`${round(s.windSpeed,1)} m/s`:'—';
-    const tdHum=document.createElement('td'); tdHum.textContent=s.humidity!=null?`${round(s.humidity,0)}%`:'—';
-    const tdPrecip=document.createElement('td'); tdPrecip.textContent=s.precipHour!=null?`${round(s.precipHour,1)} mm`:'—';
-    const tdMin=document.createElement('td'); tdMin.textContent=s.minTemp!=null?`${round(s.minTemp,1)}°`:'—'; tdMin.className=tempCls(s.minTemp);
-    const tdMax=document.createElement('td'); tdMax.textContent=s.maxTemp!=null?`${round(s.maxTemp,1)}°`:'—'; tdMax.className=tempCls(s.maxTemp);
+    const tdTime=document.createElement('td'); tdTime.textContent=s.time?fmtStationTime(s.time):'-';
+    const tdAir=document.createElement('td'); tdAir.textContent=s.airTemp!=null?`${round(s.airTemp,1)}°`:'-'; tdAir.className=tempCls(s.airTemp);
+    const tdFeels=document.createElement('td'); tdFeels.textContent=s.feelsLike!=null?`${round(s.feelsLike,1)}°`:'-'; tdFeels.className=tempCls(s.feelsLike);
+    const tdWind=document.createElement('td'); tdWind.textContent=s.windSpeed!=null?`${round(s.windSpeed,1)} m/s`:'-';
+    const tdHum=document.createElement('td'); tdHum.textContent=s.humidity!=null?`${round(s.humidity,0)}%`:'-';
+    const tdPrecip=document.createElement('td'); tdPrecip.textContent=s.precipHour!=null?`${round(s.precipHour,1)} mm`:'-';
+    const tdMin=document.createElement('td'); tdMin.textContent=s.minTemp!=null?`${round(s.minTemp,1)}°`:'-'; tdMin.className=tempCls(s.minTemp);
+    const tdMax=document.createElement('td'); tdMax.textContent=s.maxTemp!=null?`${round(s.maxTemp,1)}°`:'-'; tdMax.className=tempCls(s.maxTemp);
 
     tr.append(tdName,tdDist,tdTime,tdAir,tdFeels,tdWind,tdHum,tdPrecip,tdMin,tdMax);
     tbody.appendChild(tr);
