@@ -2,7 +2,7 @@ name = "lvc-meteo-proxy"
 main = "lvc-meteo-proxy.js"
 compatibility_date = "2025-01-01"
 
-# Šis fails nav vajadzīgs, ja izvieto pārlūkā (dashboard) — tur D1 saiste,
+# Šis fails nav vajadzīgs, ja izvieto pārlūkā (dashboard) - tur D1 saiste,
 # Cron Trigger un Secrets iestata attiecīgajās cilnēs. Atstāts kā atsauce,
 # ja kādreiz gribēsi pāriet uz wrangler CLI:
 # [[d1_databases]]

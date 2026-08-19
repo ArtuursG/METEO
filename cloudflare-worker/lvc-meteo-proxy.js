@@ -2,7 +2,7 @@
  * LVC (Latvijas Valsts ceļi) ceļa meteostaciju starpniekserviss.
  *
  * KĀPĒC ŠIS PASTĀV: NPP platforma (transportdata.gov.lv) pieprasa API
- * atslēgu, kas NEDRĪKST parādīties publiskā, GitHub Pages hostētā koda —
+ * atslēgu, kas NEDRĪKST parādīties publiskā, GitHub Pages hostētā koda -
  * ikviens apmeklētājs to redzētu pārlūka izstrādātāja rīkos. Šis Worker
  * tur atslēgas servera pusē (Cloudflare Secrets) un atdod METEO lapai
  * jau gatavu, tīru JSON bez atslēgām.
@@ -11,10 +11,10 @@
  *   Cron Trigger (ik pa CRON_MINUTES) -> scheduled() -> ielasa LVC feed,
  *   ieraksta D1 datubāzē (tabulas "stations" un "readings"), izdzēš
  *   ierakstus, kas vecāki par RETENTION_HOURS.
- *   Pārlūks -> fetch() -> lasa TIKAI no D1 (nevis katru reizi no LVC —
+ *   Pārlūks -> fetch() -> lasa TIKAI no D1 (nevis katru reizi no LVC -
  *   tas ļauj rādīt 24h vēsturi un netērē LVC pieprasījumu limitu).
  *
- * ATSLĒGU UN D1 UZSTĀDĪŠANA — dari TIKAI Cloudflare panelī, NEKAD
+ * ATSLĒGU UN D1 UZSTĀDĪŠANA - dari TIKAI Cloudflare panelī, NEKAD
  * neieraksti atslēgas šajā failā. Skat. schema.sql šai pašā mapē un
  * izvietošanas instrukcijas sarunā.
  */
@@ -56,7 +56,7 @@ function parseLocations(xml) {
   while ((m = blockRe.exec(xml))) {
     const [, id, block] = m;
     // Netieši, jo "com:value" pirmais iegadās measurementEquipmentTypeUsed
-    // blokā ("Road Weather Stations (RWS)") — īstais nosaukums ir dziļāk.
+    // blokā ("Road Weather Stations (RWS)") - īstais nosaukums ir dziļāk.
     const name = extractNested(block, "roa:measurementSiteName", "com:value") || id;
     const lat = extractTag(block, "loc:latitude");
     const lon = extractTag(block, "loc:longitude");
@@ -94,7 +94,7 @@ function parseMeasurements(xml) {
       visibilityM: num(extractNested(block, "com:minimumVisibilityDistance", "com:integerMetreDistance")),
       precipMmH: noPrecip ? 0 : precipRate,
       roadCondition: extractTag(block, "roa:weatherRelatedRoadConditionType"),
-      // "com:friction" ir gan ārējā, gan iekšējā taga vārds — vispārīgais
+      // "com:friction" ir gan ārējā, gan iekšējā taga vārds - vispārīgais
       // extractNested apstājas pie iekšējā aizverošā taga pirms sasniedz
       // vērtību, tāpēc šeit vajag tiešu, abus līmeņus aptverošu regex.
       friction: num((block.match(/<com:friction>\s*<com:friction>([^<]*)<\/com:friction>/) || [])[1]),
@@ -128,7 +128,7 @@ function chunk(arr, size) {
   return out;
 }
 
-/** Cron Trigger izsauc šo — ielasa LVC feed un ieraksta D1. */
+/** Cron Trigger izsauc šo - ielasa LVC feed un ieraksta D1. */
 async function syncData(env) {
   const [locXml, measXml] = await Promise.all([
     fetchFeed(env.LVC_LOCATIONS_KEY),
@@ -161,7 +161,7 @@ async function syncData(env) {
       )
     );
 
-  // D1 batch() pieņem ierobežotu skaitu izteikumu vienā reizē — droši sadalām pa daļām.
+  // D1 batch() pieņem ierobežotu skaitu izteikumu vienā reizē - droši sadalām pa daļām.
   for (const part of chunk(stationStmts, 50)) await env.DB.batch(part);
   for (const part of chunk(readingStmts, 50)) await env.DB.batch(part);
 

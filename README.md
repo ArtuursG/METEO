@@ -13,8 +13,8 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly % from all models that provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
-- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear → overcast)
-- **UV index** - hourly UV index starting from the current hour, next 5 days; colour-coded bars (Low → Extreme); ECMWF IFS primary, GFS fallback
+- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear -> overcast)
+- **UV index** - hourly UV index starting from the current hour, next 5 days; colour-coded bars (Low -> Extreme); ECMWF IFS primary, GFS fallback
 - **Crosshair** - vertical dashed line follows the cursor across all charts for precise value reading
 
 ### Daily forecast table
@@ -102,9 +102,9 @@ apple-touch-icon.png  - 180x180 PNG icon for iOS home screen
 
 - **Caching** - API responses cached in localStorage for 1 hour (keyed by model ID + coordinates). Up to 14 requests saved per location per hour. Prefix `wx6_` - bumped when API request parameters change to invalidate stale data.
 - **Parallel fetching** - all 14 models fetched simultaneously with `Promise.allSettled`; individual failures silently skipped.
-- **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 5 progressively reduced variable sets: full → no current → no precipitation probability → no UV index → no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
+- **API variable fallback** - some models reject unsupported variables with HTTP 400 instead of returning null. `fetchModel` cascades through up to 5 progressively reduced variable sets: full -> no current -> no precipitation probability -> no UV index -> no cloud cover. Models that still fail (outside geographic coverage) are silently skipped.
 - **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped - a plain array existence check is insufficient.
-- **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) → dark slate (overcast).
+- **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) -> dark slate (overcast).
 - **Moon phase** - computed client-side using a reference new moon (Jan 6 2000 18:14 UTC) and the 29.53-day synodic cycle. Rendered as a monochrome SVG using two SVG arcs: an outer semicircle (the lit hemisphere boundary) and an elliptical terminator arc whose sweep direction flips between crescent and gibbous phases.
 - **Auto-geolocation** - on load without URL coords, `getCurrentPosition` is called immediately. Loading starts with a placeholder city name; Nominatim resolves the real name in the background without blocking data fetch. If geolocation is denied or times out (5 s), falls back to the default location (Rīga).
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.
@@ -130,7 +130,7 @@ cd METEO
 ## Install as app (iOS / Android)
 
 1. Open the site in **Safari** (iOS) or **Chrome** (Android)
-2. Tap **Share → Add to Home Screen**
+2. Tap **Share -> Add to Home Screen**
 3. Tap **Add**
 
 The app opens fullscreen without browser chrome and works offline for the app shell.
