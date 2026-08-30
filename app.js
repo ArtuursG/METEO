@@ -1007,14 +1007,21 @@ async function initRadar(){
   _rMap.createPane('radarPane');
   _rMap.getPane('radarPane').style.zIndex=450;
 
-  // Vairākas bāzes kartes lietotājam izvēlei - tikai viena aktīva reizē
+  // Vairākas bāzes kartes lietotājam izvēlei - tikai viena aktīva reizē.
+  // Gaišā/Tumšā = Esri Gray Canvas (bez API atslēgas). Esri "Base" slānim nav
+  // iebūvētu nosaukumu - "Reference" ir atsevišķs slānis, tāpēc abus apvienojam
+  // vienā layerGroup, lai izskatās kā vienota karte ar pilsētu nosaukumiem.
+  const esriAttr='Tiles © <a href="https://www.esri.com" target="_blank">Esri</a>';
+  const esri=(svc,attr)=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{attribution:attr,maxZoom:16});
   const baseLayers={
-    'Gaišā':L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a>',
-      maxZoom:19,maxNativeZoom:18,subdomains:'abcd'}),
-    'Tumšā':L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> © <a href="https://carto.com" target="_blank">CartoDB</a>',
-      maxZoom:19,maxNativeZoom:18,subdomains:'abcd'}),
+    'Gaišā':L.layerGroup([
+      esri('Canvas/World_Light_Gray_Base',esriAttr),
+      esri('Canvas/World_Light_Gray_Reference'),
+    ]),
+    'Tumšā':L.layerGroup([
+      esri('Canvas/World_Dark_Gray_Base',esriAttr),
+      esri('Canvas/World_Dark_Gray_Reference'),
+    ]),
     'OpenStreetMap':L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom:19,subdomains:'abc'}),
