@@ -145,9 +145,11 @@ function renderWindChart(hist){
 function renderMiniMap(lat,lon,name){
   if(lat==null||lon==null)return;
   _miniMap=L.map('stMiniMap',{zoomControl:false,attributionControl:true}).setView([lat,lon],11);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-    attribution:'© OpenStreetMap © CartoDB',maxZoom:16,subdomains:'abcd'
-  }).addTo(_miniMap);
+  // Esri Gray Canvas (bez API atslēgas); base + nosaukumu slānis atsevišķi
+  const esriTile=svc=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{
+    attribution:'Tiles © Esri',maxZoom:16});
+  esriTile('Canvas/World_Light_Gray_Base').addTo(_miniMap);
+  esriTile('Canvas/World_Light_Gray_Reference').addTo(_miniMap);
   const marker=L.circleMarker([lat,lon],{radius:8,color:'#fff',weight:2,fillColor:'#e0796d',fillOpacity:0.95}).addTo(_miniMap);
   if(name)marker.bindTooltip(name,{permanent:false,direction:'top'});
 }
