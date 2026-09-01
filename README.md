@@ -49,6 +49,12 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - A sortable table below the map mirrors whichever layer(s) are active; both active at once switches to tabs instead of stacking
 - Clicking a station opens a dedicated page with 24h/48h temperature, hourly min/max, and wind history charts plus a locator map
 
+### Model accuracy (Modeļi tab)
+- Ranks the 14 models by how close their recent temperature has been to the **nearest LVĢMC station's** measured air temperature over the past 48 h
+- Table of mean absolute error (MAE), signed bias and sample count per model; best model highlighted; a chart overlays the observed series against the top three models
+- Uses each model's latest analysis / short-range values (`past_days=2` on the forecast API) at the station's coordinates - this is recent model skill near you, not "the forecast as it was issued two days ago"
+- Lazy-loaded on tab open; recomputes when the location changes
+
 ### City search
 - **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
 - **Live autocomplete** - suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)

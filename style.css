@@ -219,6 +219,12 @@ body.busy .tc{opacity:.55;transition:opacity .2s}
 .clim-stripes .stripe{flex:1 1 0;min-width:0}
 .clim-stripes-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace;margin-top:4px}
 
+/* ── MODEL VERIFICATION ─────────────────────────────────────────────────────── */
+#verifTable{margin-top:1rem}
+#verifTable .mt-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+tr.verif-best td{background:var(--acc-soft);font-weight:500}
+tr.verif-best td:first-child{box-shadow:inset 2px 0 0 var(--acc)}
+
 /* ── TABLE ──────────────────────────────────────────────────────────────────── */
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px}

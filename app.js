@@ -47,6 +47,7 @@ const S = {
 const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
+const cssVar=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
 // API returns m/s (wind_speed_unit=ms); converts to km/h only when that unit is selected
 const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(v*10)/10;
 
@@ -183,9 +184,10 @@ function switchTab(tab,btn){
   });
   document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
   $('tab-'+tab).classList.add('on');
-  // Radar map and climate data initialize lazily on first open (no requests until then)
+  // Radar map, climate and verification data initialize lazily on first open
   if(tab==='radar')initRadar();
   if(tab==='climate')initClimate();
+  if(tab==='about')initVerification();
 }
 
 // Wires the tab bar as an ARIA tablist with roving-tabindex arrow-key navigation
@@ -875,6 +877,115 @@ function renderClimate(d){
   $('climAxisR').textContent=y1||'';
 }
 
+// ─── MODEL VERIFICATION (recent model analysis vs nearest LVĢMC station) ──────
+let _verifKey=null;
+
+async function initVerification(){
+  const key=`${S.lat.toFixed(2)}_${S.lon.toFixed(2)}`;
+  if(_verifKey===key)return;
+  $('loadVerif').style.display='flex';
+  $('verifContent').hidden=true;
+  $('verifErr').hidden=true;
+
+  try{
+    await ensureLvgmcStations();
+    const cand=(_lvgmcStations||[])
+      .filter(s=>Array.isArray(s.history)&&s.history.some(h=>h.airTemp!=null&&h.time))
+      .map(s=>({s,d:haversineKm(S.lat,S.lon,s.lat,s.lon)}))
+      .sort((a,b)=>a.d-b.d)[0];
+    if(!cand)throw new Error('no nearby station with history');
+    const st=cand.s;
+
+    // observed hourly air temperature, keyed by the "YYYY-MM-DDTHH" hour bucket
+    const obs={};
+    for(const h of st.history){
+      if(h.airTemp==null||!h.time)continue;
+      obs[h.time.slice(0,13)]=h.airTemp;
+    }
+    if(Object.keys(obs).length<6)throw new Error('too little station history');
+
+    const models=MODELS.map(m=>m.id).join(',');
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}`
+      +`&models=${models}&hourly=temperature_2m&past_days=2&forecast_days=1&timezone=auto`;
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('forecast '+r.status);
+    const j=await r.json();
+    const times=j.hourly?.time;
+    if(!times)throw new Error('no forecast times');
+
+    const rows=[];
+    for(const m of MODELS){
+      const arr=j.hourly[`temperature_2m_${m.id}`];
+      if(!arr)continue;
+      let sum=0,abs=0,n=0;
+      for(let i=0;i<times.length;i++){
+        const o=obs[times[i].slice(0,13)];
+        if(o==null||arr[i]==null)continue;
+        const e=arr[i]-o; sum+=e; abs+=Math.abs(e); n++;
+      }
+      if(n>=6)rows.push({name:m.name,color:m.color,id:m.id,mae:abs/n,bias:sum/n,n});
+    }
+    if(!rows.length)throw new Error('no obs/forecast overlap');
+    rows.sort((a,b)=>a.mae-b.mae);
+
+    renderVerification(st,cand.d,rows,{times,hourly:j.hourly,obs});
+    _verifKey=key;
+    $('loadVerif').style.display='none';
+    $('verifContent').hidden=false;
+  }catch(e){
+    console.warn('[verif]',e);
+    $('loadVerif').style.display='none';
+    $('verifErr').hidden=false;
+  }
+}
+
+function renderVerification(st,dist,rows,series){
+  $('verifMeta').textContent=`Stacija: ${st.name} (~${round(dist)} km)`;
+  const best=rows[0];
+  $('verifIntro').textContent=
+    `Pēdējās 48 h precīzākais ${st.name} stacijai bija ${best.name} — vidējā kļūda ${best.mae.toFixed(1)}°C. Salīdzināti ${rows.length} modeļi pret faktiski izmērīto gaisa temperatūru.`;
+
+  const fmtBias=v=>{const x=+v.toFixed(1); return x===0?'±0.0°C':`${x>0?'+':'−'}${Math.abs(x).toFixed(1)}°C`;};
+  const tb=$('verifBody'); tb.textContent='';
+  rows.forEach((rw,i)=>{
+    const tr=document.createElement('tr');
+    if(i===0)tr.className='verif-best';
+    const td1=document.createElement('td');
+    const dot=document.createElement('span'); dot.className='mt-dot'; dot.style.background=rw.color;
+    td1.appendChild(dot); td1.appendChild(document.createTextNode(rw.name));
+    const td2=document.createElement('td'); td2.textContent=`${rw.mae.toFixed(1)}°C`;
+    const td3=document.createElement('td'); td3.textContent=fmtBias(rw.bias);
+    const td4=document.createElement('td'); td4.textContent=rw.n;
+    tr.append(td1,td2,td3,td4);
+    tb.appendChild(tr);
+  });
+
+  const cd=CD();
+  const labels=series.times.map(fmtHour);
+  const obsData=series.times.map(t=>series.obs[t.slice(0,13)]??null);
+  const ds=[{label:`${st.name} (mērīts)`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3}];
+  rows.slice(0,3).forEach(rw=>ds.push({
+    label:rw.name,data:series.hourly[`temperature_2m_${rw.id}`],
+    borderColor:rw.color,borderWidth:1.5,pointRadius:0,tension:0.3,borderDash:[4,3]
+  }));
+  if(S.charts.verif)S.charts.verif.destroy();
+  $('cVerif').style.display='block';
+  S.charts.verif=new Chart($('cVerif'),{
+    type:'line',data:{labels,datasets:ds},
+    options:{...cd,
+      scales:{...cd.scales,
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:12}},
+        y:{...cd.scales.y,ticks:{...cd.scales.y.ticks,callback:v=>v+'°C'}}},
+      plugins:{...cd.plugins,
+        legend:{display:true,position:'bottom',labels:{color:cssVar('--t3'),boxWidth:10,font:{size:11}}},
+        tooltip:{...cd.plugins.tooltip,callbacks:{
+          title:items=>fmtTooltipTitle(series.times,items[0].dataIndex),
+          label:c=>` ${c.dataset.label}: ${round(c.parsed.y,1)}°C`
+        }}}
+    }
+  });
+}
+
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
   mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
@@ -1066,8 +1177,9 @@ async function loadAll(){
   buildCloudChart();
   buildUVChart();
   buildTable();
-  // Climate tab caches per-location; refresh it if the user is looking at it
+  // Climate / verification tabs cache per-location; refresh if the user is on them
   if($('tab-climate')?.classList.contains('on'))initClimate();
+  if($('tab-about')?.classList.contains('on'))initVerification();
   return true;
 }
 
@@ -1180,6 +1292,8 @@ function renderThemeIcon(){
 // Charts must be rebuilt after theme switch so CSS variable colours are re-read
 function rerenderCharts(){
   if(Object.keys(S.data).length){rebuildTempChart();buildPrecipCharts();buildWindChart();}
+  _verifKey=null; // force the verification chart to redraw with new theme colours on next open
+  if($('tab-about')?.classList.contains('on'))initVerification();
 }
 
 // Applies theme, saves to localStorage and redraws charts with updated CSS colours

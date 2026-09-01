@@ -262,6 +262,25 @@
 
     <div id="tab-about">
       <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Modeļu precizitāte pēdējās 48 h</span>
+          <span class="card-meta" id="verifMeta"></span>
+        </div>
+        <div class="loading" id="loadVerif"><div class="spinner"></div>Salīdzina ar meteostaciju...</div>
+        <div id="verifContent" hidden>
+          <p class="clim-note" id="verifIntro"></p>
+          <div class="cw"><canvas id="cVerif" role="img" aria-label="Novērojumi pret modeļu prognozēm" style="display:none"></canvas></div>
+          <div class="tw">
+            <table id="verifTable">
+              <thead><tr><th>Modelis</th><th>Vidējā kļūda (MAE)</th><th>Novirze</th><th>Punkti</th></tr></thead>
+              <tbody id="verifBody"></tbody>
+            </table>
+          </div>
+          <p class="clim-note">MAE = vidējā absolūtā kļūda (jo mazāka, jo precīzāk). Novirze: pozitīva = modelis rāda siltāk nekā stacija mērīja. Salīdzināts ar tuvāko LVĢMC staciju un modeļu jaunāko analīzi/tuvprognozi par pēdējām 48 h - tā nav "prognoze, kāda tā bija izdota pirms 2 dienām".</p>
+        </div>
+        <div id="verifErr" hidden><div class="err">Neizdevās aprēķināt precizitāti (nav tuvu meteostacijas ar vēsturi vai neizdevās ielādēt datus).</div></div>
+      </div>
+      <div class="card">
         <div class="card-hd"><span class="card-title">Meteoroloģiskie modeļi</span></div>
         <div id="modelInfoList"></div>
       </div>
