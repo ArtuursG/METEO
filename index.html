@@ -38,20 +38,21 @@
 </head>
 <body>
 
-<a class="skip-link" href="#main">Pāriet uz saturu</a>
+<a class="skip-link" href="#main" data-i18n="ui.skip">Pāriet uz saturu</a>
 
 <header>
   <a class="logo" href="#">prognoze<span>.lv</span></a>
   <div class="sa">
     <div class="sw">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="cityInput" placeholder="Meklēt pilsētu...">
+      <input type="text" id="cityInput" placeholder="Meklēt pilsētu..." data-i18n-ph="ui.search_ph">
     </div>
-    <button class="sbtn" onclick="searchCity()">Meklēt</button>
-    <button class="lbtn" onclick="locateMe()" title="Mana atrašanās vieta" aria-label="Mana atrašanās vieta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+    <button class="sbtn" onclick="searchCity()" data-i18n="ui.search">Meklēt</button>
+    <button class="lbtn" onclick="locateMe()" data-i18n-title="ui.my_location" title="Mana atrašanās vieta" aria-label="Mana atrašanās vieta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
     <div id="cityDrop" class="city-drop"></div>
   </div>
-  <button class="tt" id="themeToggle" onclick="toggleTheme()" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
+  <button class="tt" id="langToggle" onclick="setLang(LANG==='lv'?'en':'lv')" data-i18n-title="ui.toggle_lang" title="Switch to English">LV</button>
+  <button class="tt" id="themeToggle" onclick="toggleTheme()" data-i18n-title="ui.toggle_theme" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
 </header>
 
 <main id="main">
@@ -63,50 +64,50 @@
         <span class="hero-sub" id="heroSub">Latvija · EEST (UTC+3)</span>
       </div>
       <div class="share-btns">
-        <button class="share-btn wa" onclick="shareWA()" title="Dalīties WhatsApp" aria-label="Dalīties WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></button>
-        <button class="share-btn tg" onclick="shareTG()" title="Dalīties Telegram" aria-label="Dalīties Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></button>
+        <button class="share-btn wa" onclick="shareWA()" data-i18n-title="ui.share_wa" title="Dalīties WhatsApp" aria-label="Dalīties WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></button>
+        <button class="share-btn tg" onclick="shareTG()" data-i18n-title="ui.share_tg" title="Dalīties Telegram" aria-label="Dalīties Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></button>
       </div>
     </div>
     <span class="hero-sun" id="heroSun"></span>
   </div>
 
   <div class="metrics" id="metricsRow">
-    <div class="mc"><div class="mc-label">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc">Ielādē...</div></div>
-    <div class="mc"><div class="mc-label">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
-    <div class="mc"><div class="mc-label">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
-    <div class="mc"><div class="mc-label">Vējš</div><div class="mc-val" id="windNow">-<span>km/h</span></div><div class="mc-sub" id="windDir">-</div></div>
-    <div class="mc"><div class="mc-label">Mitrums</div><div class="mc-val" id="humNow">-<span>%</span></div><div class="mc-sub" id="precipNow">Nokrišņi: -</div></div>
-    <div class="mc"><div class="mc-label">Modeļi</div><div class="mc-val" id="activeCount">-</div><div class="mc-sub">aktīvi modeļi</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.current">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc" data-i18n="metric.loading">Ielādē...</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.feels">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.today_max">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.wind">Vējš</div><div class="mc-val" id="windNow">-<span>km/h</span></div><div class="mc-sub" id="windDir">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.humidity">Mitrums</div><div class="mc-val" id="humNow">-<span>%</span></div><div class="mc-sub" id="precipNow">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="metric.models">Modeļi</div><div class="mc-val" id="activeCount">-</div><div class="mc-sub" data-i18n="metric.active_models">aktīvi modeļi</div></div>
   </div>
 
   <div id="metricsSrc" class="metrics-src"></div>
 
   <div class="tab-bar">
-    <button class="tb active" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span>Temperatūra</span></button>
-    <button class="tb" onclick="switchTab('precip',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span>Nokrišņi</span></button>
-    <button class="tb" onclick="switchTab('wind',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg><span>Vējš</span></button>
-    <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Tabula</span></button>
-    <button class="tb" onclick="switchTab('cloud',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span>Mākoņi</span></button>
-    <button class="tb" onclick="switchTab('uv',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>UV</span></button>
-    <button class="tb" onclick="switchTab('climate',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Klimats</span></button>
-    <button class="tb" id="tabRadarBtn" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span>Radars</span></button>
-    <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Modeļi</span></button>
+    <button class="tb active" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span data-i18n="tab.temp">Temperatūra</span></button>
+    <button class="tb" onclick="switchTab('precip',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span data-i18n="tab.precip">Nokrišņi</span></button>
+    <button class="tb" onclick="switchTab('wind',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg><span data-i18n="tab.wind">Vējš</span></button>
+    <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span data-i18n="tab.table">Tabula</span></button>
+    <button class="tb" onclick="switchTab('cloud',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span data-i18n="tab.cloud">Mākoņi</span></button>
+    <button class="tb" onclick="switchTab('uv',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span data-i18n="tab.uv">UV</span></button>
+    <button class="tb" onclick="switchTab('climate',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span data-i18n="tab.climate">Klimats</span></button>
+    <button class="tb" id="tabRadarBtn" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span data-i18n="tab.radar">Radars</span></button>
+    <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span data-i18n="tab.models">Modeļi</span></button>
   </div>
 
   <div class="tc">
     <div id="tab-temp" class="on">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">Temperatūra 2m - modeļu salīdzinājums (16 dienas)</span>
+          <span class="card-title" data-i18n="card.temp_title">Temperatūra 2m - modeļu salīdzinājums (16 dienas)</span>
           <span class="card-meta" id="lastUpdate"></span>
         </div>
-        <div class="model-info">Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma</div>
+        <div class="model-info" data-i18n="card.model_hint">Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma</div>
         <div class="mt-wrap" id="modelToggles"></div>
         <div class="spread-row">
-          <label class="spread-toggle"><input type="checkbox" id="spreadChk" checked onchange="toggleSpread(this.checked)"> Rādīt modeļu izkliedi</label>
+          <label class="spread-toggle"><input type="checkbox" id="spreadChk" checked onchange="toggleSpread(this.checked)"> <span data-i18n="card.show_spread">Rādīt modeļu izkliedi</span></label>
           <span class="card-meta" id="spreadInfo"></span>
         </div>
-        <div class="cw cw-tall"><div class="loading" id="loadT"><div class="spinner"></div>Ielādē...</div><canvas id="cT" role="img" aria-label="Temperatūras prognoze ar modeļu izkliedes joslu" style="display:none"></canvas></div>
+        <div class="cw cw-tall"><div class="loading" id="loadT"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cT" role="img" data-i18n-aria="chart.aria_temp" aria-label="Temperatūras prognoze ar modeļu izkliedes joslu" style="display:none"></canvas></div>
         <div class="legend" id="legT"></div>
       </div>
     </div>
@@ -114,18 +115,18 @@
     <div id="tab-precip">
       <div class="card">
         <div class="card-hd" id="precipCardHd"></div>
-        <div class="cw"><div class="loading" id="loadP"><div class="spinner"></div>Ielādē...</div><canvas id="cP" role="img" aria-label="Nokrišņu prognoze" style="display:none"></canvas></div>
+        <div class="cw"><div class="loading" id="loadP"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cP" role="img" data-i18n-aria="chart.aria_precip" aria-label="Nokrišņu prognoze" style="display:none"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-hd"><span class="card-title">Nokrišņu varbūtība (%)</span><span class="card-meta">tie paši modeļi, kas izvēlēti augšpusē</span></div>
-        <div class="cw"><div class="loading" id="loadPP"><div class="spinner"></div>Ielādē...</div><canvas id="cPP" role="img" aria-label="Nokrišņu varbūtība" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" data-i18n="card.precip_prob">Nokrišņu varbūtība (%)</span><span class="card-meta" data-i18n="card.precip_prob_sub">tie paši modeļi, kas izvēlēti augšpusē</span></div>
+        <div class="cw"><div class="loading" id="loadPP"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cPP" role="img" data-i18n-aria="chart.aria_precip_prob" aria-label="Nokrišņu varbūtība" style="display:none"></canvas></div>
       </div>
     </div>
 
     <div id="tab-wind">
       <div class="card">
         <div class="card-hd" id="windCardHd"></div>
-        <div class="cw"><div class="loading" id="loadW"><div class="spinner"></div>Ielādē...</div><canvas id="cW" role="img" aria-label="Vēja ātrums" style="display:none"></canvas></div>
+        <div class="cw"><div class="loading" id="loadW"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cW" role="img" data-i18n-aria="chart.aria_wind" aria-label="Vēja ātrums" style="display:none"></canvas></div>
         <div class="legend" id="legW"></div>
       </div>
     </div>
@@ -133,15 +134,15 @@
     <div id="tab-cloud">
       <div class="card">
         <div class="card-hd" id="cloudCardHd"></div>
-        <div class="cw"><div class="loading" id="loadCl"><div class="spinner"></div>Ielādē...</div><canvas id="cCl" role="img" aria-label="Mākoņu sega" style="display:none"></canvas></div>
+        <div class="cw"><div class="loading" id="loadCl"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cCl" role="img" data-i18n-aria="chart.aria_cloud" aria-label="Mākoņu sega" style="display:none"></canvas></div>
         <div class="legend" id="legCl"></div>
       </div>
     </div>
 
     <div id="tab-uv">
       <div class="card">
-        <div class="card-hd"><span class="card-title">UV indekss</span><span class="card-meta" id="uvMeta"></span></div>
-        <div class="cw"><div class="loading" id="loadUV"><div class="spinner"></div>Ielādē...</div><canvas id="cUV" role="img" aria-label="UV indekss" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" data-i18n="card.uv_title">UV indekss</span><span class="card-meta" id="uvMeta"></span></div>
+        <div class="cw"><div class="loading" id="loadUV"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cUV" role="img" data-i18n-aria="chart.aria_uv" aria-label="UV indekss" style="display:none"></canvas></div>
         <div class="legend" id="legUV"></div>
       </div>
     </div>
@@ -149,22 +150,22 @@
     <div id="tab-climate">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">Klimats un anomālija</span>
-          <span class="card-meta">Dati: ERA5 (1940-) · Open-Meteo</span>
+          <span class="card-title" data-i18n="card.climate_title">Klimats un anomālija</span>
+          <span class="card-meta" data-i18n="card.climate_src">Dati: ERA5 (1940-) · Open-Meteo</span>
         </div>
-        <div class="loading" id="loadClim"><div class="spinner"></div>Ielādē vēsturiskos datus...</div>
+        <div class="loading" id="loadClim"><div class="spinner"></div><span data-i18n="clim.loading">Ielādē vēsturiskos datus...</span></div>
         <div id="climContent" hidden>
           <div class="clim-anom">
             <div class="clim-anom-val" id="climAnomVal">-</div>
-            <div class="clim-anom-lbl" id="climAnomLbl">salīdzinājumā ar 1991-2020 normu šai datumai</div>
+            <div class="clim-anom-lbl" id="climAnomLbl" data-i18n="clim.anom_lbl">salīdzinājumā ar 1991-2020 normu šai datumai</div>
           </div>
           <p class="clim-note" id="climYearNote"></p>
-          <div class="clim-stripes-hd">Gada vidējā temperatūra pa gadiem <span id="climStripesRange" class="card-meta"></span></div>
-          <div id="climStripes" class="clim-stripes" role="img" aria-label="Sasilšanas svītras - gada vidējā temperatūra pa gadiem"></div>
+          <div class="clim-stripes-hd"><span data-i18n="clim.stripes_hd">Gada vidējā temperatūra pa gadiem</span> <span id="climStripesRange" class="card-meta"></span></div>
+          <div id="climStripes" class="clim-stripes" role="img" data-i18n-aria="clim.stripes_aria" aria-label="Sasilšanas svītras - gada vidējā temperatūra pa gadiem"></div>
           <div class="clim-stripes-axis"><span id="climAxisL"></span><span id="climAxisR"></span></div>
-          <p class="clim-note">Anomālija = novirze no 1991-2020 gada vidējā šajā vietā. Sasilšanas svītru krāsu skala centrēta uz 1961-1990 vidējo (zila = vēsāks, sarkana = siltāks). Avots: ERA5 reanalīze caur Open-Meteo Archive API.</p>
+          <p class="clim-note" data-i18n="clim.note">Anomālija = novirze no 1991-2020 gada vidējā šajā vietā. Sasilšanas svītru krāsu skala centrēta uz 1961-1990 vidējo (zila = vēsāks, sarkana = siltāks). Avots: ERA5 reanalīze caur Open-Meteo Archive API.</p>
         </div>
-        <div id="climErr" hidden><div class="err">Neizdevās ielādēt vēsturiskos klimata datus.</div></div>
+        <div id="climErr" hidden><div class="err" data-i18n="clim.err">Neizdevās ielādēt vēsturiskos klimata datus.</div></div>
       </div>
     </div>
 
@@ -172,15 +173,15 @@
       <div class="card">
         <div class="card-hd" id="tableCardHd"></div>
         <div class="tw">
-          <div class="loading" id="loadTbl"><div class="spinner"></div>Ielādē...</div>
+          <div class="loading" id="loadTbl"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div>
           <table id="forecastTable" style="display:none">
             <thead><tr>
-              <th>Datums</th><th>Laiks</th>
-              <th>Max °C</th><th>Min °C</th>
-              <th>Nokrišņi</th><th>Nokrišņi %</th>
-              <th>Vējš max</th>
-              <th>Mākoņi</th>
-              <th>Mitrums</th>
+              <th data-i18n="th.date">Datums</th><th data-i18n="th.time">Laiks</th>
+              <th data-i18n="th.max_c">Max °C</th><th data-i18n="th.min_c">Min °C</th>
+              <th data-i18n="th.precip">Nokrišņi</th><th data-i18n="th.precip_pct">Nokrišņi %</th>
+              <th data-i18n="th.wind_max">Vējš max</th>
+              <th data-i18n="th.cloud">Mākoņi</th>
+              <th data-i18n="th.humidity">Mitrums</th>
             </tr></thead>
             <tbody id="tBody"></tbody>
           </table>
@@ -191,8 +192,8 @@
     <div id="tab-radar">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">Nokrišņu radars</span>
-          <span class="card-meta">Dati: RainViewer</span>
+          <span class="card-title" data-i18n="card.radar_title">Nokrišņu radars</span>
+          <span class="card-meta" data-i18n="card.radar_src">Dati: RainViewer</span>
         </div>
         <div id="radarMap"></div>
         <div class="radar-ctrl">
@@ -205,29 +206,29 @@
 
       <div class="card" id="stationTablesCard" style="display:none">
         <div class="card-hd">
-          <span class="card-title">Meteostacijas</span>
+          <span class="card-title" data-i18n="card.stations">Meteostacijas</span>
         </div>
         <div class="mt-wrap" id="tableTabs" style="display:none">
-          <button class="mt on" id="tabLvcBtn" onclick="showStationTable('lvc')">Ceļa meteostacijas (LVC)</button>
-          <button class="mt" id="tabLvgmcBtn" onclick="showStationTable('lvgmc')">LVĢMC meteostacijas</button>
+          <button class="mt on" id="tabLvcBtn" onclick="showStationTable('lvc')" data-i18n="radar.lvc_tab">Ceļa meteostacijas (LVC)</button>
+          <button class="mt" id="tabLvgmcBtn" onclick="showStationTable('lvgmc')" data-i18n="radar.lvgmc_tab">LVĢMC meteostacijas</button>
         </div>
 
         <div id="lvcTableWrap">
-          <div class="card-meta" id="lvcMeta" style="margin-bottom:.6rem">Dati: transportdata.gov.lv (LVC)</div>
+          <div class="card-meta" id="lvcMeta" style="margin-bottom:.6rem" data-i18n="radar.lvc_src">Dati: transportdata.gov.lv (LVC)</div>
           <div class="tw">
             <table id="lvcTable">
               <thead>
                 <tr>
-                  <th data-sort="name">Stacija</th>
-                  <th data-sort="dist">Attālums</th>
-                  <th data-sort="time">Laiks</th>
-                  <th data-sort="airTemp">Gaisa t.</th>
-                  <th data-sort="surfaceTemp">Ceļa t.</th>
-                  <th data-sort="humidity">Mitrums</th>
-                  <th data-sort="precipMmH">Nokrišņi</th>
-                  <th data-sort="roadCondition">Ceļa stāvoklis</th>
-                  <th data-sort="minTemp">min t°</th>
-                  <th data-sort="maxTemp">max t°</th>
+                  <th data-sort="name" data-i18n="th.station">Stacija</th>
+                  <th data-sort="dist" data-i18n="th.dist">Attālums</th>
+                  <th data-sort="time" data-i18n="th.time">Laiks</th>
+                  <th data-sort="airTemp" data-i18n="th.air_t">Gaisa t.</th>
+                  <th data-sort="surfaceTemp" data-i18n="th.road_t">Ceļa t.</th>
+                  <th data-sort="humidity" data-i18n="th.humidity">Mitrums</th>
+                  <th data-sort="precipMmH" data-i18n="th.precip">Nokrišņi</th>
+                  <th data-sort="roadCondition" data-i18n="th.road_cond">Ceļa stāvoklis</th>
+                  <th data-sort="minTemp" data-i18n="th.min_t">min t°</th>
+                  <th data-sort="maxTemp" data-i18n="th.max_t">max t°</th>
                 </tr>
               </thead>
               <tbody id="lvcBody"></tbody>
@@ -236,21 +237,21 @@
         </div>
 
         <div id="lvgmcTableWrap">
-          <div class="card-meta" id="lvgmcMeta" style="margin-bottom:.6rem">Dati: data.gov.lv (LVĢMC)</div>
+          <div class="card-meta" id="lvgmcMeta" style="margin-bottom:.6rem" data-i18n="radar.lvgmc_src">Dati: data.gov.lv (LVĢMC)</div>
           <div class="tw">
             <table id="lvgmcTable">
               <thead>
                 <tr>
-                  <th data-sort="name">Stacija</th>
-                  <th data-sort="dist">Attālums</th>
-                  <th data-sort="time">Laiks</th>
-                  <th data-sort="airTemp">Gaisa t.</th>
-                  <th data-sort="feelsLike">Sajūtu t.</th>
-                  <th data-sort="windSpeed">Vējš</th>
-                  <th data-sort="humidity">Mitrums</th>
-                  <th data-sort="precipHour">Nokrišņi (h)</th>
-                  <th data-sort="minTemp">min t°</th>
-                  <th data-sort="maxTemp">max t°</th>
+                  <th data-sort="name" data-i18n="th.station">Stacija</th>
+                  <th data-sort="dist" data-i18n="th.dist">Attālums</th>
+                  <th data-sort="time" data-i18n="th.time">Laiks</th>
+                  <th data-sort="airTemp" data-i18n="th.air_t">Gaisa t.</th>
+                  <th data-sort="feelsLike" data-i18n="th.feels_t">Sajūtu t.</th>
+                  <th data-sort="windSpeed" data-i18n="th.wind">Vējš</th>
+                  <th data-sort="humidity" data-i18n="th.humidity">Mitrums</th>
+                  <th data-sort="precipHour" data-i18n="th.precip_h">Nokrišņi (h)</th>
+                  <th data-sort="minTemp" data-i18n="th.min_t">min t°</th>
+                  <th data-sort="maxTemp" data-i18n="th.max_t">max t°</th>
                 </tr>
               </thead>
               <tbody id="lvgmcBody"></tbody>
@@ -263,25 +264,25 @@
     <div id="tab-about">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">Modeļu precizitāte pēdējās 48 h</span>
+          <span class="card-title" data-i18n="card.verif_title">Modeļu precizitāte pēdējās 48 h</span>
           <span class="card-meta" id="verifMeta"></span>
         </div>
-        <div class="loading" id="loadVerif"><div class="spinner"></div>Salīdzina ar meteostaciju...</div>
+        <div class="loading" id="loadVerif"><div class="spinner"></div><span data-i18n="verif.loading">Salīdzina ar meteostaciju...</span></div>
         <div id="verifContent" hidden>
           <p class="clim-note" id="verifIntro"></p>
-          <div class="cw"><canvas id="cVerif" role="img" aria-label="Novērojumi pret modeļu prognozēm" style="display:none"></canvas></div>
+          <div class="cw"><canvas id="cVerif" role="img" data-i18n-aria="chart.aria_verif" aria-label="Novērojumi pret modeļu prognozēm" style="display:none"></canvas></div>
           <div class="tw">
             <table id="verifTable">
-              <thead><tr><th>Modelis</th><th>Vidējā kļūda (MAE)</th><th>Novirze</th><th>Punkti</th></tr></thead>
+              <thead><tr><th data-i18n="th.model">Modelis</th><th data-i18n="th.mae">Vidējā kļūda (MAE)</th><th data-i18n="th.bias">Novirze</th><th data-i18n="th.points">Punkti</th></tr></thead>
               <tbody id="verifBody"></tbody>
             </table>
           </div>
-          <p class="clim-note">MAE = vidējā absolūtā kļūda (jo mazāka, jo precīzāk). Novirze: pozitīva = modelis rāda siltāk nekā stacija mērīja. Salīdzināts ar tuvāko LVĢMC staciju un modeļu jaunāko analīzi/tuvprognozi par pēdējām 48 h - tā nav "prognoze, kāda tā bija izdota pirms 2 dienām".</p>
+          <p class="clim-note" data-i18n="verif.note">MAE = vidējā absolūtā kļūda (jo mazāka, jo precīzāk). Novirze: pozitīva = modelis rāda siltāk nekā stacija mērīja. Salīdzināts ar tuvāko LVĢMC staciju un modeļu jaunāko analīzi/tuvprognozi par pēdējām 48 h - tā nav "prognoze, kāda tā bija izdota pirms 2 dienām".</p>
         </div>
-        <div id="verifErr" hidden><div class="err">Neizdevās aprēķināt precizitāti (nav tuvu meteostacijas ar vēsturi vai neizdevās ielādēt datus).</div></div>
+        <div id="verifErr" hidden><div class="err" data-i18n="verif.err">Neizdevās aprēķināt precizitāti (nav tuvu meteostacijas ar vēsturi vai neizdevās ielādēt datus).</div></div>
       </div>
       <div class="card">
-        <div class="card-hd"><span class="card-title">Meteoroloģiskie modeļi</span></div>
+        <div class="card-hd"><span class="card-title" data-i18n="card.models_title">Meteoroloģiskie modeļi</span></div>
         <div id="modelInfoList"></div>
       </div>
     </div>
@@ -290,13 +291,14 @@
 </main>
 
 <footer>
-  Dati: <a href="https://open-meteo.com" target="_blank">Open-Meteo API</a> (bezmaksas, CC BY 4.0) ·
+  <span data-i18n="footer.data">Dati</span>: <a href="https://open-meteo.com" target="_blank">Open-Meteo API</a> (CC BY 4.0) ·
   Modeļi: ECMWF IFS/AIFS, GFS, ICON, ICON-EU, GEM, UKMO, MET Norway, Météo-France, ARPEGE, JMA, CMA, HARMONIE ·
   <a href="https://github.com/ArtuursG/METEO" target="_blank" rel="noopener">GitHub</a>
 </footer>
 
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 <script>
   if('serviceWorker' in navigator){

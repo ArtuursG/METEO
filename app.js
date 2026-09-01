@@ -67,9 +67,9 @@ function getCached(lat,lon){
 
 // "pirms N min" for the data timestamp; cache TTL caps this at ~1 h
 function relTime(ts){
-  if(!ts)return 'tikko';
+  if(!ts)return t('reltime.just_now');
   const m=Math.round((Date.now()-ts)/60000);
-  return m<1?'tikko':`pirms ${m} min`;
+  return m<1?t('reltime.just_now'):t('reltime.min_ago',{n:m});
 }
 
 // Brief bottom-centre notification; auto-dismisses
@@ -123,8 +123,7 @@ function tempCls(t){
 // Returns a rotated Unicode arrow + direction label; Unicode avoids mobile SVG rendering issues
 function wDir(deg){
   if(deg==null)return '-';
-  const labels=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
-  const label=labels[Math.round(deg/22.5)%16];
+  const label=COMPASS[LANG][Math.round(deg/22.5)%16];
   return `<span style="display:inline-block;transform:rotate(${deg}deg);font-size:13px;line-height:1">↑</span> ${label}`;
 }
 
@@ -157,21 +156,20 @@ function wKey(c){
   return 'thunder';
 }
 
-const WTEXT={clear:'Skaidrs',partly:'Mākoņains',cloud:'Apmācies',fog:'Migla',drizzle:'Smidzina',rain:'Lietus',snow:'Sniegs',thunder:'Pērkons'};
 function wIcon(c){const k=wKey(c);return k?WICONS[k]:'';}
-function wText(c){const k=wKey(c);return k?WTEXT[k]:'-';}
+function wText(c){const k=wKey(c);return k?t('wx.'+k):'-';}
 
 // Formats an ISO datetime string to short date label used on chart x-axis
 function fmtHour(isoStr){
   const d=new Date(isoStr);
-  return d.toLocaleDateString('lv-LV',{month:'short',day:'numeric'});
+  return d.toLocaleDateString(LOCALE,{month:'short',day:'numeric'});
 }
 
-// Formats an ISO date string to a Latvian weekday + date for the forecast table
+// Formats an ISO date string to a localised weekday + date for the forecast table
 function fmtDate(isoStr){
   const d=new Date(isoStr);
-  const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
-  return `<span class="dl">${dn[d.getDay()]}</span> ${d.toLocaleDateString('lv-LV',{day:'numeric',month:'long'})}`;
+  const wd=d.toLocaleDateString(LOCALE,{weekday:'long'});
+  return `<span class="dl">${wd[0].toUpperCase()+wd.slice(1)}</span> ${d.toLocaleDateString(LOCALE,{day:'numeric',month:'long'})}`;
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
@@ -195,7 +193,7 @@ function initTabsA11y(){
   const bar=document.querySelector('.tab-bar');
   if(!bar)return;
   bar.setAttribute('role','tablist');
-  bar.setAttribute('aria-label','Datu skati');
+  bar.setAttribute('aria-label',t('a11y.tabs'));
   const tabs=[...bar.querySelectorAll('.tb')];
   tabs.forEach(b=>{
     const name=(b.getAttribute('onclick')||'').match(/switchTab\('(\w+)'/)?.[1];
@@ -238,12 +236,12 @@ function buildToggles(){
     b.onclick=fn;
     wrap.appendChild(b);
   };
-  addCtrl('Visi',allOn,()=>{
+  addCtrl(t('sel.all'),allOn,()=>{
     MODELS.forEach(m=>S.active.add(m.id));
     buildToggles();
     rebuildTempChart();
   });
-  addCtrl('Neviens',S.active.size===0,()=>{
+  addCtrl(t('sel.none'),S.active.size===0,()=>{
     S.active.clear();
     buildToggles();
     rebuildTempChart();
@@ -258,8 +256,8 @@ function buildToggles(){
     b.className='mt'+(S.active.has(m.id)?' on':'');
     b.setAttribute('aria-pressed',S.active.has(m.id)?'true':'false');
     b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
-    b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
-    b.setAttribute('aria-label',`${m.name} - rādīt grafikā`);
+    b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
+    b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
     b.onclick=()=>{
       const on=!S.active.has(m.id);
       on?S.active.add(m.id):S.active.delete(m.id);
@@ -286,7 +284,7 @@ function buildModelInfo(){
       <span style="font-size:14px">${m.flag}</span>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${m.name}</div>
-        <div style="font-size:11px;color:var(--t3)">${m.org} · Izšķirtspēja: ${m.res} · Prognoze: ${m.days} dienas</div>
+        <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${m.res} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}</div>
       </div>`;
     wrap.appendChild(div);
   });
@@ -388,9 +386,9 @@ function spreadVerdict(min,max){
   if(!gaps.length)return '';
   const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
   const a=round(avg,1);
-  if(avg<1.5)return `modeļi lielā mērā vienojas (±${a}°C nākamajās 48 h)`;
-  if(avg<4)return `vidēja modeļu izkliede (±${a}°C nākamajās 48 h)`;
-  return `liela nenoteiktība – modeļi būtiski atšķiras (±${a}°C nākamajās 48 h)`;
+  if(avg<1.5)return t('spread.agree',{n:a});
+  if(avg<4)return t('spread.medium',{n:a});
+  return t('spread.high',{n:a});
 }
 
 function rebuildTempChart(){
@@ -417,7 +415,7 @@ function rebuildTempChart(){
     sp=tempSpread(active);
     band=[
       {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true},
-      {label:'Modeļu diapazons',data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
+      {label:t('chart.model_range'),data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
     ];
   }
 
@@ -439,7 +437,7 @@ function rebuildTempChart(){
               if(!sp)return '';
               const i=items[0].dataIndex;
               if(sp.min[i]==null)return '';
-              return `Diapazons: ${round(sp.min[i])}–${round(sp.max[i])}°C (Δ ${round(sp.max[i]-sp.min[i],1)}°)`;
+              return t('spread.tooltip_range',{min:round(sp.min[i]),max:round(sp.max[i]),d:round(sp.max[i]-sp.min[i],1)});
             }
           }
         }
@@ -468,7 +466,7 @@ function mkModelSelector(containerId,stateKey,title,onSelect){
   const wrap=document.createElement('div');
   wrap.style.cssText='display:flex;gap:4px';
   wrap.setAttribute('role','group');
-  wrap.setAttribute('aria-label',title+' - modelis');
+  wrap.setAttribute('aria-label',title);
   TABLE_MODELS.forEach(tm=>{
     const b=document.createElement('button');
     b.className='mt'+(S[stateKey]===tm.id?' on':'');
@@ -491,8 +489,8 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
     b.className='mt'+(active?' on':'');
     b.textContent=label;b.onclick=fn;wrap.appendChild(b);
   };
-  addCtrl('Visi',allOn,()=>{MODELS.forEach(m=>S[stateKey].add(m.id));onSelect();});
-  addCtrl('Neviens',S[stateKey].size===0,()=>{S[stateKey].clear();onSelect();});
+  addCtrl(t('sel.all'),allOn,()=>{MODELS.forEach(m=>S[stateKey].add(m.id));onSelect();});
+  addCtrl(t('sel.none'),S[stateKey].size===0,()=>{S[stateKey].clear();onSelect();});
   const sep=document.createElement('div');
   sep.style.cssText='width:0.5px;background:var(--b2);margin:2px 6px;align-self:stretch';
   wrap.appendChild(sep);
@@ -501,8 +499,8 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
     b.className='mt'+(S[stateKey].has(m.id)?' on':'');
     b.setAttribute('aria-pressed',S[stateKey].has(m.id)?'true':'false');
     b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
-    b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
-    b.setAttribute('aria-label',`${m.name} - rādīt grafikā`);
+    b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
+    b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
     b.onclick=()=>{
       // Prevent deselecting the last active model
       if(S[stateKey].has(m.id)){if(S[stateKey].size<=1)return;S[stateKey].delete(m.id);}
@@ -517,12 +515,12 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
 // Formats a full readable timestamp for chart tooltips
 function fmtTooltipTitle(timeArr,idx){
   const d=new Date(timeArr[idx]);
-  const dn=['Svētdiena','Pirmdiena','Otrdiena','Trešdiena','Ceturtdiena','Piektdiena','Sestdiena'];
-  return `${d.toLocaleDateString('lv-LV',{day:'numeric',month:'long'})} - ${dn[d.getDay()]} - plkst. ${d.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'})}`;
+  const wd=d.toLocaleDateString(LOCALE,{weekday:'long'});
+  return `${d.toLocaleDateString(LOCALE,{day:'numeric',month:'long'})} · ${wd} · ${d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'})}`;
 }
 
 function buildPrecipCharts(){
-  mkMultiSelector('precipCardHd','precipModels','Nokrišņi (mm)',buildPrecipCharts);
+  mkMultiSelector('precipCardHd','precipModels',t('chart.precip_mm'),buildPrecipCharts);
 
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
@@ -581,13 +579,13 @@ function buildPrecipCharts(){
     // Hide the canvas (do not replaceWith - that permanently removes the element)
     $('cPP').style.display='none';
     $('loadPP').style.display='flex';
-    $('loadPP').innerHTML='<div class="err">Nokrišņu varbūtības dati nav pieejami izvēlētajiem modeļiem.</div>';
+    $('loadPP').innerHTML=`<div class="err">${t('chart.no_precip_prob')}</div>`;
   }
 }
 
 // ─── WIND CHART ──────────────────────────────────────────────────────────────
 function buildWindChart(){
-  mkMultiSelector('windCardHd','windModels',`Vēja ātrums 10m (${S.windUnit})`,buildWindChart);
+  mkMultiSelector('windCardHd','windModels',`${t('chart.wind_speed')} (${S.windUnit})`,buildWindChart);
 
   // Unit toggle - inserted between the title and the model selector
   const unitDiv=document.createElement('div');
@@ -640,16 +638,16 @@ function setWindUnit(u){
 
 // ─── CLOUD COVER CHART ───────────────────────────────────────────────────────
 const CLOUD_LEVELS=[
-  {max:25,  label:'Skaidrs',          color:'#9fd8ef'},
-  {max:50,  label:'Daļēji mākoņains', color:'#7bafc8'},
-  {max:75,  label:'Mākoņains',        color:'#8595a3'},
-  {max:100, label:'Apmācies',         color:'#5e6e7a'},
+  {max:25,  key:'cloud.clear',    color:'#9fd8ef'},
+  {max:50,  key:'cloud.partly',   color:'#7bafc8'},
+  {max:75,  key:'cloud.cloudy',   color:'#8595a3'},
+  {max:100, key:'cloud.overcast', color:'#5e6e7a'},
 ];
 const cloudColor=v=>(CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).color;
-const cloudLabel=v=>(CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).label;
+const cloudLabel=v=>t((CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).key);
 
 function buildCloudChart(){
-  mkModelSelector('cloudCardHd','cloudModel','Mākoņu sega (%)',buildCloudChart);
+  mkModelSelector('cloudCardHd','cloudModel',t('chart.cloud_cover'),buildCloudChart);
   const src=S.data[S.cloudModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!src?.hourly?.time)return;
   const cd=CD();
@@ -681,19 +679,19 @@ function buildCloudChart(){
     }
   });
   const leg=$('legCl');
-  if(leg) leg.innerHTML=CLOUD_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
+  if(leg) leg.innerHTML=CLOUD_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${t(l.key)}</div>`).join('');
 }
 
 // ─── UV INDEX CHART ───────────────────────────────────────────────────────────
 const UV_LEVELS=[
-  {max:2, label:'Zems',       color:'#57a838'},
-  {max:5, label:'Mērens',     color:'#f5c518'},
-  {max:7, label:'Augsts',     color:'#f77f00'},
-  {max:10,label:'Ļoti augsts',color:'#e8292a'},
-  {max:Infinity,label:'Ārkārtējs',color:'#9b4dca'},
+  {max:2, key:'uv.low',      color:'#57a838'},
+  {max:5, key:'uv.moderate', color:'#f5c518'},
+  {max:7, key:'uv.high',     color:'#f77f00'},
+  {max:10,key:'uv.veryhigh', color:'#e8292a'},
+  {max:Infinity,key:'uv.extreme',color:'#9b4dca'},
 ];
 function uvColor(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).color; }
-function uvLabel(v){ return (UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).label; }
+function uvLabel(v){ return t((UV_LEVELS.find(l=>v<=l.max)||UV_LEVELS[4]).key); }
 
 function buildUVChart(){
   // Some models return uv_index:[null,null,...] instead of omitting the field - .some() is needed
@@ -744,7 +742,7 @@ function buildUVChart(){
   });
 
   const leg=$('legUV');
-  if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${l.label}</div>`).join('');
+  if(leg) leg.innerHTML=UV_LEVELS.map(l=>`<div class="li"><span class="ld" style="background:${l.color}"></span>${t(l.key)}</div>`).join('');
 
 }
 
@@ -844,10 +842,10 @@ function renderClimate(d){
     const sign=anom>=0?'+':'−';
     $('climAnomVal').textContent=`${sign}${Math.abs(round(anom,1))}°C`;
     $('climAnomVal').style.color=anom>=0?'#e0796d':'#7aa8d8';
-    $('climAnomLbl').textContent=`šodien pret 1991-2020 normu (${round(normal,1)}°C) šai datumai`;
+    $('climAnomLbl').textContent=t('clim.anom_today',{n:round(normal,1)});
   }else{
     $('climAnomVal').textContent='–';
-    $('climAnomLbl').textContent='nepietiek datu šodienas anomālijai';
+    $('climAnomLbl').textContent=t('clim.anom_nodata');
   }
 
   // Latest complete year vs 1961-1990
@@ -855,8 +853,9 @@ function renderClimate(d){
   const last=full[full.length-1];
   if(last){
     const diff=last.mean-d.centre;
+    const dstr=`${diff>=0?'+':'−'}${Math.abs(round(diff,1))}`;
     $('climYearNote').textContent=
-      `${last.year}. gads: vidēji ${round(last.mean,1)}°C — ${diff>=0?'+':'−'}${Math.abs(round(diff,1))}°C pret 1961-1990. gadu vidējo (${round(d.centre,1)}°C).`;
+      t('clim.year_note',{year:last.year,mean:round(last.mean,1),diff:dstr,centre:round(d.centre,1)});
   }
 
   // Warming stripes
@@ -868,7 +867,8 @@ function renderClimate(d){
     bar.className='stripe';
     bar.style.background=stripeColor(z);
     if(!a.full)bar.style.opacity='.55';
-    bar.title=`${a.year}: ${round(a.mean,1)}°C (${a.mean-d.centre>=0?'+':'−'}${Math.abs(round(a.mean-d.centre,1))}°C)${a.full?'':' — nepilns gads'}`;
+    const dstr=`${a.mean-d.centre>=0?'+':'−'}${Math.abs(round(a.mean-d.centre,1))}`;
+    bar.title=t('clim.stripe_tooltip',{year:a.year,mean:round(a.mean,1),diff:dstr})+(a.full?'':t('clim.stripe_partial'));
     wrap.appendChild(bar);
   });
   const y0=d.annual[0]?.year, y1=d.annual[d.annual.length-1]?.year;
@@ -940,10 +940,10 @@ async function initVerification(){
 }
 
 function renderVerification(st,dist,rows,series){
-  $('verifMeta').textContent=`Stacija: ${st.name} (~${round(dist)} km)`;
+  $('verifMeta').textContent=t('verif.station',{name:st.name,dist:round(dist)});
   const best=rows[0];
-  $('verifIntro').textContent=
-    `Pēdējās 48 h precīzākais ${st.name} stacijai bija ${best.name} — vidējā kļūda ${best.mae.toFixed(1)}°C. Salīdzināti ${rows.length} modeļi pret faktiski izmērīto gaisa temperatūru.`;
+  $('verifIntro').textContent=t('verif.intro',
+    {station:st.name,best:best.name,mae:best.mae.toFixed(1),count:rows.length});
 
   const fmtBias=v=>{const x=+v.toFixed(1); return x===0?'±0.0°C':`${x>0?'+':'−'}${Math.abs(x).toFixed(1)}°C`;};
   const tb=$('verifBody'); tb.textContent='';
@@ -962,8 +962,8 @@ function renderVerification(st,dist,rows,series){
 
   const cd=CD();
   const labels=series.times.map(fmtHour);
-  const obsData=series.times.map(t=>series.obs[t.slice(0,13)]??null);
-  const ds=[{label:`${st.name} (mērīts)`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3}];
+  const obsData=series.times.map(iso=>series.obs[iso.slice(0,13)]??null);
+  const ds=[{label:`${st.name} (${t('verif.measured')})`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3}];
   rows.slice(0,3).forEach(rw=>ds.push({
     label:rw.name,data:series.hourly[`temperature_2m_${rw.id}`],
     borderColor:rw.color,borderWidth:1.5,pointRadius:0,tension:0.3,borderDash:[4,3]
@@ -988,7 +988,7 @@ function renderVerification(st,dist,rows,series){
 
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
-  mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
+  mkModelSelector('tableCardHd','tableModel',t('chart.forecast_daily'),buildTable);
 
   const src=S.data[S.tableModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!src?.daily?.time)return;
@@ -997,12 +997,12 @@ function buildTable(){
          relative_humidity_2m_mean:rh,weather_code:wc,cloud_cover_mean:cc}=src.daily;
   const tbody=$('tBody');
   tbody.innerHTML='';
-  time.forEach((t,i)=>{
+  time.forEach((iso,i)=>{
     const mx=r0(tmax?.[i]),mn=r0(tmin?.[i]);
     const icon=wIcon(wc?.[i]);
     const tr=document.createElement('tr');
     tr.innerHTML=`
-      <td>${fmtDate(t)}</td>
+      <td>${fmtDate(iso)}</td>
       <td class="wcell" title="${wText(wc?.[i])}">${icon}</td>
       <td class="${tempCls(mx)}">${mx!=null?mx+'°':'-'}</td>
       <td class="${tempCls(mn)}">${mn!=null?mn+'°':'-'}</td>
@@ -1026,7 +1026,6 @@ function moonPhaseInfo(){
   const days=((Date.now()-ref)/86400000%cycle+cycle)%cycle;
   const frac=days/cycle; // 0=new, 0.5=full, 1=new
   const i=Math.floor(frac*8)%8;
-  const names=['Jaunmēness','Augošs pusmēness','Pirmais ceturksnis','Augošs','Pilnmēness','Dilstošs','Pēdējais ceturksnis','Dilstošs pusmēness'];
 
   // Build SVG using two arcs: outer semicircle + terminator ellipse
   const r=6,s=16,cx=8,cy=8;
@@ -1049,7 +1048,7 @@ function moonPhaseInfo(){
     const lit=`<path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 ${outerSweep} ${cx} ${cy+r} A ${ex} ${r} 0 0 ${termSweep} ${cx} ${cy-r} Z" fill="currentColor"/>`;
     svg=`<svg viewBox="0 0 ${s} ${s}" width="${s}" height="${s}">${outline}${lit}</svg>`;
   }
-  return {svg, name:names[i]};
+  return {svg, name:t('moon.'+i)};
 }
 
 // Populates the metrics row and hero sunrise/sunset using ECMWF as primary source
@@ -1063,27 +1062,27 @@ function updateMetrics(){
     const fl=r0(c.apparent_temperature);
     $('feelsLike').innerHTML=`${fl!=null?fl:'-'}<span>°C</span>`;
     const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
-    $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
+    $('feelsDesc').textContent=diff==null?'-':diff>1?t('feels.warmer'):diff<-1?t('feels.colder'):t('feels.matches');
     $('windNow').innerHTML=`${windConv(c.wind_speed_10m)}<span>${S.windUnit}</span>`;
-    const gust=c.wind_gusts_10m!=null?` · brāzmas ${windConv(c.wind_gusts_10m)} ${S.windUnit}`:'';
-    $('windDir').innerHTML=`Virziens: ${wDir(c.wind_direction_10m)}${gust}`;
+    const gust=c.wind_gusts_10m!=null?` · ${t('metric.gust')} ${windConv(c.wind_gusts_10m)} ${S.windUnit}`:'';
+    $('windDir').innerHTML=`${t('metric.direction')}: ${wDir(c.wind_direction_10m)}${gust}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
-    const snow=c.snowfall>0?` · sniegs ${round(c.snowfall,1)} cm`:'';
-    $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm${snow}`;
+    const snow=c.snowfall>0?` · ${t('metric.snow')} ${round(c.snowfall,1)} cm`:'';
+    $('precipNow').textContent=`${t('metric.precip')}: ${round(c.precipitation,1)} mm${snow}`;
   }
   if(ecmwf.daily?.temperature_2m_max?.[0]!=null){
     $('todayMax').innerHTML=`${r0(ecmwf.daily.temperature_2m_max[0])}<span>°C</span>`;
-    $('todayMin').textContent=`Min: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
+    $('todayMin').textContent=`${t('metric.min')}: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
   }
   // Data freshness: shown both on the temperature card and in the always-visible
-  // metrics row (so it is present on every tab, not just Temperatūra)
-  $('lastUpdate').textContent=`Dati atjaunoti ${relTime(S.dataTs)}`;
+  // metrics row (so it is present on every tab, not just Temperature)
+  $('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
   const srcEl=$('metricsSrc');
-  if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel} · atjaunoti ${relTime(S.dataTs)}`;
+  if(srcEl)srcEl.textContent=`${t('metric.source')}: ${srcModel} · ${t('metric.updated')} ${relTime(S.dataTs)}`;
   // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
-    const fmt=iso=>new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+    const fmt=iso=>new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
     const rise=fmt(ecmwf.daily.sunrise[0]),set=fmt(ecmwf.daily.sunset[0]);
     const sunEl=$('heroSun');
     const moon=moonPhaseInfo();
@@ -1147,7 +1146,7 @@ async function loadAll(){
   const hadData=Object.keys(S.data).length>0;
   if(!hadData){
     $('loadT').style.display='flex';
-    $('loadT').innerHTML='<div class="spinner"></div>Ielādē...';
+    $('loadT').innerHTML=`<div class="spinner"></div>${t('metric.loading')}`;
   }
 
   let fresh=null;
@@ -1160,11 +1159,11 @@ async function loadAll(){
   if(!fresh||!Object.keys(fresh).length){
     if(hadData){
       // Keep the previous location's data on screen rather than blanking everything
-      showToast('Neizdevās ielādēt jaunos datus. Rādīti iepriekšējie.');
+      showToast(t('toast.reload_failed'));
       return false;
     }
     ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{
-      $(id).innerHTML='<div class="err">Neizdevās ielādēt datus. Pārbaudiet interneta savienojumu.</div>';
+      $(id).innerHTML=`<div class="err">${t('err.load_failed')}</div>`;
     });
     return false;
   }
@@ -1213,13 +1212,13 @@ async function searchCity(){
   if(_searchCtrl)_searchCtrl.abort();
   _searchCtrl=new AbortController();
   const drop=$('cityDrop');
-  drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Meklē...</div>';
+  drop.innerHTML=`<div class="city-opt" style="color:var(--t3);cursor:default">${t('search.searching')}</div>`;
   drop.style.display='block';
   try{
-    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=en`,{signal:_searchCtrl.signal});
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=${LANG}`,{signal:_searchCtrl.signal});
     const d=await r.json();
     if(!d.results?.length){
-      drop.innerHTML='<div class="city-opt" style="color:var(--t3);cursor:default">Pilsēta netika atrasta</div>';
+      drop.innerHTML=`<div class="city-opt" style="color:var(--t3);cursor:default">${t('search.not_found')}</div>`;
       return;
     }
     renderSearchResults(d.results);
@@ -1228,7 +1227,7 @@ async function searchCity(){
     const errEl=document.createElement('div');
     errEl.className='city-opt';
     errEl.style.cssText='color:#e66767;cursor:default';
-    errEl.textContent=`Kļūda: ${e.message}`;
+    errEl.textContent=`${t('err.prefix')}: ${e.message}`;
     drop.appendChild(errEl);
   }
 }
@@ -1336,7 +1335,7 @@ function renderFavBtn(){
   const b=$('favBtn'); if(!b)return;
   const on=isFav(S.geo);
   b.setAttribute('aria-pressed',on?'true':'false');
-  b.setAttribute('aria-label',on?'Noņemt no saglabātajām vietām':'Saglabāt šo vietu');
+  b.setAttribute('aria-label',on?t('ui.unsave_place'):t('ui.save_place'));
   b.title=b.getAttribute('aria-label');
 }
 
@@ -1362,7 +1361,7 @@ function _cityRow(c,pinned){
   if(pinned){
     const x=document.createElement('button');
     x.className='co-unpin'; x.type='button'; x.textContent='✕';
-    x.setAttribute('aria-label',`Noņemt ${c.name} no saglabātajām`);
+    x.setAttribute('aria-label',t('favs.remove',{name:c.name}));
     x.onclick=e=>{e.stopPropagation();toggleFav(c);};
     opt.appendChild(x);
   }
@@ -1378,11 +1377,11 @@ function showRecent(){
   const recent=_readList('recent_cities').filter(c=>!favs.some(f=>_sameLoc(f,c)));
   if(!favs.length&&!recent.length){drop.style.display='none';return;}
   drop.innerHTML='';
-  const lbl=t=>{const d=document.createElement('div');
+  const lbl=txt=>{const d=document.createElement('div');
     d.style.cssText='padding:7px 13px 4px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px';
-    d.textContent=t;return d;};
-  if(favs.length){drop.appendChild(lbl('Saglabātās vietas'));favs.forEach(c=>drop.appendChild(_cityRow(c,true)));}
-  if(recent.length){drop.appendChild(lbl('Nesenie meklējumi'));recent.forEach(c=>drop.appendChild(_cityRow(c,false)));}
+    d.textContent=txt;return d;};
+  if(favs.length){drop.appendChild(lbl(t('favs.saved')));favs.forEach(c=>drop.appendChild(_cityRow(c,true)));}
+  if(recent.length){drop.appendChild(lbl(t('favs.recent')));recent.forEach(c=>drop.appendChild(_cityRow(c,false)));}
   drop.style.display='block';
 }
 
@@ -1390,14 +1389,14 @@ function showRecent(){
 // Opens WhatsApp share sheet with city name and current URL (includes lat/lon params)
 function shareWA(){
   const url=window.location.href;
-  const text=`Laika prognoze - ${S.city} | prognoze.lv`;
+  const text=`${t('share.text',{city:S.city})} | prognoze.lv`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
 }
 
 // Opens Telegram share sheet with city name and current URL
 function shareTG(){
   const url=window.location.href;
-  const text=`Laika prognoze - ${S.city}`;
+  const text=t('share.text',{city:S.city});
   window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank');
 }
 
@@ -1413,9 +1412,9 @@ async function locateMe(auto=false){
       if(btn)btn.classList.remove('loading');
       const{latitude:lat,longitude:lon}=pos.coords;
       // Start loading immediately with placeholder name; Nominatim updates it in background
-      selectCity({latitude:lat,longitude:lon,name:'Pašreizējā atrašanās vieta',country:'',admin1:'',timezone:''});
+      selectCity({latitude:lat,longitude:lon,name:t('geo.current_location'),country:'',admin1:'',timezone:''});
       try{
-        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=lv`);
+        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=${LANG}`);
         const d=await r.json();
         const a=d.address||{};
         const city=a.city||a.town||a.village||a.municipality||a.suburb||a.neighbourhood||a.county||d.display_name?.split(',')[0]||'';
@@ -1458,28 +1457,29 @@ async function initRadar(){
   // vienā layerGroup, lai izskatās kā vienota karte ar pilsētu nosaukumiem.
   const esriAttr='Tiles © <a href="https://www.esri.com" target="_blank">Esri</a>';
   const esri=(svc,attr)=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{attribution:attr,maxZoom:16});
+  const lightLayer=L.layerGroup([
+    esri('Canvas/World_Light_Gray_Base',esriAttr),
+    esri('Canvas/World_Light_Gray_Reference'),
+  ]);
   const baseLayers={
-    'Gaišā':L.layerGroup([
-      esri('Canvas/World_Light_Gray_Base',esriAttr),
-      esri('Canvas/World_Light_Gray_Reference'),
-    ]),
-    'Tumšā':L.layerGroup([
+    [t('basemap.light')]:lightLayer,
+    [t('basemap.dark')]:L.layerGroup([
       esri('Canvas/World_Dark_Gray_Base',esriAttr),
       esri('Canvas/World_Dark_Gray_Reference'),
     ]),
-    'OpenStreetMap':L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    [t('basemap.osm')]:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom:19,subdomains:'abc'}),
-    'Reljefs':L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+    [t('basemap.relief')]:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenStreetMap, SRTM · © <a href="https://opentopomap.org" target="_blank">OpenTopoMap</a> (CC-BY-SA)',
       maxZoom:17,subdomains:'abc'}),
-    'Satelīts':L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    [t('basemap.satellite')]:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
       attribution:'Tiles © <a href="https://www.esri.com" target="_blank">Esri</a>',
       maxZoom:19}),
   };
-  baseLayers['Gaišā'].addTo(_rMap);
-  // Radara/meteostaciju atsauces paliek redzamas neatkarīgi no izvēlētās bāzes kartes
-  _rMap.attributionControl.addAttribution('Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Meteostacijas: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>');
+  lightLayer.addTo(_rMap);
+  // Radar / station attribution stays visible regardless of the selected base map
+  _rMap.attributionControl.addAttribution(t('radar.attr'));
 
   _lvcLayer=L.layerGroup().addTo(_rMap);
   _lvgmcLayer=L.layerGroup().addTo(_rMap);
@@ -1489,8 +1489,8 @@ async function initRadar(){
 
   // Papildslāņi (checkbox) - šeit pievienos nākotnē vēl citus slāņus (piem. LT/EE radaru)
   const overlays={
-    'Ceļa meteostacijas (LVC)':_lvcLayer,
-    'LVĢMC meteostacijas':_lvgmcLayer,
+    [t('radar.overlay_lvc')]:_lvcLayer,
+    [t('radar.overlay_lvgmc')]:_lvgmcLayer,
   };
   L.control.layers(baseLayers,overlays,{collapsed:true}).addTo(_rMap);
 
@@ -1513,7 +1513,7 @@ async function initRadar(){
 
 async function loadRadarFrames(){
   try{
-    $('radarStatus').textContent='Ielādē...';
+    $('radarStatus').textContent=t('radar.loading');
     const r=await fetch('https://api.rainviewer.com/public/weather-maps.json');
     if(!r.ok)throw new Error(r.status);
     const d=await r.json();
@@ -1525,7 +1525,7 @@ async function loadRadarFrames(){
     updateRadarUI();
     $('radarStatus').textContent='';
   }catch{
-    $('radarStatus').textContent='Neizdevās ielādēt radara datus.';
+    $('radarStatus').textContent=t('radar.load_failed');
   }
 }
 
@@ -1545,10 +1545,10 @@ function showRadarFrame(idx){
 
 function updateRadarUI(){
   if(!_rFrames.length)return;
-  const t=new Date(_rFrames[_rIdx].time*1000);
-  const label=t.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+  const dt=new Date(_rFrames[_rIdx].time*1000);
+  const label=dt.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
   const isLatest=_rIdx===_rFrames.length-1;
-  $('radarTime').textContent=isLatest?`Tagad · ${label}`:label;
+  $('radarTime').textContent=isLatest?`${t('radar.now')} · ${label}`:label;
   $('radarSlider').value=_rIdx;
 }
 
@@ -1608,8 +1608,8 @@ const LVC_TTL=10*60*1000; // 10 min - Worker pats atjaunojas ik 15 min, biežāk
 let _lvcLayer=null, _lvcStations=[], _lvcRows=[], _lvcFetchedAt=0, _lvcSort={key:'dist',dir:1}, _lvcMarkerList=[];
 const LVC_LABEL_W=38, LVC_LABEL_H=15, LVC_LABEL_GAP=3; // aptuvens marķiera uzraksta izmērs px, sadursmju noteikšanai
 
-const ROAD_COND_LV={dry:'Sauss',wet:'Slapjš',moist:'Mitrs',frost:'Sarma',iceOrSnowOnRoad:'Apledojums/sniegs',wetAndDirty:'Slapjš, netīrs'};
-const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'-';
+const ROAD_COND_KEY={dry:'road.dry',wet:'road.wet',moist:'road.moist',frost:'road.frost',iceOrSnowOnRoad:'road.ice',wetAndDirty:'road.wetdirty'};
+const roadCondLv=c=>c?(ROAD_COND_KEY[c]?t(ROAD_COND_KEY[c]):c):'-';
 
 // Haversine attālums km starp divām WGS84 koordinātēm
 function haversineKm(lat1,lon1,lat2,lon2){
@@ -1632,7 +1632,7 @@ async function ensureLvcStations(){
     _lvcFetchedAt=Date.now();
     renderLvcRows();
   }catch{
-    $('lvcMeta').textContent='Neizdevās ielādēt ceļa meteostaciju datus.';
+    $('lvcMeta').textContent=t('radar.lvc_failed');
   }
 }
 
@@ -1687,7 +1687,7 @@ function renderLvcMarkers(){
     }).bindPopup(lvcPopupContent(s)).addTo(_lvcLayer);
     _lvcMarkerList.push(marker);
   }
-  $('lvcMeta').textContent=`Dati: transportdata.gov.lv (LVC) · ${_lvcRows.length} stacijas`;
+  $('lvcMeta').textContent=`${t('radar.lvc_src')} · ${t('radar.stations_count',{n:_lvcRows.length})}`;
   declutterBadges(_lvcMarkerList);
 }
 
@@ -1748,17 +1748,17 @@ function lvcPopupContent(s){
 
   const dist=document.createElement('div');
   dist.className='lvc-dist';
-  dist.textContent=`${round(s.dist,1)} km attālumā`;
+  dist.textContent=t('station.dist_away',{n:round(s.dist,1)});
   box.appendChild(dist);
 
   const rows=[
-    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
-    ['Ceļa virsmas temp.',s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°C`:'-'],
-    ['Rasas punkts',s.dewPoint!=null?`${round(s.dewPoint,1)}°C`:'-'],
-    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
-    ['Nokrišņi',s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'-'],
-    ['Redzamība',s.visibilityM!=null?`${round(s.visibilityM/1000,1)} km`:'-'],
-    ['Ceļa stāvoklis',roadCondLv(s.roadCondition)],
+    [t('station.air_t'),s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
+    [t('station.road_surface_t'),s.surfaceTemp!=null?`${round(s.surfaceTemp,1)}°C`:'-'],
+    [t('station.dew_point'),s.dewPoint!=null?`${round(s.dewPoint,1)}°C`:'-'],
+    [t('station.humidity'),s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
+    [t('station.precip'),s.precipMmH!=null?`${round(s.precipMmH,1)} mm/h`:'-'],
+    [t('station.visibility'),s.visibilityM!=null?`${round(s.visibilityM/1000,1)} km`:'-'],
+    [t('station.road_cond'),roadCondLv(s.roadCondition)],
   ];
   const tbl=document.createElement('table');
   for(const[label,val]of rows){
@@ -1775,7 +1775,7 @@ function lvcPopupContent(s){
   histBtn.style.marginTop='8px';
   histBtn.style.display='inline-block';
   histBtn.style.textDecoration='none';
-  histBtn.textContent='24h vēsture ->';
+  histBtn.textContent=t('station.history_24h');
   histBtn.href=`stacija.html?id=${encodeURIComponent(s.id)}&name=${encodeURIComponent(s.name)}&lat=${s.lat}&lon=${s.lon}`;
   box.appendChild(histBtn);
 
@@ -1812,9 +1812,8 @@ const LVGMC_API='https://lvgmc-meteo-proxy.jkedainis.workers.dev/';
 const LVGMC_TTL=10*60*1000; // Worker pats kešo uz 10 min (avots atjaunojas ik stundu)
 let _lvgmcLayer=null, _lvgmcStations=[], _lvgmcRows=[], _lvgmcFetchedAt=0, _lvgmcSort={key:'dist',dir:1}, _lvgmcMarkerList=[];
 
-const LVGMC_WIND_LABELS=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
-const fmtStationTime=iso=>new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
-const lvgmcWindDirLv=deg=>deg==null?'':LVGMC_WIND_LABELS[Math.round(deg/22.5)%16];
+const fmtStationTime=iso=>new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+const lvgmcWindDirLv=deg=>deg==null?'':COMPASS[LANG][Math.round(deg/22.5)%16];
 
 async function ensureLvgmcStations(){
   if(Date.now()-_lvgmcFetchedAt<LVGMC_TTL && _lvgmcStations.length){
@@ -1829,7 +1828,7 @@ async function ensureLvgmcStations(){
     _lvgmcFetchedAt=Date.now();
     renderLvgmcRows();
   }catch{
-    $('lvgmcMeta').textContent='Neizdevās ielādēt LVĢMC staciju datus.';
+    $('lvgmcMeta').textContent=t('radar.lvgmc_failed');
   }
 }
 
@@ -1888,7 +1887,7 @@ function renderLvgmcMarkers(){
     }).bindPopup(lvgmcPopupContent(s)).addTo(_lvgmcLayer);
     _lvgmcMarkerList.push(marker);
   }
-  $('lvgmcMeta').textContent=`Dati: data.gov.lv (LVĢMC) · ${_lvgmcRows.length} stacijas`;
+  $('lvgmcMeta').textContent=`${t('radar.lvgmc_src')} · ${t('radar.stations_count',{n:_lvgmcRows.length})}`;
   declutterBadges(_lvgmcMarkerList);
 }
 
@@ -1902,20 +1901,20 @@ function lvgmcPopupContent(s){
 
   const dist=document.createElement('div');
   dist.className='lvc-dist';
-  dist.textContent=`${round(s.dist,1)} km attālumā`;
+  dist.textContent=t('station.dist_away',{n:round(s.dist,1)});
   box.appendChild(dist);
 
   const rows=[
-    ['Gaisa temp.',s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
-    ['Sajūtu temp.',s.feelsLike!=null?`${round(s.feelsLike,1)}°C`:'-'],
-    ['24h min / max',(s.minTemp!=null&&s.maxTemp!=null)?`${round(s.minTemp,1)}° / ${round(s.maxTemp,1)}°`:'-'],
-    ['Vējš',s.windSpeed!=null?`${round(s.windSpeed,1)} m/s ${lvgmcWindDirLv(s.windDir)}`:'-'],
-    ['Brāzmas',s.windGust!=null?`${round(s.windGust,1)} m/s`:'-'],
-    ['Mitrums',s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
-    ['Spiediens',s.pressure!=null?`${round(s.pressure,1)} hPa`:'-'],
-    ['Nokrišņi (h)',s.precipHour!=null?`${round(s.precipHour,1)} mm`:'-'],
-    ['Redzamība',s.visibility!=null?`${round(s.visibility/1000,1)} km`:'-'],
-    ['UV indekss',s.uv!=null?round(s.uv,0):'-'],
+    [t('station.air_t'),s.airTemp!=null?`${round(s.airTemp,1)}°C`:'-'],
+    [t('station.feels_t'),s.feelsLike!=null?`${round(s.feelsLike,1)}°C`:'-'],
+    [t('station.minmax_24h'),(s.minTemp!=null&&s.maxTemp!=null)?`${round(s.minTemp,1)}° / ${round(s.maxTemp,1)}°`:'-'],
+    [t('station.wind'),s.windSpeed!=null?`${round(s.windSpeed,1)} m/s ${lvgmcWindDirLv(s.windDir)}`:'-'],
+    [t('station.gust'),s.windGust!=null?`${round(s.windGust,1)} m/s`:'-'],
+    [t('station.humidity'),s.humidity!=null?`${round(s.humidity,0)}%`:'-'],
+    [t('station.pressure'),s.pressure!=null?`${round(s.pressure,1)} hPa`:'-'],
+    [t('station.precip_h'),s.precipHour!=null?`${round(s.precipHour,1)} mm`:'-'],
+    [t('station.visibility'),s.visibility!=null?`${round(s.visibility/1000,1)} km`:'-'],
+    [t('station.uv'),s.uv!=null?round(s.uv,0):'-'],
   ];
   const tbl=document.createElement('table');
   for(const[label,val]of rows){
@@ -1932,7 +1931,7 @@ function lvgmcPopupContent(s){
   histBtn.style.marginTop='8px';
   histBtn.style.display='inline-block';
   histBtn.style.textDecoration='none';
-  histBtn.textContent='24h vēsture ->';
+  histBtn.textContent=t('station.history_24h');
   histBtn.href=`stacija-lvgmc.html?id=${encodeURIComponent(s.id)}&name=${encodeURIComponent(s.name)}&lat=${s.lat}&lon=${s.lon}`;
   box.appendChild(histBtn);
 
@@ -1965,7 +1964,31 @@ function renderLvgmcTable(){
 }
 
 
+// Re-renders every piece of dynamic UI text after a language switch. Static
+// [data-i18n] nodes are already handled by applyStaticI18n() in setLang().
+function relangUI(){
+  renderFavBtn();
+  initTabsA11y();
+  buildToggles();
+  buildModelInfo();
+  if(Object.keys(S.data).length){
+    updateMetrics();
+    rebuildTempChart();
+    buildPrecipCharts();
+    buildWindChart();
+    buildCloudChart();
+    buildUVChart();
+    buildTable();
+  }
+  _climKey=null; _verifKey=null;
+  if($('tab-climate')?.classList.contains('on'))initClimate();
+  if($('tab-about')?.classList.contains('on'))initVerification();
+  if(_lvcStations.length)renderLvcRows();
+  if(_lvgmcStations.length)renderLvgmcRows();
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+applyStaticI18n();
 loadFromURL();
 renderThemeIcon();
 renderFavBtn();

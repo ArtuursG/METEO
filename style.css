@@ -96,6 +96,9 @@ header{
 .tt{margin-left:auto;flex-shrink:0;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--t2);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
 .tt:hover{color:var(--t);border-color:var(--b2);background:var(--s2)}
 .tt svg{width:17px;height:17px}
+#langToggle{font-size:12px;font-weight:600;letter-spacing:.5px;font-family:'IBM Plex Mono',ui-monospace,monospace}
+#langToggle+.tt{margin-left:0}
+.tt:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 .city-drop{position:absolute;top:calc(100% + 8px);left:0;min-width:100%;background:var(--panel);border:1px solid var(--b2);border-radius:10px;z-index:200;overflow:hidden;box-shadow:0 12px 38px rgba(0,0,0,.4);display:none}
 .city-opt{padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--line);transition:background .1s;display:flex;align-items:center;gap:6px}

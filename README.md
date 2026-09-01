@@ -66,8 +66,9 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ### Share
 - WhatsApp and Telegram share buttons with pre-filled city name and current URL
 
-### UI / Theme
+### UI / Theme / Language
 - Light and dark theme (saved to localStorage, applied before page render to avoid flash)
+- **Latvian / English** toggle in the header. Language comes from `?lang=` > localStorage > `lv`; switching updates the URL and re-renders the whole UI live (no reload). Dates, weekdays and the compass follow the locale (Z/A/D/R ↔ N/E/S/W)
 - Fully **mobile responsive** - adapted header and layout for small screens
 - Installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
 
@@ -115,9 +116,10 @@ All 14 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 ## Architecture
 
 ```
-index.html                            - structure and markup
+index.html                            - structure and markup ([data-i18n] attributes on static text)
 style.css                             - CSS custom properties for light/dark theme, responsive layout
-app.js                                - all application logic, depends on Chart.js and Leaflet
+i18n.js                               - lv/en string tables, t(), setLang(), applyStaticI18n(); loaded before app.js
+app.js                                - all application logic, depends on Chart.js, Leaflet and i18n.js
 sw.js                                 - service worker for PWA offline caching
 manifest.json                         - PWA manifest (name, icons, display mode)
 favicon.svg                           - inline SVG icon (sun + cloud)
@@ -151,6 +153,7 @@ cloudflare-worker/
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
 - **Accessibility** - the tab bar is a proper ARIA `tablist` with roving tabindex and Left/Right/Home/End keyboard navigation; panels are `tabpanel`s. Model toggle buttons expose `aria-pressed`. A skip link jumps to `<main>`. `prefers-reduced-motion` zeroes chart animations and CSS transitions (the loading spinner is kept). Chart `<canvas>` elements carry `role="img"` + `aria-label`.
+- **i18n** - static text uses `data-i18n*` attributes resolved by `applyStaticI18n()`; dynamic strings go through `t(key, vars)`. `setLang()` swaps `LANG`/`LOCALE`, updates the URL and calls `relangUI()`, which re-renders every JS-built piece (metrics, charts, tables, model list, lazy tabs, station rows). Known limit: the Leaflet layer-control labels are baked in when the radar map is first created, so they only change language on reload.
 - **Failed reload** - a forecast fetch that fails mid-session keeps the previous location's data on screen, shows a toast and reverts the header, rather than blanking the page.
 
 ---
