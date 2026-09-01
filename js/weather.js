@@ -1,18 +1,10 @@
-// ─── WEATHER: temperature colours, wind direction, icons, date formatting ────
-
-// Returns a CSS class name for temperature colour coding
-function tempCls(t){
-  if(t==null)return '';
-  if(t>=28)return 'tc-hot';
-  if(t>=18)return 'tc-warm';
-  if(t>=8) return 'tc-cool';
-  return 'tc-cold';
-}
+// ─── WEATHER: wind direction, icons, date formatting ────────────────────────
+// (tempCls, wKey live in pure.js)
 
 // Returns a rotated Unicode arrow + direction label; Unicode avoids mobile SVG rendering issues
 function wDir(deg){
   if(deg==null)return '-';
-  const label=COMPASS[LANG][Math.round(deg/22.5)%16];
+  const label=COMPASS[LANG][compassIndex(deg)];
   return `<span style="display:inline-block;transform:rotate(${deg}deg);font-size:13px;line-height:1">↑</span> ${label}`;
 }
 
@@ -27,23 +19,6 @@ const WICONS={
   snow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="8" y1="20" x2="8.01" y2="20"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="12" y1="22" x2="12.01" y2="22"/><line x1="16" y1="16" x2="16.01" y2="16"/><line x1="16" y1="20" x2="16.01" y2="20"/></svg>',
   thunder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>',
 };
-
-// Maps WMO weather interpretation codes to icon keys
-function wKey(c){
-  if(c==null)return null;
-  if(c<=1)return 'clear';
-  if(c<=3)return 'partly';
-  if(c<=9)return 'fog';
-  if(c<=19)return 'rain';
-  if(c<=29)return 'snow';
-  if(c<=49)return 'fog';
-  if(c<=59)return 'drizzle';
-  if(c<=69)return 'rain';
-  if(c<=79)return 'snow';
-  if(c<=82)return 'rain';
-  if(c<=99)return 'thunder';
-  return 'thunder';
-}
 
 function wIcon(c){const k=wKey(c);return k?WICONS[k]:'';}
 function wText(c){const k=wKey(c);return k?t('wx.'+k):'-';}

@@ -125,8 +125,10 @@ apple-touch-icon.png                  - 180x180 PNG icon for iOS home screen
 
 js/                                   - all application logic, plain sequential <script> tags (no bundler)
   i18n.js       - lv/en string tables, t(), setLang(), applyStaticI18n()
-  core.js       - MODELS, state (S), utils ($, round, cssVar...), cache, URL state, haversineKm
-  weather.js    - temperature colours, wind direction, weather icons/text, date formatting
+  pure.js       - side-effect-free helpers (tempCls, wKey, haversineKm, stripeColor,
+                  processClimate, compassIndex, moonPhaseFrac); also require()-able from Node
+  core.js       - MODELS, state (S), utils ($, round, cssVar...), cache, URL state
+  weather.js    - wind direction, weather icons/text, date formatting
   charts.js     - model toggle buttons, Chart.js defaults, every forecast chart, the forecast table
   climate.js    - Climate tab (ERA5 anomaly + warming stripes) and model verification
   data.js       - current-conditions metrics, combined multi-model fetch, load pipeline
@@ -134,6 +136,9 @@ js/                                   - all application logic, plain sequential 
   radar.js      - RainViewer radar map, LVC + LVĢMC station networks, marker declutter
   app.js        - tab switching, language re-render (relangUI), init
   stacija.js / stacija-lvgmc.js - the two standalone station detail pages (own scripts)
+
+test/pure.test.js                     - node:test unit tests for js/pure.js (npm test)
+.github/workflows/ci.yml              - syntax-check + unit tests on every push / PR
 
 Load order matters: each file's top-level code only references names from files loaded before it;
 cross-file calls that happen at runtime (tab clicks, language switch) can point anywhere.

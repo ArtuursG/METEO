@@ -1,9 +1,10 @@
-const CACHE = 'prognoze-v8';
+const CACHE = 'prognoze-v9';
 const SHELL = [
   '/METEO/',
   '/METEO/index.html',
   '/METEO/style.css',
   '/METEO/js/i18n.js',
+  '/METEO/js/pure.js',
   '/METEO/js/core.js',
   '/METEO/js/weather.js',
   '/METEO/js/charts.js',

@@ -3,48 +3,7 @@
 // ─── CLIMATE (ERA5 via Open-Meteo Archive) ───────────────────────────────────
 const CLIM_PFX='clim2_';
 let _climKey=null;   // coord key of the currently rendered climate view
-
-const _avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
-
-// Warming-stripes colour: z = (year mean - 1961-90 mean) / sd, mapped blue->white->red
-function stripeColor(z){
-  const t=Math.max(-1,Math.min(1,z/3));
-  const cold=[8,48,107], mid=[245,245,245], warm=[103,0,13];
-  const [x,y]=t<0?[cold,mid]:[mid,warm];
-  const f=Math.abs(t);
-  return `rgb(${Math.round(x[0]+(y[0]-x[0])*f)},${Math.round(x[1]+(y[1]-x[1])*f)},${Math.round(x[2]+(y[2]-x[2])*f)})`;
-}
-
-// Reduce ~85 years of daily means to the small structure the view needs
-function processClimate(time,mean){
-  const byYear={}, doySum=new Array(367).fill(0), doyCnt=new Array(367).fill(0);
-  for(let i=0;i<time.length;i++){
-    const v=mean[i]; if(v==null)continue;
-    const t=time[i], y=+t.slice(0,4);
-    (byYear[y]=byYear[y]||[]).push(v);
-    if(y>=1991&&y<=2020){
-      const d=new Date(t+'T00:00');
-      const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);
-      doySum[doy]+=v; doyCnt[doy]++;
-    }
-  }
-  const thisYear=new Date().getFullYear();
-  const annual=Object.keys(byYear).map(Number).sort((a,b)=>a-b).map(y=>({
-    year:y, mean:_avg(byYear[y]), full:byYear[y].length>=350
-  })).filter(a=>a.full||a.year===thisYear);
-  // day-of-year normal, smoothed +-7 days (circular)
-  const doyClim=new Array(367).fill(null);
-  for(let d=1;d<=366;d++){
-    let s=0,c=0;
-    for(let k=-7;k<=7;k++){const dd=((d+k-1)%366+366)%366+1; if(doyCnt[dd]){s+=doySum[dd]/doyCnt[dd];c++;}}
-    if(c)doyClim[d]=s/c;
-  }
-  const base=annual.filter(a=>a.year>=1961&&a.year<=1990&&a.full);
-  const centre=base.length?_avg(base.map(a=>a.mean)):_avg(annual.map(a=>a.mean));
-  const mn=_avg(annual.map(a=>a.mean));
-  const sd=Math.sqrt(_avg(annual.map(a=>(a.mean-mn)**2)))||1;
-  return {annual,doyClim,centre,sd};
-}
+// stripeColor, processClimate live in pure.js
 
 async function fetchClimate(key){
   try{
