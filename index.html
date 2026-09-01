@@ -85,6 +85,7 @@
     <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Tabula</span></button>
     <button class="tb" onclick="switchTab('cloud',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span>Mākoņi</span></button>
     <button class="tb" onclick="switchTab('uv',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>UV</span></button>
+    <button class="tb" onclick="switchTab('climate',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Klimats</span></button>
     <button class="tb" id="tabRadarBtn" onclick="switchTab('radar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="12" x2="19" y2="5"/></svg><span>Radars</span></button>
     <button class="tb" onclick="switchTab('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Modeļi</span></button>
   </div>
@@ -139,6 +140,28 @@
         <div class="card-hd"><span class="card-title">UV indekss</span><span class="card-meta" id="uvMeta"></span></div>
         <div class="cw"><div class="loading" id="loadUV"><div class="spinner"></div>Ielādē...</div><canvas id="cUV" role="img" aria-label="UV indekss" style="display:none"></canvas></div>
         <div class="legend" id="legUV"></div>
+      </div>
+    </div>
+
+    <div id="tab-climate">
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Klimats un anomālija</span>
+          <span class="card-meta">Dati: ERA5 (1940-) · Open-Meteo</span>
+        </div>
+        <div class="loading" id="loadClim"><div class="spinner"></div>Ielādē vēsturiskos datus...</div>
+        <div id="climContent" hidden>
+          <div class="clim-anom">
+            <div class="clim-anom-val" id="climAnomVal">-</div>
+            <div class="clim-anom-lbl" id="climAnomLbl">salīdzinājumā ar 1991-2020 normu šai datumai</div>
+          </div>
+          <p class="clim-note" id="climYearNote"></p>
+          <div class="clim-stripes-hd">Gada vidējā temperatūra pa gadiem <span id="climStripesRange" class="card-meta"></span></div>
+          <div id="climStripes" class="clim-stripes" role="img" aria-label="Sasilšanas svītras - gada vidējā temperatūra pa gadiem"></div>
+          <div class="clim-stripes-axis"><span id="climAxisL"></span><span id="climAxisR"></span></div>
+          <p class="clim-note">Anomālija = novirze no 1991-2020 gada vidējā šajā vietā. Sasilšanas svītru krāsu skala centrēta uz 1961-1990 vidējo (zila = vēsāks, sarkana = siltāks). Avots: ERA5 reanalīze caur Open-Meteo Archive API.</p>
+        </div>
+        <div id="climErr" hidden><div class="err">Neizdevās ielādēt vēsturiskos klimata datus.</div></div>
       </div>
     </div>
 
