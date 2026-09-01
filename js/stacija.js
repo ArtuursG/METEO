@@ -8,21 +8,23 @@ const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const LVC_API='https://lvc-meteo-proxy.jkedainis.workers.dev/';
 
-const ROAD_COND_LV={dry:'Sauss',wet:'Slapjš',moist:'Mitrs',frost:'Sarma',iceOrSnowOnRoad:'Apledojums/sniegs',wetAndDirty:'Slapjš, netīrs'};
-const roadCondLv=c=>c?(ROAD_COND_LV[c]||c):'-';
+applyStaticI18n();
 
-const WIND_LABELS=['Z','ZZA','ZA','AZA','A','ADA','DA','DDA','D','DDR','DR','RDR','R','RZR','ZR','ZZR'];
-const windDirLv=deg=>deg==null?'':WIND_LABELS[Math.round(deg/22.5)%16];
+const ROAD_COND_KEY={dry:'road.dry',wet:'road.wet',moist:'road.moist',frost:'road.frost',iceOrSnowOnRoad:'road.ice',wetAndDirty:'road.wetdirty'};
+const roadCondLv=c=>c?(ROAD_COND_KEY[c]?t(ROAD_COND_KEY[c]):c):'-';
 
-function tempCls(t){
-  if(t==null)return '';
-  if(t>=28)return 'tc-hot';
-  if(t>=18)return 'tc-warm';
-  if(t>=8) return 'tc-cool';
+const windDirLv=deg=>deg==null?'':COMPASS[LANG][Math.round(deg/22.5)%16];
+const noData=()=>t('stp.no_data');
+
+function tempCls(v){
+  if(v==null)return '';
+  if(v>=28)return 'tc-hot';
+  if(v>=18)return 'tc-warm';
+  if(v>=8) return 'tc-cool';
   return 'tc-cold';
 }
 function fmtTime(iso){
-  return new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+  return new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
 }
 
 // ─── TĒMA ───────────────────────────────────────────────────────────────────
@@ -30,12 +32,12 @@ const TT_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const TT_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 
 function renderThemeIcon(){
-  const t=document.documentElement.getAttribute('data-theme');
-  $('themeToggle').innerHTML=t==='light'?TT_MOON:TT_SUN;
+  const th=document.documentElement.getAttribute('data-theme');
+  $('themeToggle').innerHTML=th==='light'?TT_MOON:TT_SUN;
 }
-function setTheme(t){
-  document.documentElement.setAttribute('data-theme',t);
-  try{localStorage.setItem('theme',t);}catch(e){}
+function setTheme(th){
+  document.documentElement.setAttribute('data-theme',th);
+  try{localStorage.setItem('theme',th);}catch(e){}
   renderThemeIcon();
   if(_lastHist.length){renderChart(_lastHist);renderMinMaxChart(_lastHist);renderWindChart(_lastHist);}
 }
@@ -75,8 +77,8 @@ function renderChart(hist){
   _chart=new Chart($('stChart'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Gaisa temp.',data:hist.map(h=>h.airTemp),borderColor:'#e0796d',borderWidth:1.5,pointRadius:0,tension:0.3},
-      {label:'Ceļa virsmas temp.',data:hist.map(h=>h.surfaceTemp),borderColor:'#5b8fc7',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_air'),data:hist.map(h=>h.airTemp),borderColor:'#e0796d',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_road'),data:hist.map(h=>h.surfaceTemp),borderColor:'#5b8fc7',borderWidth:1.5,pointRadius:0,tension:0.3},
     ]},
     options:CD(),
   });
@@ -104,7 +106,7 @@ function hourlyMinMax(hist){
 function renderMinMaxChart(hist){
   const hasTemp=hist.some(h=>h.airTemp!=null);
   if(!hasTemp){
-    $('stMinMaxLoading').textContent='Šai stacijai nav temperatūras datu.';
+    $('stMinMaxLoading').textContent=t('stp.no_temp');
     return;
   }
   const buckets=hourlyMinMax(hist);
@@ -115,8 +117,8 @@ function renderMinMaxChart(hist){
   _minMaxChart=new Chart($('stMinMaxChart'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Minimālā T°',data:buckets.map(b=>b.min),borderColor:'#5b8fc7',borderWidth:1.5,pointRadius:0,tension:0.3},
-      {label:'Maksimālā T°',data:buckets.map(b=>b.max),borderColor:'#e0796d',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_min'),data:buckets.map(b=>b.min),borderColor:'#5b8fc7',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_max'),data:buckets.map(b=>b.max),borderColor:'#e0796d',borderWidth:1.5,pointRadius:0,tension:0.3},
     ]},
     options:CD(),
   });
@@ -125,7 +127,7 @@ function renderMinMaxChart(hist){
 function renderWindChart(hist){
   const hasWind=hist.some(h=>h.windSpeed!=null);
   if(!hasWind){
-    $('stWindLoading').textContent='Šai stacijai nav vēja datu.';
+    $('stWindLoading').textContent=t('stp.no_wind');
     return;
   }
   $('stWindLoading').style.display='none';
@@ -135,8 +137,8 @@ function renderWindChart(hist){
   _windChart=new Chart($('stWindChart'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Vēja ātrums m/s',data:hist.map(h=>h.windSpeed),borderColor:'#7fb37a',borderWidth:1.5,pointRadius:0,tension:0.3},
-      {label:'Brāzmas m/s',data:hist.map(h=>h.windGust),borderColor:'#4a8f44',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_wind_speed'),data:hist.map(h=>h.windSpeed),borderColor:'#7fb37a',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_gust'),data:hist.map(h=>h.windGust),borderColor:'#4a8f44',borderWidth:1.5,pointRadius:0,tension:0.3},
     ]},
     options:CD(),
   });
@@ -160,10 +162,12 @@ async function load(){
   const nameHint=p.get('name');
   const lat=parseFloat(p.get('lat'));
   const lon=parseFloat(p.get('lon'));
+  $('stMinMaxTitle').textContent=t('stp.chart_minmax',{h:24});
+  $('stWindTitle').textContent=t('stp.chart_wind',{h:24});
   if(nameHint){$('stName').textContent=nameHint;$('stInfoName').textContent=nameHint;}
   if(!id){
-    $('stName').textContent='Nav norādīta stacija';
-    $('stChartMeta').textContent='Trūkst ?id= parametra URL.';
+    $('stName').textContent=t('stp.no_station');
+    $('stChartMeta').textContent=t('stp.missing_id');
     return;
   }
   if(!isNaN(lat)&&!isNaN(lon))renderMiniMap(lat,lon,nameHint);
@@ -174,9 +178,9 @@ async function load(){
     const d=await r.json();
     const hist=d.history||[];
     if(!hist.length){
-      $('stChartMeta').textContent='Vēl nav uzkrātu vēstures datu (dati krājas ik pēc 15 min).';
-      $('stLoading').textContent='Nav datu.';
-      $('stWindLoading').textContent='Nav datu.';
+      $('stChartMeta').textContent=t('stp.no_history');
+      $('stLoading').textContent=t('stp.no_data_short');
+      $('stWindLoading').textContent=t('stp.no_data_short');
       return;
     }
     _lastHist=hist;
@@ -201,24 +205,24 @@ async function load(){
       $('stMaxTime').textContent=fmtTime(maxH.time);
     }
 
-    $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:'nav datu';
-    $('dGust').textContent=cur.windGust!=null?`${round(cur.windGust,1)} m/s`:'nav datu';
-    $('dHum').textContent=cur.humidity!=null?`${round(cur.humidity,0)}%`:'nav datu';
-    $('dPrecip').textContent=cur.precipMmH!=null?`${round(cur.precipMmH,1)} mm/h`:'nav datu';
-    $('dDew').textContent=cur.dewPoint!=null?`${round(cur.dewPoint,1)}°C`:'nav datu';
-    $('dVis').textContent=cur.visibilityM!=null?`${round(cur.visibilityM/1000,1)} km`:'nav datu';
+    $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
+    $('dGust').textContent=cur.windGust!=null?`${round(cur.windGust,1)} m/s`:noData();
+    $('dHum').textContent=cur.humidity!=null?`${round(cur.humidity,0)}%`:noData();
+    $('dPrecip').textContent=cur.precipMmH!=null?`${round(cur.precipMmH,1)} mm/h`:noData();
+    $('dDew').textContent=cur.dewPoint!=null?`${round(cur.dewPoint,1)}°C`:noData();
+    $('dVis').textContent=cur.visibilityM!=null?`${round(cur.visibilityM/1000,1)} km`:noData();
     // com:distance DATEX II laukos ir metros (tāpat kā ledus biezums) - pārrēķina uz cm parastai sniega dziļuma vienībai
-    $('dSnow').textContent=cur.snowDepthM!=null?`${round(cur.snowDepthM*100,1)} cm`:'nav datu';
+    $('dSnow').textContent=cur.snowDepthM!=null?`${round(cur.snowDepthM*100,1)} cm`:noData();
 
-    $('stChartMeta').textContent=`${hist.length} mērījumi pēdējās 24h`;
+    $('stChartMeta').textContent=t('stp.measurements',{n:hist.length,h:24});
     renderChart(hist);
     renderMinMaxChart(hist);
     renderWindChart(hist);
   }catch(e){
-    $('stChartMeta').textContent='Neizdevās ielādēt datus.';
-    $('stLoading').textContent='Kļūda ielādējot datus.';
-    $('stMinMaxLoading').textContent='Kļūda ielādējot datus.';
-    $('stWindLoading').textContent='Kļūda ielādējot datus.';
+    $('stChartMeta').textContent=t('stp.load_failed');
+    $('stLoading').textContent=t('stp.load_error');
+    $('stMinMaxLoading').textContent=t('stp.load_error');
+    $('stWindLoading').textContent=t('stp.load_error');
   }
 }
 

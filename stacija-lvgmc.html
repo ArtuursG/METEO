@@ -19,41 +19,41 @@
 <header>
   <a class="logo" href="index.html">prognoze<span>.lv</span></a>
   <div class="sa">
-    <a href="index.html#tab-radar" class="sbtn" style="text-decoration:none;display:inline-flex;align-items:center">← Atpakaļ uz radaru</a>
+    <a href="index.html#tab-radar" class="sbtn" style="text-decoration:none;display:inline-flex;align-items:center" data-i18n="stp.back_radar">Atpakaļ uz radaru</a>
   </div>
-  <button class="tt" id="themeToggle" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
+  <button class="tt" id="themeToggle" data-i18n-title="ui.toggle_theme" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
 </header>
 
 <main>
   <div class="hero">
     <div class="hero-top">
       <div class="hero-city">
-        <h1 id="stName">Ielādē...</h1>
-        <span class="hero-sub">LVĢMC meteostacija</span>
+        <h1 id="stName" data-i18n="metric.loading">Ielādē...</h1>
+        <span class="hero-sub" data-i18n="stp.lvgmc_station">LVĢMC meteostacija</span>
       </div>
     </div>
   </div>
 
   <div class="metrics" id="stMetrics">
-    <div class="mc"><div class="mc-label">Gaisa temp.</div><div class="mc-val" id="stAirTemp">-<span>°C</span></div><div class="mc-sub" id="stTime">-</div></div>
-    <div class="mc"><div class="mc-label">Sajūtu temp.</div><div class="mc-val" id="stFeels">-<span>°C</span></div><div class="mc-sub">apparent</div></div>
-    <div class="mc"><div class="mc-label">Min (24h)</div><div class="mc-val" id="stMin">-<span>°C</span></div><div class="mc-sub" id="stMinTime">-</div></div>
-    <div class="mc"><div class="mc-label">Max (24h)</div><div class="mc-val" id="stMax">-<span>°C</span></div><div class="mc-sub" id="stMaxTime">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="stp.air_temp">Gaisa temp.</div><div class="mc-val" id="stAirTemp">-<span>°C</span></div><div class="mc-sub" id="stTime">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="stp.feels_temp">Sajūtu temp.</div><div class="mc-val" id="stFeels">-<span>°C</span></div><div class="mc-sub"></div></div>
+    <div class="mc"><div class="mc-label" data-i18n="stp.min_24h">Min (24h)</div><div class="mc-val" id="stMin">-<span>°C</span></div><div class="mc-sub" id="stMinTime">-</div></div>
+    <div class="mc"><div class="mc-label" data-i18n="stp.max_24h">Max (24h)</div><div class="mc-val" id="stMax">-<span>°C</span></div><div class="mc-sub" id="stMaxTime">-</div></div>
   </div>
 
   <div class="card">
-    <div class="card-hd"><span class="card-title">Detalizēti rādījumi</span></div>
+    <div class="card-hd"><span class="card-title" data-i18n="stp.details">Detalizēti rādījumi</span></div>
     <div class="st-detail-grid">
-      <div><span class="lbl">Vējš</span><span class="val" id="dWind">-</span></div>
-      <div><span class="lbl">Gaisa mitrums</span><span class="val" id="dHum">-</span></div>
-      <div><span class="lbl">Vēja brāzmas</span><span class="val" id="dGust">-</span></div>
-      <div><span class="lbl">Atmosfēras spiediens</span><span class="val" id="dPressure">-</span></div>
-      <div><span class="lbl">Nokrišņi (stundā)</span><span class="val" id="dPrecip">-</span></div>
-      <div><span class="lbl">Redzamība</span><span class="val" id="dVis">-</span></div>
-      <div><span class="lbl">Sniega segas biezums</span><span class="val" id="dSnow">-</span></div>
-      <div><span class="lbl">UV indekss</span><span class="val" id="dUv">-</span></div>
-      <div><span class="lbl">Mākoņainība</span><span class="val" id="dCloud">-</span></div>
-      <div><span class="lbl">Zibens izlādes (stundā)</span><span class="val" id="dLightning">-</span></div>
+      <div><span class="lbl" data-i18n="stp.wind">Vējš</span><span class="val" id="dWind">-</span></div>
+      <div><span class="lbl" data-i18n="stp.humidity">Gaisa mitrums</span><span class="val" id="dHum">-</span></div>
+      <div><span class="lbl" data-i18n="stp.gust">Vēja brāzmas</span><span class="val" id="dGust">-</span></div>
+      <div><span class="lbl" data-i18n="stp.pressure">Atmosfēras spiediens</span><span class="val" id="dPressure">-</span></div>
+      <div><span class="lbl" data-i18n="stp.precip_hour">Nokrišņi (stundā)</span><span class="val" id="dPrecip">-</span></div>
+      <div><span class="lbl" data-i18n="stp.visibility">Redzamība</span><span class="val" id="dVis">-</span></div>
+      <div><span class="lbl" data-i18n="stp.snow_depth">Sniega segas biezums</span><span class="val" id="dSnow">-</span></div>
+      <div><span class="lbl" data-i18n="stp.uv">UV indekss</span><span class="val" id="dUv">-</span></div>
+      <div><span class="lbl" data-i18n="stp.cloud">Mākoņainība</span><span class="val" id="dCloud">-</span></div>
+      <div><span class="lbl" data-i18n="stp.lightning">Zibens izlādes (stundā)</span><span class="val" id="dLightning">-</span></div>
     </div>
   </div>
 
@@ -61,28 +61,28 @@
     <div class="on">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">Temperatūra (48h)</span>
+          <span class="card-title" id="stChartTitle">Temperatūra (48h)</span>
           <span class="card-meta" id="stChartMeta"></span>
         </div>
-        <div class="cw cw-tall"><div class="loading" id="stLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stChart" role="img" aria-label="48h temperatūras vēsture" style="display:none"></canvas></div>
+        <div class="cw cw-tall"><div class="loading" id="stLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stChart" role="img" aria-label="48h temperatūras vēsture" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-hd"><span class="card-title">Temperatūra (48h) - min/max</span></div>
-        <div class="cw"><div class="loading" id="stMinMaxLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stMinMaxChart" role="img" aria-label="48h min/max temperatūra" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" id="stMinMaxTitle">Temperatūra (48h) - min/max</span></div>
+        <div class="cw"><div class="loading" id="stMinMaxLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stMinMaxChart" role="img" aria-label="48h min/max temperatūra" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-hd"><span class="card-title">Vējš (48h)</span></div>
-        <div class="cw"><div class="loading" id="stWindLoading"><div class="spinner"></div>Ielādē...</div><canvas id="stWindChart" role="img" aria-label="48h vēja vēsture" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" id="stWindTitle">Vējš (48h)</span></div>
+        <div class="cw"><div class="loading" id="stWindLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stWindChart" role="img" aria-label="48h vēja vēsture" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-hd"><span class="card-title">Atrašanās vieta</span></div>
+        <div class="card-hd"><span class="card-title" data-i18n="stp.location">Atrašanās vieta</span></div>
         <div id="stMiniMap"></div>
         <div class="st-info-grid">
-          <div>Stacijas nosaukums: <b id="stInfoName">-</b></div>
-          <div>Datu avots: <b><a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">VSIA LVĢMC (data.gov.lv)</a></b></div>
+          <div><span data-i18n="stp.station_name">Stacijas nosaukums</span>: <b id="stInfoName">-</b></div>
+          <div><span data-i18n="stp.data_source">Datu avots</span>: <b><a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">VSIA LVĢMC (data.gov.lv)</a></b></div>
         </div>
       </div>
     </div>
@@ -90,10 +90,11 @@
 </main>
 
 <footer>
-  Dati: <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">data.gov.lv</a> - Hidrometeoroloģiskie novērojumi (LVĢMC), licence CC0 ·
-  <a href="index.html">← Atpakaļ uz prognoze.lv</a>
+  <span data-i18n="footer.data">Dati</span>: <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">data.gov.lv</a> (LVĢMC, CC0) ·
+  <a href="index.html" data-i18n="stp.back_home">Atpakaļ uz prognoze.lv</a>
 </footer>
 
+<script src="js/i18n.js"></script>
 <script src="js/stacija-lvgmc.js"></script>
 </body>
 </html>
