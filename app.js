@@ -35,6 +35,7 @@ const S = {
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   cloudModel:   'ecmwf_ifs025',
+  showSpread: localStorage.getItem('show_spread')!=='0', // shaded model-range band on the temp chart
   windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   dataTs: 0,   // epoch ms when the currently shown data was fetched (fresh or cache write time)
@@ -305,41 +306,95 @@ function buildLegend(legId,models){
 }
 
 // ─── TEMPERATURE CHART ───────────────────────────────────────────────────────
+// Per-timestep min/max of hourly temperature across the given models
+function tempSpread(models){
+  const t=Object.values(S.data)[0].hourly.time;
+  const min=new Array(t.length).fill(null), max=new Array(t.length).fill(null);
+  for(let i=0;i<t.length;i++){
+    const vals=models.map(m=>S.data[m.id].hourly.temperature_2m?.[i]).filter(v=>v!=null);
+    if(vals.length<2)continue;
+    min[i]=Math.min(...vals); max[i]=Math.max(...vals);
+  }
+  return {min,max};
+}
+
+// Short verdict on how far the models disagree, averaged over the next ~48 h
+function spreadVerdict(min,max){
+  const gaps=[];
+  for(let i=0;i<Math.min(48,min.length);i++) if(min[i]!=null) gaps.push(max[i]-min[i]);
+  if(!gaps.length)return '';
+  const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  const a=round(avg,1);
+  if(avg<1.5)return `modeļi lielā mērā vienojas (±${a}°C nākamajās 48 h)`;
+  if(avg<4)return `vidēja modeļu izkliede (±${a}°C nākamajās 48 h)`;
+  return `liela nenoteiktība – modeļi būtiski atšķiras (±${a}°C nākamajās 48 h)`;
+}
+
 function rebuildTempChart(){
   const first=Object.values(S.data)[0];
   if(!first?.hourly?.time)return;
   const chartDefaults=CD();
+  const spreadFill=getComputedStyle(document.body).getPropertyValue('--acc-soft').trim();
   const labels=first.hourly.time.map(fmtHour);
-  const datasets=MODELS
-    .filter(m=>S.data[m.id]?.hourly?.temperature_2m&&S.active.has(m.id))
-    .map(m=>({
-      label:m.name,
-      data:S.data[m.id].hourly.temperature_2m,
-      borderColor:m.color,
-      borderWidth:1.5,
-      pointRadius:0,
-      tension:0.3,
-      fill:false,
-    }));
+  const active=MODELS.filter(m=>S.data[m.id]?.hourly?.temperature_2m&&S.active.has(m.id));
+  const lines=active.map(m=>({
+    label:m.name,
+    data:S.data[m.id].hourly.temperature_2m,
+    borderColor:m.color,
+    borderWidth:1.5,
+    pointRadius:0,
+    tension:0.3,
+    fill:false,
+  }));
+
+  // Shaded band between the coldest and warmest model at each hour. Drawn first
+  // so it sits behind every model line; _band flag keeps it out of the tooltip.
+  let band=[], sp=null;
+  if(S.showSpread&&active.length>=2){
+    sp=tempSpread(active);
+    band=[
+      {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true},
+      {label:'Modeļu diapazons',data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
+    ];
+  }
+
   showChart('loadT','cT');
   if(S.charts.temp)S.charts.temp.destroy();
   S.charts.temp=new Chart($('cT'),{
-    type:'line',data:{labels,datasets},
+    type:'line',data:{labels,datasets:[...band,...lines]},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
         y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'°C'}}
       },
       plugins:{...chartDefaults.plugins,
         tooltip:{...chartDefaults.plugins.tooltip,
+          filter:item=>!item.dataset._band,
           callbacks:{
             title:items=>fmtTooltipTitle(first.hourly.time,items[0].dataIndex),
-            label:c=>` ${c.dataset.label}: ${round(c.parsed.y)}°C`
+            label:c=>` ${c.dataset.label}: ${round(c.parsed.y)}°C`,
+            footer:items=>{
+              if(!sp)return '';
+              const i=items[0].dataIndex;
+              if(sp.min[i]==null)return '';
+              return `Diapazons: ${round(sp.min[i])}–${round(sp.max[i])}°C (Δ ${round(sp.max[i]-sp.min[i],1)}°)`;
+            }
           }
         }
       }
     }
   });
   buildLegend('legT',MODELS.filter(m=>S.data[m.id]&&S.active.has(m.id)));
+
+  const info=$('spreadInfo');
+  if(info)info.textContent=sp?spreadVerdict(sp.min,sp.max):'';
+  const chk=$('spreadChk');
+  if(chk)chk.checked=S.showSpread;
+}
+
+function toggleSpread(on){
+  S.showSpread=on;
+  try{localStorage.setItem('show_spread',on?'1':'0');}catch{}
+  rebuildTempChart();
 }
 
 // ─── PRECIPITATION CHART ─────────────────────────────────────────────────────

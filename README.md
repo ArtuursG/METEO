@@ -10,6 +10,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 
 ### Forecast charts
 - **Temperature** - hourly 2m temperature for up to 16 days, all 14 models overlaid on one chart; toggle each model on/off
+- **Model spread band** - shaded range between the coldest and warmest model at each hour, drawn behind the lines; a one-line verdict ("modeļi lielā mērā vienojas" / "vidēja izkliede" / "liela nenoteiktība") averages the next 48 h. Toggleable, preference saved to localStorage
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly %; follows the same model selection as the precipitation (mm) chart, skipping models that do not provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
