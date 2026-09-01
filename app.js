@@ -37,6 +37,7 @@ const S = {
   cloudModel:   'ecmwf_ifs025',
   windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
+  dataTs: 0,   // epoch ms when the currently shown data was fetched (fresh or cache write time)
   charts: {},  // keyed by chart name, holds Chart.js instances
 };
 
@@ -57,8 +58,15 @@ function getCached(lat,lon){
     const raw=localStorage.getItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`);
     if(!raw)return null;
     const{ts,d}=JSON.parse(raw);
-    return Date.now()-ts<CACHE_TTL?d:null;
+    return Date.now()-ts<CACHE_TTL?{d,ts}:null;
   }catch{return null;}
+}
+
+// "pirms N min" for the data timestamp; cache TTL caps this at ~1 h
+function relTime(ts){
+  if(!ts)return 'tikko';
+  const m=Math.round((Date.now()-ts)/60000);
+  return m<1?'tikko':`pirms ${m} min`;
 }
 
 function setCache(lat,lon,d){
@@ -693,15 +701,17 @@ function updateMetrics(){
     const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
     $('feelsDesc').textContent=diff==null?'-':diff>1?'Siltāk nekā ir':diff<-1?'Aukstāk nekā ir':'Atbilst temperatūrai';
     $('windNow').innerHTML=`${windConv(c.wind_speed_10m)}<span>${S.windUnit}</span>`;
-    $('windDir').innerHTML=`Virziens: ${wDir(c.wind_direction_10m)}`;
+    const gust=c.wind_gusts_10m!=null?` · brāzmas ${windConv(c.wind_gusts_10m)} ${S.windUnit}`:'';
+    $('windDir').innerHTML=`Virziens: ${wDir(c.wind_direction_10m)}${gust}`;
     $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
-    $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm`;
+    const snow=c.snowfall>0?` · sniegs ${round(c.snowfall,1)} cm`:'';
+    $('precipNow').textContent=`Nokrišņi: ${round(c.precipitation,1)} mm${snow}`;
   }
   if(ecmwf.daily?.temperature_2m_max?.[0]!=null){
     $('todayMax').innerHTML=`${r0(ecmwf.daily.temperature_2m_max[0])}<span>°C</span>`;
     $('todayMin').textContent=`Min: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
   }
-  $('lastUpdate').textContent=`Atjaunots: ${new Date().toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'})}`;
+  $('lastUpdate').textContent=`Dati atjaunoti ${relTime(S.dataTs)}`;
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
   const srcEl=$('metricsSrc');
   if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel}`;
@@ -724,9 +734,9 @@ function updateMetrics(){
 // silently omitted from the response. This means no per-model fallback cascade is needed.
 async function fetchAllModels(){
   const hit=getCached(S.lat,S.lon);
-  if(hit)return hit;
+  if(hit){S.dataTs=hit.ts;return hit.d;}
 
-  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation';
+  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
   const h='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
   const d='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
   const models=MODELS.map(m=>m.id).join(',');
@@ -736,6 +746,7 @@ async function fetchAllModels(){
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
   setCache(S.lat,S.lon,data);
+  S.dataTs=Date.now();
   return data;
 }
 
