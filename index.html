@@ -98,7 +98,11 @@
         </div>
         <div class="model-info">Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma</div>
         <div class="mt-wrap" id="modelToggles"></div>
-        <div class="cw cw-tall"><div class="loading" id="loadT"><div class="spinner"></div>Ielādē...</div><canvas id="cT" role="img" aria-label="Temperatūras prognoze" style="display:none"></canvas></div>
+        <div class="spread-row">
+          <label class="spread-toggle"><input type="checkbox" id="spreadChk" checked onchange="toggleSpread(this.checked)"> Rādīt modeļu izkliedi</label>
+          <span class="card-meta" id="spreadInfo"></span>
+        </div>
+        <div class="cw cw-tall"><div class="loading" id="loadT"><div class="spinner"></div>Ielādē...</div><canvas id="cT" role="img" aria-label="Temperatūras prognoze ar modeļu izkliedes joslu" style="display:none"></canvas></div>
         <div class="legend" id="legT"></div>
       </div>
     </div>
