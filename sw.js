@@ -1,10 +1,17 @@
-const CACHE = 'prognoze-v7';
+const CACHE = 'prognoze-v8';
 const SHELL = [
   '/METEO/',
   '/METEO/index.html',
   '/METEO/style.css',
-  '/METEO/i18n.js',
-  '/METEO/app.js',
+  '/METEO/js/i18n.js',
+  '/METEO/js/core.js',
+  '/METEO/js/weather.js',
+  '/METEO/js/charts.js',
+  '/METEO/js/climate.js',
+  '/METEO/js/data.js',
+  '/METEO/js/locations.js',
+  '/METEO/js/radar.js',
+  '/METEO/js/app.js',
   '/METEO/favicon.svg',
 ];
 
