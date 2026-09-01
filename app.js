@@ -70,6 +70,21 @@ function relTime(ts){
   return m<1?'tikko':`pirms ${m} min`;
 }
 
+// Brief bottom-centre notification; auto-dismisses
+let _toastTimer=null;
+function showToast(msg,ms=5000){
+  const el=$('toast');
+  if(!el)return;
+  el.textContent=msg;
+  el.hidden=false;
+  requestAnimationFrame(()=>el.classList.add('show'));
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{el.hidden=true;},250);
+  },ms);
+}
+
 function setCache(lat,lon,d){
   try{localStorage.setItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
 }
@@ -815,7 +830,11 @@ async function fetchAllModels(){
 // temperature_2m key was geographically out of coverage and is skipped entirely.
 function splitCombined(raw){
   const out={};
-  MODELS.forEach((m,i)=>{
+  // Open-Meteo returns the `current` block from the first model in the request.
+  // Attach it to the first model that actually made it into the response, so
+  // current conditions still work when ECMWF IFS is outside its coverage area.
+  let currentAssigned=false;
+  MODELS.forEach(m=>{
     const tKey=`temperature_2m_${m.id}`;
     if(!(raw.hourly?.[tKey]))return;
     const hourly={time:raw.hourly.time};
@@ -827,30 +846,39 @@ function splitCombined(raw){
       if(k.endsWith(`_${m.id}`))daily[k.slice(0,-(m.id.length+1))]=raw.daily[k];
     });
     out[m.id]={hourly,daily};
-    if(i===0)out[m.id].current=raw.current;
+    if(!currentAssigned){out[m.id].current=raw.current;currentAssigned=true;}
   });
   return out;
 }
 
 // Fetches all models in one request; skips models missing from the response
 async function loadAll(){
-  S.data={};
-  $('loadT').style.display='flex';
-  $('loadT').innerHTML='<div class="spinner"></div>Ielādē...';
+  const hadData=Object.keys(S.data).length>0;
+  if(!hadData){
+    $('loadT').style.display='flex';
+    $('loadT').innerHTML='<div class="spinner"></div>Ielādē...';
+  }
 
+  let fresh=null;
   try{
-    S.data=splitCombined(await fetchAllModels());
+    fresh=splitCombined(await fetchAllModels());
   }catch(e){
     console.warn('[loadAll] combined fetch failed',e);
   }
 
-  if(!Object.keys(S.data).length){
+  if(!fresh||!Object.keys(fresh).length){
+    if(hadData){
+      // Keep the previous location's data on screen rather than blanking everything
+      showToast('Neizdevās ielādēt jaunos datus. Rādīti iepriekšējie.');
+      return false;
+    }
     ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{
       $(id).innerHTML='<div class="err">Neizdevās ielādēt datus. Pārbaudiet interneta savienojumu.</div>';
     });
-    return;
+    return false;
   }
 
+  S.data=fresh;
   updateMetrics();
   rebuildTempChart();
   buildPrecipCharts();
@@ -858,6 +886,7 @@ async function loadAll(){
   buildCloudChart();
   buildUVChart();
   buildTable();
+  return true;
 }
 
 // ─── CITY SEARCH ─────────────────────────────────────────────────────────────
@@ -910,27 +939,30 @@ async function searchCity(){
   }
 }
 
-// Updates state, URL, recent history and reloads all model data for the new location
+// Updates state, URL, recent history and reloads all model data for the new location.
+// Transactional: if the fetch fails, the previous location's data stays on screen
+// and the header reverts, rather than blanking the page.
 async function selectCity(g){
-  S.lat=g.latitude; S.lon=g.longitude;
+  const prev={lat:S.lat,lon:S.lon,city:S.city,country:S.country,
+              name:$('cityName').textContent,sub:$('heroSub').textContent};
+  S.lat=+g.latitude; S.lon=+g.longitude;
   S.city=g.name; S.country=g.country||'';
   $('cityName').textContent=g.name;
   $('heroSub').textContent=`${[g.admin1,g.country].filter(Boolean).join(', ')}${g.timezone?' · '+g.timezone:''}`;
+  document.body.classList.add('busy');
+
+  const ok=await loadAll();
+  document.body.classList.remove('busy');
+  if(!ok){
+    Object.assign(S,{lat:prev.lat,lon:prev.lon,city:prev.city,country:prev.country});
+    $('cityName').textContent=prev.name;
+    $('heroSub').textContent=prev.sub;
+    return;
+  }
+
   updateURL();
   saveRecent(g);
-
-  Object.values(S.charts).forEach(c=>c?.destroy?.());
-  S.charts={}; S.data={};
-
-  ['loadP','loadPP','loadW','loadTbl'].forEach(id=>{
-    const el=$(id); el.style.display='flex';
-    el.innerHTML='<div class="spinner"></div>Ielādē...';
-  });
-  ['cT','cP','cPP','cW'].forEach(id=>{const c=$(id);if(c)c.style.display='none';});
-  $('forecastTable').style.display='none';
-
   buildToggles();
-  await loadAll();
 }
 
 // Close city dropdown when clicking outside the search area
