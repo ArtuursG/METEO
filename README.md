@@ -144,6 +144,8 @@ cloudflare-worker/
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
+- **Accessibility** - the tab bar is a proper ARIA `tablist` with roving tabindex and Left/Right/Home/End keyboard navigation; panels are `tabpanel`s. Model toggle buttons expose `aria-pressed`. A skip link jumps to `<main>`. `prefers-reduced-motion` zeroes chart animations and CSS transitions (the loading spinner is kept). Chart `<canvas>` elements carry `role="img"` + `aria-label`.
+- **Failed reload** - a forecast fetch that fails mid-session keeps the previous location's data on screen, shows a toast and reverts the header, rather than blanking the page.
 
 ---
 

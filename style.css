@@ -160,6 +160,8 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 .tb.active{color:var(--t);border-bottom-color:var(--acc);font-weight:500}
 .tb.active svg{opacity:1}
 .tb:hover:not(.active){color:var(--t2)}
+.tb:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;border-radius:4px}
+.tc>div[role="tabpanel"]:focus-visible{outline:2px solid var(--acc);outline-offset:4px;border-radius:6px}
 
 /* ── CARD ───────────────────────────────────────────────────────────────────── */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:1.4rem;margin-bottom:1.25rem;transition:background .35s,border-color .35s}
@@ -197,6 +199,15 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 @media (prefers-reduced-motion:reduce){#toast{transition:opacity .2s}}
 body.busy{cursor:progress}
 body.busy .tc{opacity:.55;transition:opacity .2s}
+
+/* ── ACCESSIBILITY ─────────────────────────────────────────────────────────── */
+.skip-link{position:fixed;left:10px;top:-48px;z-index:5000;background:var(--acc);color:var(--acc-ink);
+  padding:9px 16px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;transition:top .15s}
+.skip-link:focus{top:10px;outline:2px solid var(--t);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .spinner{animation:spin 1.4s linear infinite!important}
+}
 
 /* ── CLIMATE TAB ────────────────────────────────────────────────────────────── */
 .clim-anom{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:.3rem 0 1rem}
