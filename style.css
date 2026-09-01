@@ -98,7 +98,7 @@ header{
 .tt svg{width:17px;height:17px}
 
 .city-drop{position:absolute;top:calc(100% + 8px);left:0;min-width:100%;background:var(--panel);border:1px solid var(--b2);border-radius:10px;z-index:200;overflow:hidden;box-shadow:0 12px 38px rgba(0,0,0,.4);display:none}
-.city-opt{padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--line);transition:background .1s}
+.city-opt{padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--line);transition:background .1s;display:flex;align-items:center;gap:6px}
 .city-opt:last-child{border-bottom:none}
 .city-opt:hover{background:var(--s2)}
 .co-name{font-size:13px;font-weight:500;color:var(--t)}
@@ -112,6 +112,17 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 .hero-top{display:flex;align-items:center;gap:12px}
 .hero-city{display:flex;align-items:baseline;gap:10px;flex:1}
 .hero-city h1{font-size:34px;font-weight:600;letter-spacing:-0.9px}
+.fav-btn{align-self:center;display:inline-flex;background:none;border:none;padding:3px;margin:0;cursor:pointer;color:var(--t3);line-height:0;border-radius:6px;transition:color .15s}
+.fav-btn svg{width:19px;height:19px}
+.fav-btn:hover{color:var(--t2)}
+.fav-btn[aria-pressed="true"]{color:var(--acc)}
+.fav-btn[aria-pressed="true"] svg{fill:currentColor}
+.fav-btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.city-opt>div{min-width:0;flex:1}
+.co-unpin{background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:5px;line-height:1;flex:0 0 auto}
+.co-unpin:hover{color:var(--t);background:var(--s3)}
+.co-star{flex:0 0 auto;color:var(--acc);display:inline-flex}
+.co-star svg{width:13px;height:13px;fill:currentColor}
 .hero-sub{color:var(--t3);font-size:13px;font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:-.1px}
 .hero-sun{display:flex;align-items:center;gap:5px;color:var(--t3);font-size:13px;font-family:'IBM Plex Mono',ui-monospace,monospace;flex-wrap:wrap}
 .hero-sun svg{width:14px;height:14px;flex-shrink:0}

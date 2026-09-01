@@ -40,6 +40,7 @@ const S = {
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   dataTs: 0,   // epoch ms when the currently shown data was fetched (fresh or cache write time)
   charts: {},  // keyed by chart name, holds Chart.js instances
+  geo: null,   // normalised current location {name,country,admin1,timezone,lat,lon} - for the save-location star
 };
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ function loadFromURL(){
   S.country=p.get('country')||S.country;
   $('cityName').textContent=S.city;
   $('heroSub').textContent=S.country;
+  S.geo={name:S.city,country:S.country,admin1:'',timezone:'',lat:S.lat,lon:S.lon};
 }
 
 // Returns a CSS class name for temperature colour coding
@@ -1092,8 +1094,10 @@ async function selectCity(g){
     return;
   }
 
+  S.geo=normCity(g);
   updateURL();
   saveRecent(g);
+  renderFavBtn();
   buildToggles();
 }
 
@@ -1143,39 +1147,81 @@ function toggleTheme(){
   setTheme(cur==='light'?'dark':'light');
 }
 
-// ─── RECENT CITIES ────────────────────────────────────────────────────────────
-// Keeps the 5 most recently selected cities in localStorage; deduplicates by proximity
-function saveRecent(g){
-  try{
-    let r=JSON.parse(localStorage.getItem('recent_cities')||'[]');
-    r=r.filter(c=>!(Math.abs(c.lat-g.latitude)<0.01&&Math.abs(c.lon-g.longitude)<0.01));
-    r.unshift({name:g.name,country:g.country||'',lat:g.latitude,lon:g.longitude,admin1:g.admin1||'',timezone:g.timezone||''});
-    localStorage.setItem('recent_cities',JSON.stringify(r.slice(0,5)));
-  }catch{}
+// ─── SAVED & RECENT CITIES ──────────────────────────────────────────────────
+// Both live in localStorage as arrays of {name,country,admin1,timezone,lat,lon}.
+// Saved (fav_cities) are user-pinned and always shown; recent_cities is a rolling 5.
+function normCity(g){
+  return {name:g.name||S.city, country:g.country||'', admin1:g.admin1||'', timezone:g.timezone||'',
+          lat:+(g.lat??g.latitude), lon:+(g.lon??g.longitude)};
+}
+const _sameLoc=(a,b)=>Math.abs(a.lat-b.lat)<0.02&&Math.abs(a.lon-b.lon)<0.02;
+const _readList=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]');}catch{return [];}};
+const _writeList=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a));}catch{}};
+
+function getFavs(){return _readList('fav_cities');}
+function isFav(c){return c&&getFavs().some(f=>_sameLoc(f,c));}
+function toggleFav(g){
+  if(!g)return;
+  const c=normCity(g);
+  if(!isFinite(c.lat)||!isFinite(c.lon))return;
+  let f=getFavs();
+  f=isFav(c)?f.filter(x=>!_sameLoc(x,c)):[c,...f].slice(0,12);
+  _writeList('fav_cities',f);
+  renderFavBtn();
+  if(document.activeElement===$('cityInput'))showRecent();
+}
+function renderFavBtn(){
+  const b=$('favBtn'); if(!b)return;
+  const on=isFav(S.geo);
+  b.setAttribute('aria-pressed',on?'true':'false');
+  b.setAttribute('aria-label',on?'Noņemt no saglabātajām vietām':'Saglabāt šo vietu');
+  b.title=b.getAttribute('aria-label');
 }
 
-// Shows the last 5 searched cities when the input is focused and empty
+// Rolling list of the 5 most recently opened locations (deduped by proximity)
+function saveRecent(g){
+  const c=normCity(g);
+  const r=_readList('recent_cities').filter(x=>!_sameLoc(x,c));
+  _writeList('recent_cities',[c,...r].slice(0,5));
+}
+
+function _cityRow(c,pinned){
+  const opt=document.createElement('div');
+  opt.className='city-opt';
+  if(pinned){
+    const st=document.createElement('span'); st.className='co-star';
+    st.innerHTML='<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+    opt.appendChild(st);
+  }
+  const box=document.createElement('div');
+  const nm=document.createElement('div'); nm.className='co-name'; nm.textContent=c.name;
+  const sb=document.createElement('div'); sb.className='co-sub'; sb.textContent=[c.admin1,c.country].filter(Boolean).join(', ');
+  box.appendChild(nm); box.appendChild(sb); opt.appendChild(box);
+  if(pinned){
+    const x=document.createElement('button');
+    x.className='co-unpin'; x.type='button'; x.textContent='✕';
+    x.setAttribute('aria-label',`Noņemt ${c.name} no saglabātajām`);
+    x.onclick=e=>{e.stopPropagation();toggleFav(c);};
+    opt.appendChild(x);
+  }
+  opt.onclick=()=>{$('cityDrop').style.display='none';$('cityInput').value=c.name;
+    selectCity({latitude:c.lat,longitude:c.lon,name:c.name,country:c.country,admin1:c.admin1,timezone:c.timezone});};
+  return opt;
+}
+
+// Dropdown shown when the search box is focused and empty: saved on top, then recent
 function showRecent(){
   const drop=$('cityDrop');
-  try{
-    const r=JSON.parse(localStorage.getItem('recent_cities')||'[]');
-    if(!r.length)return;
-    drop.innerHTML='';
-    const lbl=document.createElement('div');
-    lbl.style.cssText='padding:7px 13px 4px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px';
-    lbl.textContent='Nesenie meklējumi';
-    drop.appendChild(lbl);
-    r.forEach(c=>{
-      const opt=document.createElement('div');
-      opt.className='city-opt';
-      const nm=document.createElement('div'); nm.className='co-name'; nm.textContent=c.name;
-      const sb=document.createElement('div'); sb.className='co-sub'; sb.textContent=[c.admin1,c.country].filter(Boolean).join(', ');
-      opt.appendChild(nm); opt.appendChild(sb);
-      opt.onclick=()=>{drop.style.display='none';$('cityInput').value=c.name;selectCity({latitude:c.lat,longitude:c.lon,name:c.name,country:c.country,admin1:c.admin1,timezone:c.timezone});};
-      drop.appendChild(opt);
-    });
-    drop.style.display='block';
-  }catch{}
+  const favs=getFavs();
+  const recent=_readList('recent_cities').filter(c=>!favs.some(f=>_sameLoc(f,c)));
+  if(!favs.length&&!recent.length){drop.style.display='none';return;}
+  drop.innerHTML='';
+  const lbl=t=>{const d=document.createElement('div');
+    d.style.cssText='padding:7px 13px 4px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px';
+    d.textContent=t;return d;};
+  if(favs.length){drop.appendChild(lbl('Saglabātās vietas'));favs.forEach(c=>drop.appendChild(_cityRow(c,true)));}
+  if(recent.length){drop.appendChild(lbl('Nesenie meklējumi'));recent.forEach(c=>drop.appendChild(_cityRow(c,false)));}
+  drop.style.display='block';
 }
 
 // ─── SHARE ────────────────────────────────────────────────────────────────────
@@ -1214,6 +1260,8 @@ async function locateMe(auto=false){
         if(city){ $('cityName').textContent=city; S.city=city; }
         const country=d.address?.country||'';
         if(country){ $('heroSub').textContent=country; S.country=country; }
+        S.geo={name:S.city,country:S.country,admin1:a.state||'',timezone:'',lat,lon};
+        renderFavBtn();
         updateURL();
       }catch{ /* keep placeholder name */ }
     },
@@ -1758,6 +1806,7 @@ function renderLvgmcTable(){
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 loadFromURL();
 renderThemeIcon();
+renderFavBtn();
 buildToggles();
 buildModelInfo();
 // If URL already has coordinates (shared link), load immediately; otherwise auto-geolocate

@@ -53,6 +53,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
 - **Live autocomplete** - suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
 - Browser **geolocation** button also available in the search bar
+- **Saved locations** - a star next to the city name pins the current location; pinned places sit above the recent list in the search dropdown (with an unpin ✕) and are always available (localStorage, `fav_cities`)
 - **Recent search history** - last 5 cities shown when search is focused and empty (localStorage)
 - Shareable URLs - location encoded in query params (`?lat=&lon=&city=&country=`); shared links skip auto-geolocation
 
