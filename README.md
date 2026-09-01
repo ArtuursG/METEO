@@ -30,6 +30,12 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - All metrics sourced from ECMWF IFS (falls back to first available model)
 - "Dati atjaunoti pirms N min" reflects the actual fetch time (or cache write time when served from cache), not the page render time
 
+### Climate (Klimats tab)
+- **Today's temperature anomaly** vs the 1991-2020 normal for this calendar date (day-of-year climatology, ±7-day smoothed)
+- **Warming stripes** - annual mean temperature 1940-present as a strip of blue→red bars (Ed Hawkins style), colour scale centred on the 1961-1990 mean; hover a year for its value
+- Latest complete year vs the 1961-1990 average
+- Source: **ERA5 reanalysis** via the [Open-Meteo Archive API](https://open-meteo.com/en/docs/historical-weather-api) (free, no key). Lazy-loaded on first tab open; the ~85 years of daily means are reduced client-side to a small structure and cached in localStorage for a week
+
 ### Precipitation radar
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
 - Scrubber slider through frames, or play as animation
@@ -89,6 +95,7 @@ All 14 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 - **[Chart.js 4.4.1](https://www.chartjs.org/)** - interactive charts (CDN, SRI integrity hash)
 - **[Leaflet 1.9.4](https://leafletjs.com/)** - interactive radar map (CDN, SRI integrity hash)
 - **[Open-Meteo API](https://open-meteo.com/)** - free meteorological data (CC BY 4.0), no API key required
+- **[Open-Meteo Archive API](https://open-meteo.com/en/docs/historical-weather-api)** - ERA5 reanalysis (1940-present) for the Climate tab, no API key required
 - **[Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)** - city search with live autocomplete
 - **[Nominatim](https://nominatim.openstreetmap.org/)** - reverse geocoding for browser geolocation
 - **[RainViewer](https://www.rainviewer.com/api.html)** - free precipitation radar tiles, no API key required

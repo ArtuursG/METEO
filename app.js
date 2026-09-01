@@ -177,8 +177,9 @@ function switchTab(tab,btn){
   document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
   btn.classList.add('active');
   $('tab-'+tab).classList.add('on');
-  // Radar map initializes lazily on first open (no requests until tab is clicked)
+  // Radar map and climate data initialize lazily on first open (no requests until then)
   if(tab==='radar')initRadar();
+  if(tab==='climate')initClimate();
 }
 
 // ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
@@ -695,6 +696,135 @@ function buildUVChart(){
 
 }
 
+// ─── CLIMATE (ERA5 via Open-Meteo Archive) ───────────────────────────────────
+const CLIM_PFX='clim2_';
+let _climKey=null;   // coord key of the currently rendered climate view
+
+const _avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+
+// Warming-stripes colour: z = (year mean - 1961-90 mean) / sd, mapped blue->white->red
+function stripeColor(z){
+  const t=Math.max(-1,Math.min(1,z/3));
+  const cold=[8,48,107], mid=[245,245,245], warm=[103,0,13];
+  const [x,y]=t<0?[cold,mid]:[mid,warm];
+  const f=Math.abs(t);
+  return `rgb(${Math.round(x[0]+(y[0]-x[0])*f)},${Math.round(x[1]+(y[1]-x[1])*f)},${Math.round(x[2]+(y[2]-x[2])*f)})`;
+}
+
+// Reduce ~85 years of daily means to the small structure the view needs
+function processClimate(time,mean){
+  const byYear={}, doySum=new Array(367).fill(0), doyCnt=new Array(367).fill(0);
+  for(let i=0;i<time.length;i++){
+    const v=mean[i]; if(v==null)continue;
+    const t=time[i], y=+t.slice(0,4);
+    (byYear[y]=byYear[y]||[]).push(v);
+    if(y>=1991&&y<=2020){
+      const d=new Date(t+'T00:00');
+      const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);
+      doySum[doy]+=v; doyCnt[doy]++;
+    }
+  }
+  const thisYear=new Date().getFullYear();
+  const annual=Object.keys(byYear).map(Number).sort((a,b)=>a-b).map(y=>({
+    year:y, mean:_avg(byYear[y]), full:byYear[y].length>=350
+  })).filter(a=>a.full||a.year===thisYear);
+  // day-of-year normal, smoothed +-7 days (circular)
+  const doyClim=new Array(367).fill(null);
+  for(let d=1;d<=366;d++){
+    let s=0,c=0;
+    for(let k=-7;k<=7;k++){const dd=((d+k-1)%366+366)%366+1; if(doyCnt[dd]){s+=doySum[dd]/doyCnt[dd];c++;}}
+    if(c)doyClim[d]=s/c;
+  }
+  const base=annual.filter(a=>a.year>=1961&&a.year<=1990&&a.full);
+  const centre=base.length?_avg(base.map(a=>a.mean)):_avg(annual.map(a=>a.mean));
+  const mn=_avg(annual.map(a=>a.mean));
+  const sd=Math.sqrt(_avg(annual.map(a=>(a.mean-mn)**2)))||1;
+  return {annual,doyClim,centre,sd};
+}
+
+async function fetchClimate(key){
+  try{
+    const raw=localStorage.getItem(CLIM_PFX+key);
+    if(raw){const{ts,d}=JSON.parse(raw); if(Date.now()-ts<7*864e5)return d;}
+  }catch{}
+  const end=new Date(Date.now()-6*864e5).toISOString().slice(0,10); // archive lags ~5 days
+  const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${S.lat}&longitude=${S.lon}`
+    +`&start_date=1940-01-01&end_date=${end}&daily=temperature_2m_mean&timezone=auto`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error('archive '+r.status);
+  const j=await r.json();
+  if(!j.daily?.temperature_2m_mean)throw new Error('no data');
+  const d=processClimate(j.daily.time,j.daily.temperature_2m_mean);
+  try{localStorage.setItem(CLIM_PFX+key,JSON.stringify({ts:Date.now(),d}));}catch{}
+  return d;
+}
+
+async function initClimate(){
+  const key=`${S.lat.toFixed(2)}_${S.lon.toFixed(2)}`;
+  if(_climKey===key)return;
+  $('loadClim').style.display='flex';
+  $('climContent').hidden=true;
+  $('climErr').hidden=true;
+
+  let d;
+  try{ d=await fetchClimate(key); }
+  catch(e){
+    console.warn('[climate]',e);
+    $('loadClim').style.display='none';
+    $('climErr').hidden=false;
+    return;
+  }
+  renderClimate(d);
+  _climKey=key;
+  $('loadClim').style.display='none';
+  $('climContent').hidden=false;
+}
+
+function renderClimate(d){
+  // Today's anomaly: forecast daily mean (max+min)/2 vs the day-of-year normal
+  const fc=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  const tmax=fc?.daily?.temperature_2m_max?.[0], tmin=fc?.daily?.temperature_2m_min?.[0];
+  const now=new Date();
+  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);
+  const normal=d.doyClim[doy];
+  if(tmax!=null&&tmin!=null&&normal!=null){
+    const today=(tmax+tmin)/2, anom=today-normal;
+    const sign=anom>=0?'+':'−';
+    $('climAnomVal').textContent=`${sign}${Math.abs(round(anom,1))}°C`;
+    $('climAnomVal').style.color=anom>=0?'#e0796d':'#7aa8d8';
+    $('climAnomLbl').textContent=`šodien pret 1991-2020 normu (${round(normal,1)}°C) šai datumai`;
+  }else{
+    $('climAnomVal').textContent='–';
+    $('climAnomLbl').textContent='nepietiek datu šodienas anomālijai';
+  }
+
+  // Latest complete year vs 1961-1990
+  const full=d.annual.filter(a=>a.full);
+  const last=full[full.length-1];
+  if(last){
+    const diff=last.mean-d.centre;
+    $('climYearNote').textContent=
+      `${last.year}. gads: vidēji ${round(last.mean,1)}°C — ${diff>=0?'+':'−'}${Math.abs(round(diff,1))}°C pret 1961-1990. gadu vidējo (${round(d.centre,1)}°C).`;
+  }
+
+  // Warming stripes
+  const wrap=$('climStripes');
+  wrap.innerHTML='';
+  d.annual.forEach(a=>{
+    const z=(a.mean-d.centre)/d.sd;
+    const bar=document.createElement('div');
+    bar.className='stripe';
+    bar.style.background=stripeColor(z);
+    if(!a.full)bar.style.opacity='.55';
+    bar.title=`${a.year}: ${round(a.mean,1)}°C (${a.mean-d.centre>=0?'+':'−'}${Math.abs(round(a.mean-d.centre,1))}°C)${a.full?'':' — nepilns gads'}`;
+    wrap.appendChild(bar);
+  });
+  const y0=d.annual[0]?.year, y1=d.annual[d.annual.length-1]?.year;
+  $('climStripesRange').textContent=y0&&y1?`(${y0}-${y1})`:'';
+  $('climAxisL').textContent=y0||'';
+  $('climAxisR').textContent=y1||'';
+}
+
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
   mkModelSelector('tableCardHd','tableModel','Prognoze pa dienām',buildTable);
@@ -886,6 +1016,8 @@ async function loadAll(){
   buildCloudChart();
   buildUVChart();
   buildTable();
+  // Climate tab caches per-location; refresh it if the user is looking at it
+  if($('tab-climate')?.classList.contains('on'))initClimate();
   return true;
 }
 
