@@ -1,7 +1,7 @@
 {
   "name": "prognoze.lv",
   "short_name": "prognoze.lv",
-  "description": "Laika prognoze - 14 modeļu salīdzinājums",
+  "description": "14 laika prognožu modeļu salīdzinājums - ECMWF, GFS, ICON, MET Norway un citi",
   "start_url": "/METEO/",
   "scope": "/METEO/",
   "display": "standalone",
