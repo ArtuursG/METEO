@@ -109,8 +109,8 @@ const STR = {
 
     'spread.agree': 'modeļi lielā mērā vienojas (±{n}°C nākamajās 48 h)',
     'spread.medium': 'vidēja modeļu izkliede (±{n}°C nākamajās 48 h)',
-    'spread.high': 'liela nenoteiktība – modeļi būtiski atšķiras (±{n}°C nākamajās 48 h)',
-    'spread.tooltip_range': 'Diapazons: {min}–{max}°C (Δ {d}°)',
+    'spread.high': 'liela nenoteiktība - modeļi būtiski atšķiras (±{n}°C nākamajās 48 h)',
+    'spread.tooltip_range': 'Diapazons: {min}-{max}°C (Δ {d}°)',
 
     'th.date': 'Datums', 'th.time': 'Laiks', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
     'th.precip': 'Nokrišņi', 'th.precip_pct': 'Nokrišņi %', 'th.wind_max': 'Vējš max',
@@ -194,12 +194,12 @@ const STR = {
     'clim.err': 'Neizdevās ielādēt vēsturiskos klimata datus.',
     'clim.anom_today': 'šodien pret 1991-2020 normu ({n}°C) šai datumai',
     'clim.anom_nodata': 'nepietiek datu šodienas anomālijai',
-    'clim.year_note': '{year}. gads: vidēji {mean}°C — {diff}°C pret 1961-1990. gadu vidējo ({centre}°C).',
+    'clim.year_note': '{year}. gads: vidēji {mean}°C - {diff}°C pret 1961-1990. gadu vidējo ({centre}°C).',
     'clim.stripe_tooltip': '{year}: {mean}°C ({diff}°C)',
-    'clim.stripe_partial': ' — nepilns gads',
+    'clim.stripe_partial': ' - nepilns gads',
 
     'verif.loading': 'Salīdzina ar meteostaciju...',
-    'verif.intro': 'Pēdējās 48 h precīzākais {station} stacijai bija {best} — vidējā kļūda {mae}°C. Salīdzināti {count} modeļi pret faktiski izmērīto gaisa temperatūru.',
+    'verif.intro': 'Pēdējās 48 h precīzākais {station} stacijai bija {best} - vidējā kļūda {mae}°C. Salīdzināti {count} modeļi pret faktiski izmērīto gaisa temperatūru.',
     'verif.station': 'Stacija: {name} (~{dist} km)',
     'verif.note': 'MAE = vidējā absolūtā kļūda (jo mazāka, jo precīzāk). Novirze: pozitīva = modelis rāda siltāk nekā stacija mērīja. Salīdzināts ar tuvāko LVĢMC staciju un modeļu jaunāko analīzi/tuvprognozi par pēdējām 48 h - tā nav "prognoze, kāda tā bija izdota pirms 2 dienām".',
     'verif.err': 'Neizdevās aprēķināt precizitāti (nav tuvu meteostacijas ar vēsturi vai neizdevās ielādēt datus).',
@@ -207,6 +207,12 @@ const STR = {
 
     'share.text': 'Laika prognoze - {city}',
     'footer.data': 'Dati',
+
+    'about.title': 'Par vietni',
+    'about.body': 'prognoze.lv ir bezmaksas atvērtā pirmkoda projekts, kas apkopo publiski pieejamus laika prognožu modeļus un Latvijas meteostaciju datus vienā skatā. Bez reklāmām un bez reģistrācijas.',
+    'about.privacy_title': 'Privātums',
+    'about.privacy_body': 'Vietne nevāc personas datus un neizmanto izsekošanas sīkdatnes. Izvēlētā pilsēta, tēma un valoda tiek glabātas tikai tavā pārlūkā. Atrašanās vieta tiek noteikta tikai tad, ja tam piekrīti.',
+    'about.contact_label': 'Jautājumi un kļūdu ziņojumi',
   },
 
   en: {
@@ -294,8 +300,8 @@ const STR = {
 
     'spread.agree': 'models largely agree (±{n}°C over the next 48 h)',
     'spread.medium': 'moderate model spread (±{n}°C over the next 48 h)',
-    'spread.high': 'high uncertainty – models differ substantially (±{n}°C over the next 48 h)',
-    'spread.tooltip_range': 'Range: {min}–{max}°C (Δ {d}°)',
+    'spread.high': 'high uncertainty - models differ substantially (±{n}°C over the next 48 h)',
+    'spread.tooltip_range': 'Range: {min}-{max}°C (Δ {d}°)',
 
     'th.date': 'Date', 'th.time': 'Time', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
     'th.precip': 'Precip.', 'th.precip_pct': 'Precip. %', 'th.wind_max': 'Wind max',
@@ -379,12 +385,12 @@ const STR = {
     'clim.err': 'Could not load historical climate data.',
     'clim.anom_today': 'today vs the 1991-2020 normal ({n}°C) for this date',
     'clim.anom_nodata': 'not enough data for today’s anomaly',
-    'clim.year_note': '{year}: {mean}°C on average — {diff}°C vs the 1961-1990 annual mean ({centre}°C).',
+    'clim.year_note': '{year}: {mean}°C on average - {diff}°C vs the 1961-1990 annual mean ({centre}°C).',
     'clim.stripe_tooltip': '{year}: {mean}°C ({diff}°C)',
-    'clim.stripe_partial': ' — partial year',
+    'clim.stripe_partial': ' - partial year',
 
     'verif.loading': 'Comparing with a weather station...',
-    'verif.intro': 'Over the past 48 h the most accurate model for {station} was {best} — mean error {mae}°C. {count} models compared against the measured air temperature.',
+    'verif.intro': 'Over the past 48 h the most accurate model for {station} was {best} - mean error {mae}°C. {count} models compared against the measured air temperature.',
     'verif.station': 'Station: {name} (~{dist} km)',
     'verif.note': 'MAE = mean absolute error (lower is better). Bias: positive = the model runs warmer than the station measured. Compared against the nearest LVĢMC station and each model’s latest analysis / nowcast for the past 48 h - this is not "the forecast as it was issued two days ago".',
     'verif.err': 'Could not compute accuracy (no nearby station with history, or data failed to load).',
@@ -392,6 +398,12 @@ const STR = {
 
     'share.text': 'Weather forecast - {city}',
     'footer.data': 'Data',
+
+    'about.title': 'About',
+    'about.body': 'prognoze.lv is a free, open-source project that brings public weather forecast models and Latvian weather-station data together in one view. No ads, no sign-up.',
+    'about.privacy_title': 'Privacy',
+    'about.privacy_body': 'The site collects no personal data and uses no tracking cookies. Your chosen city, theme and language are stored only in your browser. Location is only requested if you allow it.',
+    'about.contact_label': 'Questions and bug reports',
   },
 };
 

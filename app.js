@@ -2,20 +2,20 @@
 // id: Open-Meteo model identifier | res: grid resolution | days: forecast horizon
 // dash: Chart.js borderDash pattern (empty = solid line)
 const MODELS = [
-  { id:'ecmwf_ifs025',              name:'ECMWF IFS',    flag:'🇪🇺', org:'ECMWF',               res:'9km',   days:10, color:'#2a78d6', dash:[] },
-  { id:'ecmwf_aifs025',            name:'ECMWF AIFS',   flag:'🇪🇺', org:'ECMWF (AI)',           res:'25km',  days:10, color:'#29b6f6', dash:[] },
-  { id:'gfs_seamless',              name:'GFS',           flag:'🇺🇸', org:'NOAA (USA)',           res:'13km',  days:16, color:'#1baf7a', dash:[6,3] },
-  { id:'icon_seamless',             name:'ICON (global)', flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)',        res:'11km',  days:7,  color:'#eda100', dash:[4,2] },
-  { id:'icon_eu',                   name:'ICON-EU',       flag:'🇩🇪', org:'Deutscher Wetterdienst (DWD)',        res:'7km',   days:5,  color:'#eb6834', dash:[2,2] },
-  { id:'gem_seamless',              name:'GEM',           flag:'🇨🇦', org:'Canadian Weather Service', res:'15km',  days:10, color:'#e34948', dash:[8,4] },
-  { id:'ukmo_seamless',             name:'UKMO',          flag:'🇬🇧', org:'Met Office (UK)',      res:'10km',  days:7,  color:'#e87ba4', dash:[3,3] },
-  { id:'metno_seamless',            name:'MET Norway',    flag:'🇳🇴', org:'MET Norway',           res:'1km',   days:10, color:'#B75074', dash:[5,2,1,2] },
-  { id:'meteofrance_seamless',      name:'Météo-France',  flag:'🇫🇷', org:'Météo-France',        res:'1.5km', days:4,  color:'#805CD3', dash:[7,2] },
-  { id:'jma_seamless',              name:'JMA',           flag:'🇯🇵', org:'JMA (Japan)',          res:'13km',  days:11, color:'#A9852E', dash:[4,4] },
-  { id:'cma_grapes_global',         name:'CMA GRAPES',    flag:'🇨🇳', org:'CMA (China)',          res:'15km',  days:10, color:'#d63384', dash:[1,3] },
-  { id:'meteofrance_arpege_europe', name:'ARPEGE Europe', flag:'🇫🇷', org:'Météo-France',         res:'10km',  days:4,  color:'#0891b2', dash:[2,4] },
-  { id:'knmi_harmonie_arome_europe',name:'HARMONIE NL',   flag:'🇳🇱', org:'KNMI (Netherlands)',   res:'2.5km', days:2,  color:'#4caf50', dash:[6,1,2,1] },
-  { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK',   flag:'🇩🇰', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
+  { id:'ecmwf_ifs025',              name:'ECMWF IFS', org:'ECMWF',               res:'9km',   days:10, color:'#2a78d6', dash:[] },
+  { id:'ecmwf_aifs025',            name:'ECMWF AIFS', org:'ECMWF (AI)',           res:'25km',  days:10, color:'#29b6f6', dash:[] },
+  { id:'gfs_seamless',              name:'GFS', org:'NOAA (USA)',           res:'13km',  days:16, color:'#1baf7a', dash:[6,3] },
+  { id:'icon_seamless',             name:'ICON (global)', org:'Deutscher Wetterdienst (DWD)',        res:'11km',  days:7,  color:'#eda100', dash:[4,2] },
+  { id:'icon_eu',                   name:'ICON-EU', org:'Deutscher Wetterdienst (DWD)',        res:'7km',   days:5,  color:'#eb6834', dash:[2,2] },
+  { id:'gem_seamless',              name:'GEM', org:'Canadian Weather Service', res:'15km',  days:10, color:'#e34948', dash:[8,4] },
+  { id:'ukmo_seamless',             name:'UKMO', org:'Met Office (UK)',      res:'10km',  days:7,  color:'#e87ba4', dash:[3,3] },
+  { id:'metno_seamless',            name:'MET Norway', org:'MET Norway',           res:'1km',   days:10, color:'#B75074', dash:[5,2,1,2] },
+  { id:'meteofrance_seamless',      name:'Météo-France', org:'Météo-France',        res:'1.5km', days:4,  color:'#805CD3', dash:[7,2] },
+  { id:'jma_seamless',              name:'JMA', org:'JMA (Japan)',          res:'13km',  days:11, color:'#A9852E', dash:[4,4] },
+  { id:'cma_grapes_global',         name:'CMA GRAPES', org:'CMA (China)',          res:'15km',  days:10, color:'#d63384', dash:[1,3] },
+  { id:'meteofrance_arpege_europe', name:'ARPEGE Europe', org:'Météo-France',         res:'10km',  days:4,  color:'#0891b2', dash:[2,4] },
+  { id:'knmi_harmonie_arome_europe',name:'HARMONIE NL', org:'KNMI (Netherlands)',   res:'2.5km', days:2,  color:'#4caf50', dash:[6,1,2,1] },
+  { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
 ];
 
 // Models available in the daily forecast table selector
@@ -255,7 +255,7 @@ function buildToggles(){
     const b=document.createElement('button');
     b.className='mt'+(S.active.has(m.id)?' on':'');
     b.setAttribute('aria-pressed',S.active.has(m.id)?'true':'false');
-    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.name}`;
     b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
     b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
     b.onclick=()=>{
@@ -272,7 +272,7 @@ function buildToggles(){
 }
 
 // ─── MODEL INFO LIST ─────────────────────────────────────────────────────────
-// Builds the "Models" tab with colour dot, flag, name, org, resolution and days
+// Builds the "Models" tab with colour dot, name, org, resolution and days
 function buildModelInfo(){
   const wrap=$('modelInfoList');
   wrap.innerHTML='';
@@ -281,7 +281,6 @@ function buildModelInfo(){
     div.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--b)';
     div.innerHTML=`
       <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
-      <span style="font-size:14px">${m.flag}</span>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${m.name}</div>
         <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${m.res} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}</div>
@@ -361,7 +360,7 @@ function buildLegend(legId,models){
   models.forEach(m=>{
     const el=document.createElement('div');
     el.className='li';
-    el.innerHTML=`<span class="ld" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    el.innerHTML=`<span class="ld" style="background:${m.color}"></span>${m.name}`;
     wrap.appendChild(el);
   });
 }
@@ -498,7 +497,7 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
     const b=document.createElement('button');
     b.className='mt'+(S[stateKey].has(m.id)?' on':'');
     b.setAttribute('aria-pressed',S[stateKey].has(m.id)?'true':'false');
-    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
+    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.name}`;
     b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
     b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
     b.onclick=()=>{
@@ -844,7 +843,7 @@ function renderClimate(d){
     $('climAnomVal').style.color=anom>=0?'#e0796d':'#7aa8d8';
     $('climAnomLbl').textContent=t('clim.anom_today',{n:round(normal,1)});
   }else{
-    $('climAnomVal').textContent='–';
+    $('climAnomVal').textContent='-';
     $('climAnomLbl').textContent=t('clim.anom_nodata');
   }
 
