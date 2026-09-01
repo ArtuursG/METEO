@@ -133,7 +133,7 @@ function normCity(g){
   return {name:g.name||S.city, country:g.country||'', admin1:g.admin1||'', timezone:g.timezone||'',
           lat:+(g.lat??g.latitude), lon:+(g.lon??g.longitude)};
 }
-const _sameLoc=(a,b)=>Math.abs(a.lat-b.lat)<0.02&&Math.abs(a.lon-b.lon)<0.02;
+const _sameLoc=sameLoc; // from pure.js
 const _readList=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]');}catch{return [];}};
 const _writeList=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a));}catch{}};
 

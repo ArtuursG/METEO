@@ -19,13 +19,26 @@ cd METEO
 A local server is required - opening `index.html` directly via `file://` will
 block API requests due to CORS.
 
+## Tests
+
+`js/pure.js` holds the side-effect-free logic and has unit tests (Node's built-in
+runner, no dependencies):
+
+```bash
+npm test        # node --test test/**/*.test.js
+```
+
+CI (`.github/workflows/ci.yml`) syntax-checks every script and runs the tests on
+each push and pull request.
+
 ## Making changes
 
 1. Fork the repo and create a branch for your change.
 2. Keep changes focused - one feature or fix per pull request.
-3. Test manually in a browser (light/dark theme, mobile width, at least one
-   city search and one geolocation load) before opening a PR.
-4. Open a pull request describing what changed and why.
+3. If you touch pure logic, add or update a test in `test/`.
+4. Test manually in a browser (light/dark theme, both languages, mobile width,
+   at least one city search and one geolocation load) before opening a PR.
+5. Open a pull request describing what changed and why.
 
 ## Reporting bugs / suggesting features
 

@@ -13,16 +13,10 @@ applyStaticI18n();
 const ROAD_COND_KEY={dry:'road.dry',wet:'road.wet',moist:'road.moist',frost:'road.frost',iceOrSnowOnRoad:'road.ice',wetAndDirty:'road.wetdirty'};
 const roadCondLv=c=>c?(ROAD_COND_KEY[c]?t(ROAD_COND_KEY[c]):c):'-';
 
-const windDirLv=deg=>deg==null?'':COMPASS[LANG][Math.round(deg/22.5)%16];
+const windDirLv=deg=>deg==null?'':COMPASS[LANG][compassIndex(deg)];
 const noData=()=>t('stp.no_data');
+// tempCls comes from pure.js
 
-function tempCls(v){
-  if(v==null)return '';
-  if(v>=28)return 'tc-hot';
-  if(v>=18)return 'tc-warm';
-  if(v>=8) return 'tc-cool';
-  return 'tc-cold';
-}
 function fmtTime(iso){
   return new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
 }

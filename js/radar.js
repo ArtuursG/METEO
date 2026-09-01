@@ -397,7 +397,7 @@ const LVGMC_TTL=10*60*1000; // Worker pats kešo uz 10 min (avots atjaunojas ik 
 let _lvgmcLayer=null, _lvgmcStations=[], _lvgmcRows=[], _lvgmcFetchedAt=0, _lvgmcSort={key:'dist',dir:1}, _lvgmcMarkerList=[];
 
 const fmtStationTime=iso=>new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
-const lvgmcWindDirLv=deg=>deg==null?'':COMPASS[LANG][Math.round(deg/22.5)%16];
+const lvgmcWindDirLv=deg=>deg==null?'':COMPASS[LANG][compassIndex(deg)];
 
 async function ensureLvgmcStations(){
   if(Date.now()-_lvgmcFetchedAt<LVGMC_TTL && _lvgmcStations.length){

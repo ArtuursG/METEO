@@ -1,12 +1,9 @@
 // ─── DATA: current metrics, combined model fetch, load pipeline ──────────────
 
 // ─── CURRENT METRICS ─────────────────────────────────────────────────────────
-// Returns a monochrome SVG moon phase icon and Latvian name based on lunar cycle math
+// Returns a monochrome SVG moon phase icon and localised name based on lunar cycle math
 function moonPhaseInfo(){
-  const ref=new Date('2000-01-06T18:14:00Z'); // reference new moon (Jan 6, 2000)
-  const cycle=29.53058867;
-  const days=((Date.now()-ref)/86400000%cycle+cycle)%cycle;
-  const frac=days/cycle; // 0=new, 0.5=full, 1=new
+  const frac=moonPhaseFrac(Date.now()); // 0=new, 0.5=full, 1=new  (see pure.js)
   const i=Math.floor(frac*8)%8;
 
   // Build SVG using two arcs: outer semicircle + terminator ellipse
