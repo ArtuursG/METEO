@@ -71,6 +71,7 @@ function relangUI(){
   if($('tab-about')?.classList.contains('on'))initVerification();
   if(_lvcStations.length)renderLvcRows();
   if(_lvgmcStations.length)renderLvgmcRows();
+  relabelRadarControl();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

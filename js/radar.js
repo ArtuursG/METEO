@@ -2,6 +2,22 @@
 
 // ─── RADAR ────────────────────────────────────────────────────────────────────
 let _rMap=null, _rLayer=null, _rFrames=[], _rIdx=0, _rTimer=null;
+let _rLayerCtrl=null, _rBaseLayers=null;  // kept so the layer-control labels can be re-translated
+
+// Rebuilds the Leaflet layer control with current-language labels (called on language switch)
+function relabelRadarControl(){
+  if(!_rMap||!_rLayerCtrl||!_rBaseLayers)return;
+  _rMap.removeControl(_rLayerCtrl);
+  const bl={
+    [t('basemap.light')]:_rBaseLayers.light,
+    [t('basemap.dark')]:_rBaseLayers.dark,
+    [t('basemap.osm')]:_rBaseLayers.osm,
+    [t('basemap.relief')]:_rBaseLayers.relief,
+    [t('basemap.satellite')]:_rBaseLayers.satellite,
+  };
+  const ol={[t('radar.overlay_lvc')]:_lvcLayer,[t('radar.overlay_lvgmc')]:_lvgmcLayer};
+  _rLayerCtrl=L.control.layers(bl,ol,{collapsed:true}).addTo(_rMap);
+}
 
 // Lazy-initializes the Leaflet map; safe to call multiple times
 async function initRadar(){
@@ -26,27 +42,33 @@ async function initRadar(){
   // vienā layerGroup, lai izskatās kā vienota karte ar pilsētu nosaukumiem.
   const esriAttr='Tiles © <a href="https://www.esri.com" target="_blank">Esri</a>';
   const esri=(svc,attr)=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{attribution:attr,maxZoom:16});
-  const lightLayer=L.layerGroup([
-    esri('Canvas/World_Light_Gray_Base',esriAttr),
-    esri('Canvas/World_Light_Gray_Reference'),
-  ]);
-  const baseLayers={
-    [t('basemap.light')]:lightLayer,
-    [t('basemap.dark')]:L.layerGroup([
+  _rBaseLayers={
+    light:L.layerGroup([
+      esri('Canvas/World_Light_Gray_Base',esriAttr),
+      esri('Canvas/World_Light_Gray_Reference'),
+    ]),
+    dark:L.layerGroup([
       esri('Canvas/World_Dark_Gray_Base',esriAttr),
       esri('Canvas/World_Dark_Gray_Reference'),
     ]),
-    [t('basemap.osm')]:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom:19,subdomains:'abc'}),
-    [t('basemap.relief')]:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+    relief:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenStreetMap, SRTM · © <a href="https://opentopomap.org" target="_blank">OpenTopoMap</a> (CC-BY-SA)',
       maxZoom:17,subdomains:'abc'}),
-    [t('basemap.satellite')]:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
       attribution:'Tiles © <a href="https://www.esri.com" target="_blank">Esri</a>',
       maxZoom:19}),
   };
-  lightLayer.addTo(_rMap);
+  const baseLayers={
+    [t('basemap.light')]:_rBaseLayers.light,
+    [t('basemap.dark')]:_rBaseLayers.dark,
+    [t('basemap.osm')]:_rBaseLayers.osm,
+    [t('basemap.relief')]:_rBaseLayers.relief,
+    [t('basemap.satellite')]:_rBaseLayers.satellite,
+  };
+  _rBaseLayers.light.addTo(_rMap);
   // Radar / station attribution stays visible regardless of the selected base map
   _rMap.attributionControl.addAttribution(t('radar.attr'));
 
@@ -61,7 +83,7 @@ async function initRadar(){
     [t('radar.overlay_lvc')]:_lvcLayer,
     [t('radar.overlay_lvgmc')]:_lvgmcLayer,
   };
-  L.control.layers(baseLayers,overlays,{collapsed:true}).addTo(_rMap);
+  _rLayerCtrl=L.control.layers(baseLayers,overlays,{collapsed:true}).addTo(_rMap);
 
   // Tabula zem kartes redzama tikai tiem tīkliem, kas ieķeksēti slāņu vadībā;
   // ja ieķeksēti abi, parāda cilnes pārslēgšanai starp tām (nevis vienu zem otras)
