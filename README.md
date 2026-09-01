@@ -23,10 +23,11 @@ Free meteorological forecast site displaying **14 leading global weather models*
 
 ### Current conditions (metrics row)
 - Temperature, feels like (apparent temperature), today's max/min
-- Wind speed with **rotating direction arrow** and 16-point compass label (Latvian: Z/A/D/R = N/E/S/W)
-- Humidity and current precipitation
+- Wind speed with **rotating direction arrow** and 16-point compass label (Latvian: Z/A/D/R = N/E/S/W), plus wind gusts
+- Humidity and current precipitation (with snowfall in cm when it is snowing)
 - Sunrise and sunset times with **moon phase icon** (monochrome SVG, pure math - no API call)
 - All metrics sourced from ECMWF IFS (falls back to first available model)
+- "Dati atjaunoti pirms N min" reflects the actual fetch time (or cache write time when served from cache), not the page render time
 
 ### Precipitation radar
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
