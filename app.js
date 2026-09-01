@@ -432,16 +432,16 @@ function buildPrecipCharts(){
     }
   });
 
-  // Precipitation probability chart - always shows all available models
-  showChart('loadPP','cPP');
-  if(S.charts.precipP)S.charts.precipP.destroy();
+  // Precipitation probability chart - follows the same model selection as the mm chart above
+  if(S.charts.precipP){S.charts.precipP.destroy();S.charts.precipP=null;}
   const ppDatasets=MODELS
-    .filter(m=>S.data[m.id]?.hourly?.precipitation_probability?.some(v=>v!=null))
+    .filter(m=>S.precipModels.has(m.id)&&S.data[m.id]?.hourly?.precipitation_probability?.some(v=>v!=null))
     .map(m=>({
       label:m.name,data:S.data[m.id].hourly.precipitation_probability,
       borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
     }));
   if(ppDatasets.length){
+    showChart('loadPP','cPP');
     S.charts.precipP=new Chart($('cPP'),{
       type:'line',data:{labels,datasets:ppDatasets},
       options:{...chartDefaults,
@@ -455,7 +455,10 @@ function buildPrecipCharts(){
       }
     });
   } else {
-    $('cPP').replaceWith(Object.assign(document.createElement('p'),{textContent:'Nokrišņu varbūtības dati nav pieejami šiem modeļiem.',style:'color:var(--t3);font-size:13px;padding:1rem 0'}));
+    // Hide the canvas (do not replaceWith - that permanently removes the element)
+    $('cPP').style.display='none';
+    $('loadPP').style.display='flex';
+    $('loadPP').innerHTML='<div class="err">Nokrišņu varbūtības dati nav pieejami izvēlētajiem modeļiem.</div>';
   }
 }
 
@@ -711,10 +714,12 @@ function updateMetrics(){
     $('todayMax').innerHTML=`${r0(ecmwf.daily.temperature_2m_max[0])}<span>°C</span>`;
     $('todayMin').textContent=`Min: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
   }
+  // Data freshness: shown both on the temperature card and in the always-visible
+  // metrics row (so it is present on every tab, not just Temperatūra)
   $('lastUpdate').textContent=`Dati atjaunoti ${relTime(S.dataTs)}`;
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
   const srcEl=$('metricsSrc');
-  if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel}`;
+  if(srcEl)srcEl.textContent=`Pašreizējie dati: ${srcModel} · atjaunoti ${relTime(S.dataTs)}`;
   // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
     const fmt=iso=>new Date(iso).toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
