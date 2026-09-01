@@ -177,6 +177,16 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err{background:color-mix(in srgb,#e35a4a 12%,transparent);border:1px solid color-mix(in srgb,#e35a4a 30%,transparent);border-radius:8px;padding:1rem;color:#e0796d;font-size:13px}
 
+/* ── TOAST ──────────────────────────────────────────────────────────────────── */
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);z-index:3000;
+  max-width:min(92vw,420px);padding:.7rem 1.1rem;border-radius:10px;font-size:13px;line-height:1.4;
+  background:var(--panel);color:var(--t);border:1px solid var(--b2);box-shadow:0 10px 34px rgba(0,0,0,.35);
+  opacity:0;transition:opacity .2s,transform .2s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:opacity .2s}}
+body.busy{cursor:progress}
+body.busy .tc{opacity:.55;transition:opacity .2s}
+
 /* ── TABLE ──────────────────────────────────────────────────────────────────── */
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px}
