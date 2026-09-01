@@ -175,13 +175,51 @@ function fmtDate(isoStr){
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab,btn){
-  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tb').forEach(b=>{
+    const on=b===btn;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-selected',on?'true':'false');
+    b.tabIndex=on?0:-1;
+  });
   document.querySelectorAll('.tc>div').forEach(d=>d.classList.remove('on'));
-  btn.classList.add('active');
   $('tab-'+tab).classList.add('on');
   // Radar map and climate data initialize lazily on first open (no requests until then)
   if(tab==='radar')initRadar();
   if(tab==='climate')initClimate();
+}
+
+// Wires the tab bar as an ARIA tablist with roving-tabindex arrow-key navigation
+function initTabsA11y(){
+  const bar=document.querySelector('.tab-bar');
+  if(!bar)return;
+  bar.setAttribute('role','tablist');
+  bar.setAttribute('aria-label','Datu skati');
+  const tabs=[...bar.querySelectorAll('.tb')];
+  tabs.forEach(b=>{
+    const name=(b.getAttribute('onclick')||'').match(/switchTab\('(\w+)'/)?.[1];
+    if(!name)return;
+    const on=b.classList.contains('active');
+    b.setAttribute('role','tab');
+    b.id='tb-'+name;
+    b.setAttribute('aria-controls','tab-'+name);
+    b.setAttribute('aria-selected',on?'true':'false');
+    b.tabIndex=on?0:-1;
+    const panel=$('tab-'+name);
+    if(panel){
+      panel.setAttribute('role','tabpanel');
+      panel.setAttribute('aria-labelledby','tb-'+name);
+      panel.tabIndex=0;
+    }
+  });
+  bar.addEventListener('keydown',e=>{
+    const i=tabs.indexOf(document.activeElement);
+    if(i<0)return;
+    const to={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:tabs.length-1}[e.key];
+    if(to===undefined)return;
+    e.preventDefault();
+    const t=tabs[(to+tabs.length)%tabs.length];
+    t.focus(); t.click();
+  });
 }
 
 // ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
@@ -216,11 +254,15 @@ function buildToggles(){
   MODELS.forEach(m=>{
     const b=document.createElement('button');
     b.className='mt'+(S.active.has(m.id)?' on':'');
+    b.setAttribute('aria-pressed',S.active.has(m.id)?'true':'false');
     b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
     b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
+    b.setAttribute('aria-label',`${m.name} - rādīt grafikā`);
     b.onclick=()=>{
-      if(S.active.has(m.id)){S.active.delete(m.id);b.classList.remove('on');}
-      else{S.active.add(m.id);b.classList.add('on');}
+      const on=!S.active.has(m.id);
+      on?S.active.add(m.id):S.active.delete(m.id);
+      b.classList.toggle('on',on);
+      b.setAttribute('aria-pressed',on?'true':'false');
       $('activeCount').textContent=S.active.size;
       rebuildTempChart();
     };
@@ -277,10 +319,11 @@ Chart.register({
 function CD(){
   const cs=getComputedStyle(document.body);
   const v=n=>cs.getPropertyValue(n).trim();
+  const reduce=window.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
   return {
   responsive:true,
   maintainAspectRatio:false,
-  animation:{duration:300},
+  animation:{duration:reduce?0:300},
   interaction:{mode:'index',intersect:false},
   plugins:{
     legend:{display:false},
@@ -422,10 +465,13 @@ function mkModelSelector(containerId,stateKey,title,onSelect){
   hd.innerHTML=`<span class="card-title">${title}</span>`;
   const wrap=document.createElement('div');
   wrap.style.cssText='display:flex;gap:4px';
+  wrap.setAttribute('role','group');
+  wrap.setAttribute('aria-label',title+' - modelis');
   TABLE_MODELS.forEach(tm=>{
     const b=document.createElement('button');
     b.className='mt'+(S[stateKey]===tm.id?' on':'');
     b.textContent=tm.name;
+    b.setAttribute('aria-pressed',S[stateKey]===tm.id?'true':'false');
     b.onclick=()=>{S[stateKey]=tm.id;onSelect();};
     wrap.appendChild(b);
   });
@@ -451,8 +497,10 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
   MODELS.forEach(m=>{
     const b=document.createElement('button');
     b.className='mt'+(S[stateKey].has(m.id)?' on':'');
+    b.setAttribute('aria-pressed',S[stateKey].has(m.id)?'true':'false');
     b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.flag} ${m.name}`;
     b.title=`${m.org} · ${m.res} · ${m.days} dienas`;
+    b.setAttribute('aria-label',`${m.name} - rādīt grafikā`);
     b.onclick=()=>{
       // Prevent deselecting the last active model
       if(S[stateKey].has(m.id)){if(S[stateKey].size<=1)return;S[stateKey].delete(m.id);}
@@ -1807,6 +1855,7 @@ function renderLvgmcTable(){
 loadFromURL();
 renderThemeIcon();
 renderFavBtn();
+initTabsA11y();
 buildToggles();
 buildModelInfo();
 // If URL already has coordinates (shared link), load immediately; otherwise auto-geolocate
