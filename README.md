@@ -63,6 +63,11 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Uses each model's latest analysis / short-range values (`past_days=2` on the forecast API) at the station's coordinates - this is recent model skill near you, not "the forecast as it was issued two days ago"
 - Lazy-loaded on tab open; recomputes when the location changes
 
+### Interactive wind maps
+- The Wind tab includes official [Windy](https://embed.windy.com/config/map) and [Ventusky](https://my.ventusky.com/de/guide/howto/how-to-use-embed-iframe-version-of-ventusky-21/) embeds, centered on the selected location. These are provider-hosted visualizations, not raw data APIs.
+- Nothing loads until the user opens a map. Only one provider frame exists at a time; closing it, changing location or leaving the tab removes the frame.
+- Map forecast time and model are independent from the comparison chart. Windy starts in m/s; Ventusky units and language follow browser settings. Attribution and provider controls remain visible.
+
 ### Environmental data (Vide tab)
 - Air quality and seasonal pollen share one Open-Meteo/CAMS request per rounded location, cached for one hour. Values are model estimates, not local station observations.
 - Latvian MeteoAlarm warning snapshots show affected regions and expiry times. CAP polygons match the selected coordinates to a compact home banner, ordered by severity. Expired warnings are excluded; missing data never implies an all-clear. Source wording is preserved.

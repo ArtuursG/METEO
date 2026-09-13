@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-13 - On-demand wind maps
+
+- Added official Windy and Ventusky embeds below the Wind chart, centered on the selected location. Windy is the default; Ventusky offers an alternative wind visualization.
+- Load maps only after an explicit button press. Keep a single iframe and remove it on close, location changes or leaving the Wind tab. No provider requests are made by the unopened map.
+- Added responsive map sizing, accessible provider controls, an external-view link and Latvian/English labels. Provider branding remains intact; map time/model controls operate independently from the comparison chart.
+- Windy starts in m/s. Ventusky chooses language and units from browser settings.
+- Added a lifecycle test covering lazy loading, provider replacement and cleanup.
+
 ## 2026-09-13 - Marine forecasts, local warnings and chart dates
 
 - Added a Sea view with LVGMC wave height, water temperature and current speed forecasts. Each parameter uses its own source coordinates, with explicit point coverage and missing-data states.
