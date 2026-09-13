@@ -9,6 +9,8 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ## Features
 
 ### Forecast charts
+- Shared **48 h / 7 days / 14 days+** controls, defaulting to 7 days. Hourly views begin at the current forecast-local hour; extended views use the available model horizon.
+
 - **Temperature** - hourly 2m temperature for up to 16 days, all 14 models overlaid on one chart; toggle each model on/off
 - **Model spread band** - shaded range between the coldest and warmest model at each hour, drawn behind the lines; a one-line verdict ("modeļi lielā mērā vienojas" / "vidēja izkliede" / "liela nenoteiktība") averages the next 48 h. Toggleable, preference saved to localStorage
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
@@ -37,6 +39,10 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Source: **ERA5 reanalysis** via the [Open-Meteo Archive API](https://open-meteo.com/en/docs/historical-weather-api) (free, no key). Lazy-loaded on first tab open; the ~85 years of daily means are reduced client-side to a small structure and cached in localStorage for a week
 
 ### Precipitation radar
+- Touch-friendly timeline with previous/next frame, playback speed, latest observation, and observed/forecast timestamps
+- Visible station-layer buttons, radar opacity control, Latvia/city shortcuts, and preserved map position between tabs
+- Playback stops when leaving the radar tab or hiding the page
+
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
 - Scrubber slider through frames, or play as animation
 - 5 selectable base maps (light, dark, OpenStreetMap, topographic, satellite) plus toggleable overlay layers, all via a Leaflet layer control
@@ -50,6 +56,8 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Clicking a station opens a dedicated page with 24h/48h temperature, hourly min/max, and wind history charts plus a locator map
 
 ### Model accuracy (Modeļi tab)
+- Select individual models directly in the comparison table; station observations remain visible
+
 - Ranks the 14 models by how close their recent temperature has been to the **nearest LVĢMC station's** measured air temperature over the past 48 h
 - Table of mean absolute error (MAE), signed bias and sample count per model; best model highlighted; a chart overlays the observed series against the top three models
 - Uses each model's latest analysis / short-range values (`past_days=2` on the forecast API) at the station's coordinates - this is recent model skill near you, not "the forecast as it was issued two days ago"

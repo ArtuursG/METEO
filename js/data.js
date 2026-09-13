@@ -76,22 +76,21 @@ function updateMetrics(){
 // one time array sized to the longest model horizon. Models unsupported at a variable
 // come back null-filled rather than 400; models outside their geographic coverage are
 // silently omitted from the response. This means no per-model fallback cascade is needed.
-async function fetchAllModels(){
-  const hit=getCached(S.lat,S.lon);
-  if(hit){S.dataTs=hit.ts;return hit.d;}
+async function fetchAllModels(lat,lon,signal){
+  const hit=getCached(lat,lon);
+  if(hit)return hit;
 
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
   const h='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
   const d='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
   const models=MODELS.map(m=>m.id).join(',');
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&models=${models}&hourly=${h}&daily=${d}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=${models}&hourly=${h}&daily=${d}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
 
-  const r=await fetch(url);
+  const r=await fetch(url,{signal});
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
-  setCache(S.lat,S.lon,data);
-  S.dataTs=Date.now();
-  return data;
+  setCache(lat,lon,data);
+  return {d:data,ts:Date.now()};
 }
 
 // Splits the combined multi-model response back into the per-model {hourly,daily,current}
@@ -121,17 +120,25 @@ function splitCombined(raw){
 }
 
 // Fetches all models in one request; skips models missing from the response
+let _loadId=0, _loadController=null;
 async function loadAll(){
+  const id=++_loadId;
+  if(_loadController)_loadController.abort();
+  _loadController=new AbortController();
+  const lat=S.lat, lon=S.lon;
   const hadData=Object.keys(S.data).length>0;
   if(!hadData){
     $('loadT').style.display='flex';
     $('loadT').innerHTML=`<div class="spinner"></div>${t('metric.loading')}`;
   }
 
-  let fresh=null;
+  let fresh=null, fetched=null;
   try{
-    fresh=splitCombined(await fetchAllModels());
+    fetched=await fetchAllModels(lat,lon,_loadController.signal);
+    if(id!==_loadId)return null;
+    fresh=splitCombined(fetched.d);
   }catch(e){
+    if(id!==_loadId)return null;
     console.warn('[loadAll] combined fetch failed',e);
   }
 
@@ -148,6 +155,7 @@ async function loadAll(){
   }
 
   S.data=fresh;
+  S.dataTs=fetched.ts;
   updateMetrics();
   rebuildTempChart();
   buildPrecipCharts();

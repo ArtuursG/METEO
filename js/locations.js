@@ -11,6 +11,8 @@ function renderSearchResults(results){
   results.forEach(g=>{
     const opt=document.createElement('div');
     opt.className='city-opt';
+    opt.tabIndex=0;
+    opt.setAttribute('role','button');
     // Use textContent (not innerHTML) to prevent XSS from API-returned city names
     const nm=document.createElement('div'); nm.className='co-name'; nm.textContent=g.name;
     const sb=document.createElement('div'); sb.className='co-sub';
@@ -46,16 +48,20 @@ async function searchCity(){
     errEl.className='city-opt';
     errEl.style.cssText='color:#e66767;cursor:default';
     errEl.textContent=`${t('err.prefix')}: ${e.message}`;
-    drop.appendChild(errEl);
+    drop.replaceChildren(errEl);
   }
 }
 
 // Updates state, URL, recent history and reloads all model data for the new location.
 // Transactional: if the fetch fails, the previous location's data stays on screen
 // and the header reverts, rather than blanking the page.
+let _selectionId=0, _committedLocation=null;
 async function selectCity(g){
-  const prev={lat:S.lat,lon:S.lon,city:S.city,country:S.country,
+  if(!validCoords(+g.latitude,+g.longitude))return false;
+  const id=++_selectionId;
+  const prev=_committedLocation||{lat:S.lat,lon:S.lon,city:S.city,country:S.country,
               name:$('cityName').textContent,sub:$('heroSub').textContent};
+  _committedLocation=prev;
   S.lat=+g.latitude; S.lon=+g.longitude;
   S.city=g.name; S.country=g.country||'';
   $('cityName').textContent=g.name;
@@ -63,6 +69,7 @@ async function selectCity(g){
   document.body.classList.add('busy');
 
   const ok=await loadAll();
+  if(id!==_selectionId||ok===null)return false;
   document.body.classList.remove('busy');
   if(!ok){
     Object.assign(S,{lat:prev.lat,lon:prev.lon,city:prev.city,country:prev.country});
@@ -71,25 +78,49 @@ async function selectCity(g){
     return;
   }
 
+  _committedLocation={lat:S.lat,lon:S.lon,city:S.city,country:S.country,
+    name:$('cityName').textContent,sub:$('heroSub').textContent};
   S.geo=normCity(g);
   updateURL();
   saveRecent(g);
   renderFavBtn();
   buildToggles();
+  return true;
 }
 
 // Close city dropdown when clicking outside the search area
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.sa'))$('cityDrop').style.display='none';
+  if(!e.target.closest('.sa'))closeCitySearch();
 });
 
 $('cityInput').addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'){
+    const first=$('cityDrop').querySelector('.city-opt[tabindex]');
+    if(first&&$('cityDrop').style.display!=='none'){e.preventDefault();first.focus();}
+  }
+  if(e.key==='Escape')closeCitySearch();
   if(e.key==='Enter'){clearTimeout(_searchTimer);searchCity();}
+});
+function closeCitySearch(){
+  clearTimeout(_searchTimer);
+  if(_searchCtrl)_searchCtrl.abort();
+  $('cityDrop').style.display='none';
+}
+$('cityDrop').addEventListener('keydown',e=>{
+  const rows=[...$('cityDrop').querySelectorAll('.city-opt[tabindex]')];
+  const i=rows.indexOf(e.target);
+  if(e.key==='Escape'){$('cityInput').focus();closeCitySearch();return;}
+  if(i<0)return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();rows[i].click();$('cityInput').focus();}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();rows[(i+(e.key==='ArrowDown'?1:rows.length-1))%rows.length].focus();
+  }
 });
 // Autocomplete: wait 300ms after user stops typing, min 2 chars, max 1 active request
 $('cityInput').addEventListener('input',()=>{
   const val=$('cityInput').value.trim();
   clearTimeout(_searchTimer);
+  if(_searchCtrl)_searchCtrl.abort();
   if(val.length<2){$('cityDrop').style.display='none';return;}
   _searchTimer=setTimeout(searchCity,300);
 });
@@ -167,6 +198,8 @@ function saveRecent(g){
 function _cityRow(c,pinned){
   const opt=document.createElement('div');
   opt.className='city-opt';
+  opt.tabIndex=0;
+  opt.setAttribute('role','button');
   if(pinned){
     const st=document.createElement('span'); st.className='co-star';
     st.innerHTML='<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
@@ -230,16 +263,21 @@ async function locateMe(auto=false){
       if(btn)btn.classList.remove('loading');
       const{latitude:lat,longitude:lon}=pos.coords;
       // Start loading immediately with placeholder name; Nominatim updates it in background
-      selectCity({latitude:lat,longitude:lon,name:t('geo.current_location'),country:'',admin1:'',timezone:''});
+      const ok=await selectCity({latitude:lat,longitude:lon,name:t('geo.current_location'),country:'',admin1:'',timezone:''});
+      if(!ok)return;
+      const selectionId=_selectionId;
       try{
         const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=${LANG}`);
         const d=await r.json();
+        if(selectionId!==_selectionId)return;
         const a=d.address||{};
         const city=a.city||a.town||a.village||a.municipality||a.suburb||a.neighbourhood||a.county||d.display_name?.split(',')[0]||'';
         if(city){ $('cityName').textContent=city; S.city=city; }
         const country=d.address?.country||'';
         if(country){ $('heroSub').textContent=country; S.country=country; }
         S.geo={name:S.city,country:S.country,admin1:a.state||'',timezone:'',lat,lon};
+        _committedLocation={lat:S.lat,lon:S.lon,city:S.city,country:S.country,
+          name:$('cityName').textContent,sub:$('heroSub').textContent};
         renderFavBtn();
         updateURL();
       }catch{ /* keep placeholder name */ }
