@@ -2,6 +2,8 @@
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab,btn){
+  if(tab!=='wind'&&windMapFrame)closeWindMap();
+  if(tab==='wind')refreshWindMap();
   if(tab!=='environment')environmentRequest++;
   document.querySelectorAll('.tb').forEach(b=>{
     const on=b===btn;
@@ -57,6 +59,7 @@ function initTabsA11y(){
 // Re-renders every piece of dynamic UI text after a language switch. Static
 // [data-i18n] nodes are already handled by applyStaticI18n() in setLang().
 function relangUI(){
+  refreshWindMap();
   refreshHomeWarnings();
   environmentLabels();
   if($('tab-environment')?.classList.contains('on'))initEnvironment();

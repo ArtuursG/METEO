@@ -1,9 +1,9 @@
-const CACHE = 'prognoze-v18';
+const CACHE = 'prognoze-v22';
 const SHELL = [
   './',
   './index.html',
   './style.css',
-  './style.css?v=18',
+  './style.css?v=22',
   './js/i18n.js',
   './js/pure.js',
   './js/chart-time.js',
@@ -18,13 +18,14 @@ const SHELL = [
   './js/data-cache.js',
   './js/environment.js',
   './js/marine.js',
+  './js/wind-map.js',
   './js/local-warnings.js',
   './js/forecast-range.js',
   './js/forecast-controls.js',
   './js/map-controls.js',
   './js/radar-timeline.js',
   './favicon.svg',
-].map(path=>path.startsWith('./js/')?path+'?v=18':path);
+].map(path=>path.startsWith('./js/')?path+'?v=22':path);
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -42,6 +43,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
+  // Let provider embeds and cross-origin resources use their native loading flow.
+  if(e.request.destination==='iframe'||new URL(url).origin!==self.location.origin)return;
 
   // Bypass cache entirely for API calls
   if (url.includes('api.open-meteo.com') ||
