@@ -9,8 +9,8 @@ function syncMapButtons(){
  mapButtons.radar.setAttribute('aria-pressed',String(radarVisible));
 }
 mapButtons.radar=mapButton(uiText('Nokrišņi','Precipitation'),()=>{radarVisible=!radarVisible;if(_rLayer)_rLayer.setOpacity(radarVisible?radarOpacity:0);syncMapButtons();});
-mapButtons.lvc=mapButton(uiText('LVC stacijas','LVC stations'),()=>{if(!_rMap||!_lvcLayer)return;_rMap.hasLayer(_lvcLayer)?_rMap.removeLayer(_lvcLayer):_rMap.addLayer(_lvcLayer);_lvcLayerActive=_rMap.hasLayer(_lvcLayer);updateStationTablesVisibility();syncMapButtons();});
-mapButtons.lvgmc=mapButton(uiText('LVĢMC stacijas','LVĢMC stations'),()=>{if(!_rMap||!_lvgmcLayer)return;_rMap.hasLayer(_lvgmcLayer)?_rMap.removeLayer(_lvgmcLayer):_rMap.addLayer(_lvgmcLayer);_lvgmcLayerActive=_rMap.hasLayer(_lvgmcLayer);updateStationTablesVisibility();syncMapButtons();});
+mapButtons.lvc=mapButton(uiText('LVC stacijas','LVC stations'),()=>{if(!_rMap||!_lvcLayer)return;_rMap.hasLayer(_lvcLayer)?_rMap.removeLayer(_lvcLayer):_rMap.addLayer(_lvcLayer);_lvcLayerActive=_rMap.hasLayer(_lvcLayer);updateStationTablesVisibility();declutterAllBadges();syncMapButtons();});
+mapButtons.lvgmc=mapButton(uiText('LVĢMC stacijas','LVĢMC stations'),()=>{if(!_rMap||!_lvgmcLayer)return;_rMap.hasLayer(_lvgmcLayer)?_rMap.removeLayer(_lvgmcLayer):_rMap.addLayer(_lvgmcLayer);_lvgmcLayerActive=_rMap.hasLayer(_lvgmcLayer);updateStationTablesVisibility();declutterAllBadges();syncMapButtons();});
 const opacityLabel=document.createElement('label');opacityLabel.textContent=uiText('Nokrišņu slāņa redzamība ','Radar opacity ');
 const opacity=document.createElement('input');opacity.type='range';opacity.min=0;opacity.max=100;opacity.value=65;opacity.setAttribute('aria-label',uiText('Nokrišņu slāņa redzamība','Radar opacity'));
 const output=document.createElement('output');output.textContent='65%';

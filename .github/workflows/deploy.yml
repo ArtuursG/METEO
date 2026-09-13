@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "17,47 * * * *"
 
 permissions:
   contents: read
@@ -22,6 +24,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: public-data-${{ github.run_id }}
+          restore-keys: public-data-
+      - name: Refresh shared public snapshots
+        run: python scripts/build_public_data.py
+      - uses: actions/cache/save@v4
+        with:
+          path: data
+          key: public-data-${{ github.run_id }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

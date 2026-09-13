@@ -91,11 +91,13 @@ async function initRadar(){
     if(e.layer===_lvcLayer)_lvcLayerActive=true;
     if(e.layer===_lvgmcLayer)_lvgmcLayerActive=true;
     updateStationTablesVisibility();
+    declutterAllBadges();
   });
   _rMap.on('overlayremove',e=>{
     if(e.layer===_lvcLayer)_lvcLayerActive=false;
     if(e.layer===_lvgmcLayer)_lvgmcLayerActive=false;
     updateStationTablesVisibility();
+    declutterAllBadges();
   });
   updateStationTablesVisibility();
 
@@ -252,6 +254,13 @@ function bindLvcTableSorting(){
   });
 }
 
+function stationBadge(station,network){
+  const badge=document.createElement('div');
+  badge.className='lvc-temp-badge'+(network==='LVĢMC'?' badge-lvgmc':'');
+  badge.textContent=round(Number(station.airTemp),1)+'°';
+  return badge;
+}
+
 function renderLvcMarkers(){
   if(!_lvcLayer)return;
   _lvcLayer.clearLayers();
@@ -262,9 +271,12 @@ function renderLvcMarkers(){
     // CSS transform:translate(-50%,-50%) centrē žetonu tieši uz koordinātas
     // neatkarīgi no teksta garuma (piem. "-12.3°" pret "+9°").
     const marker=L.marker([s.lat,s.lon],{
+      title:s.name+' · '+round(s.airTemp,1)+'°C',
+      alt:s.name+' · '+round(s.airTemp,1)+'°C',
+      riseOnHover:true,
       icon:L.divIcon({
         className:'lvc-marker-icon',
-        html:`<div class="lvc-temp-badge">${round(s.airTemp,1)}°</div>`,
+        html:stationBadge(s,'LVC'),
         iconSize:[0,0],
         iconAnchor:[0,0],
       })
@@ -272,52 +284,26 @@ function renderLvcMarkers(){
     _lvcMarkerList.push(marker);
   }
   $('lvcMeta').textContent=`${t('radar.lvc_src')} · ${t('radar.stations_count',{n:_lvcRows.length})}`;
-  declutterBadges(_lvcMarkerList);
+  declutterAllBadges();
 }
 
 function setBadgeVisible(marker,visible){
   const el=marker.getElement();
   const badge=el&&el.querySelector('.lvc-temp-badge');
   if(badge)badge.classList.toggle('lvc-hidden',!visible);
+  if(el){el.tabIndex=visible?0:-1;el.setAttribute('aria-hidden',String(!visible));}
 }
 
 // Paslēpj žetonus, kas savstarpēji pārklātos ekrānā - tuvākie kartes centram
 // "uzvar" un paliek redzami, tālākie/blīvākie paslēpjas, kamēr netiek tuvināts.
 // Vispārīga - izmanto gan LVC, gan LVĢMC slānim (katram sava marķieru saraksta).
 function declutterBadges(markerList){
-  if(!_rMap||!markerList.length)return;
-  const bounds=_rMap.getBounds();
-  const centerPt=_rMap.latLngToContainerPoint(_rMap.getCenter());
-
-  const visible=markerList
-    .filter(m=>bounds.contains(m.getLatLng()))
-    .map(m=>{
-      const pt=_rMap.latLngToContainerPoint(m.getLatLng());
-      return {m,pt,d:pt.distanceTo(centerPt)};
-    })
-    .sort((a,b)=>a.d-b.d);
-
-  const placed=[];
-  for(const{m,pt}of visible){
-    const box={
-      left:pt.x-LVC_LABEL_W/2, right:pt.x+LVC_LABEL_W/2,
-      top:pt.y-LVC_LABEL_H/2, bottom:pt.y+LVC_LABEL_H/2,
-    };
-    const overlaps=placed.some(b=>
-      box.left<b.right+LVC_LABEL_GAP && box.right>b.left-LVC_LABEL_GAP &&
-      box.top<b.bottom+LVC_LABEL_GAP && box.bottom>b.top-LVC_LABEL_GAP
-    );
-    if(overlaps){ setBadgeVisible(m,false); }
-    else{ setBadgeVisible(m,true); placed.push(box); }
-  }
-  for(const m of markerList){
-    if(!bounds.contains(m.getLatLng()))setBadgeVisible(m,false);
-  }
+  // Keep every station visible; users can zoom to separate nearby stations.
+  for(const marker of markerList)setBadgeVisible(marker,true);
 }
 
 function declutterAllBadges(){
-  declutterBadges(_lvcMarkerList);
-  declutterBadges(_lvgmcMarkerList);
+  declutterBadges([...(_lvcLayerActive?_lvcMarkerList:[]),...(_lvgmcLayerActive?_lvgmcMarkerList:[])]);
 }
 
 // DOM elements (nevis string HTML) - lai stacijas nosaukums un cita ārējo datu
@@ -462,9 +448,12 @@ function renderLvgmcMarkers(){
   for(const s of _lvgmcRows){
     if(s.airTemp==null)continue;
     const marker=L.marker([s.lat,s.lon],{
+      title:s.name+' · '+round(s.airTemp,1)+'°C',
+      alt:s.name+' · '+round(s.airTemp,1)+'°C',
+      riseOnHover:true,
       icon:L.divIcon({
         className:'lvc-marker-icon',
-        html:`<div class="lvc-temp-badge badge-lvgmc">${round(s.airTemp,1)}°</div>`,
+        html:stationBadge(s,'LVĢMC'),
         iconSize:[0,0],
         iconAnchor:[0,0],
       })
@@ -472,7 +461,7 @@ function renderLvgmcMarkers(){
     _lvgmcMarkerList.push(marker);
   }
   $('lvgmcMeta').textContent=`${t('radar.lvgmc_src')} · ${t('radar.stations_count',{n:_lvgmcRows.length})}`;
-  declutterBadges(_lvgmcMarkerList);
+  declutterAllBadges();
 }
 
 function lvgmcPopupContent(s){

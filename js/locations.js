@@ -139,6 +139,7 @@ function renderThemeIcon(){
 
 // Charts must be rebuilt after theme switch so CSS variable colours are re-read
 function rerenderCharts(){
+  if($('tab-environment')?.classList.contains('on'))initEnvironment();
   if(Object.keys(S.data).length){rebuildTempChart();buildPrecipCharts();buildWindChart();}
   _verifKey=null; // force the verification chart to redraw with new theme colours on next open
   if($('tab-about')?.classList.contains('on'))initVerification();
