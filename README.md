@@ -63,6 +63,16 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Uses each model's latest analysis / short-range values (`past_days=2` on the forecast API) at the station's coordinates - this is recent model skill near you, not "the forecast as it was issued two days ago"
 - Lazy-loaded on tab open; recomputes when the location changes
 
+### Environmental data (Vide tab)
+- Air quality and seasonal pollen share one Open-Meteo/CAMS request per rounded location, cached for one hour. Values are model estimates, not local station observations.
+- Latvian MeteoAlarm warning snapshots show affected regions and expiry times. Source text is preserved. No location-specific all-clear is inferred.
+- LVĢMC hydrological stations include a map, parameter selection and up to 48 hourly readings. Water levels use the source station reference; near-bottom temperatures are labelled explicitly.
+- NOAA SWPC planetary Kp observations provide geomagnetic context, not a local aurora probability.
+- Data loads only when the relevant view is opened. Concurrent identical requests share a promise; failures have a 60-second cooldown. Persistent cache holds at most 12 entries.
+- Deployment builds shared warning/hydrology/Kp JSON snapshots with 5 total source requests. Scheduled deployment runs at minutes 17 and 47, independent of visitor count. GitHub scheduling can be delayed; the UI displays snapshot and observation times and flags stale snapshots. This is not a real-time alert service.
+- Last successful snapshots are retained using the deployment cache if a source fails. Generated files are not committed. Run `python scripts/build_public_data.py` once for local testing.
+- Public Open-Meteo endpoints are for non-commercial use within their free limits. Source attribution is shown in each view.
+
 ### City search
 - **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
 - **Live autocomplete** - suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)

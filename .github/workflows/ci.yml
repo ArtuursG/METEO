@@ -19,3 +19,9 @@ jobs:
           for f in js/*.js sw.js test/*.test.js; do node --check "$f"; done
       - name: Unit tests
         run: node --test test/*.test.js
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Public data processing tests
+        run: python -m unittest discover -s test -p "*_test.py"

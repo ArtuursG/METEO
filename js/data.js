@@ -164,6 +164,7 @@ async function loadAll(){
   buildUVChart();
   buildTable();
   // Climate / verification tabs cache per-location; refresh if the user is on them
+  if($('tab-environment')?.classList.contains('on'))initEnvironment();
   if($('tab-climate')?.classList.contains('on'))initClimate();
   if($('tab-about')?.classList.contains('on'))initVerification();
   return true;
