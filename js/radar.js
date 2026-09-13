@@ -112,7 +112,7 @@ async function loadRadarFrames(){
     _rFrames=[...(d.radar.past||[]),...(d.radar.nowcast||[])];
     if(!_rFrames.length)throw new Error('empty');
     $('radarSlider').max=_rFrames.length-1;
-    showRadarFrame(_rFrames.length-1); // show most recent frame first
+    showRadarFrame(Math.max(0,_rFrames.reduce((last,f,i)=>f.time*1000<=Date.now()?i:last,0))); // latest observation
     updateRadarUI();
     $('radarStatus').textContent='';
   }catch{

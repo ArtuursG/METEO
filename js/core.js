@@ -100,12 +100,17 @@ function updateURL(){
   history.replaceState(null,'','?'+p);
 }
 
+function validCoords(lat,lon){
+  return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180;
+}
+
 // Restores location from URL params on page load (skips if no coords present)
 function loadFromURL(){
   const p=new URLSearchParams(location.search);
   if(!p.has('lat')||!p.has('lon'))return;
-  S.lat=parseFloat(p.get('lat'));
-  S.lon=parseFloat(p.get('lon'));
+  const lat=Number(p.get('lat')),lon=Number(p.get('lon'));
+  if(!p.get('lat').trim()||!p.get('lon').trim()||!validCoords(lat,lon))return;
+  S.lat=lat; S.lon=lon;
   S.city=p.get('city')||S.city;
   S.country=p.get('country')||S.country;
   $('cityName').textContent=S.city;

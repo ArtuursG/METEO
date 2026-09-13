@@ -428,7 +428,7 @@ function buildCloudChart(){
   const src=S.data[S.cloudModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!src?.hourly?.time)return;
   const cd=CD();
-  const cap=5*24;
+  const cap=src.hourly.time.length;
   const times=src.hourly.time.slice(0,cap);
   const labels=times.map(fmtHour);
   const vals=(src.hourly.cloud_cover||[]).slice(0,cap);
@@ -487,9 +487,9 @@ function buildUVChart(){
 
   // Hourly chart: start from current hour, show 5 days ahead
   const now=new Date();
-  const startIdx=Math.max(0,src.hourly.time.findIndex(t=>new Date(t)>=now));
-  const times=src.hourly.time.slice(startIdx,startIdx+5*24);
-  const vals=src.hourly.uv_index.slice(startIdx,startIdx+5*24);
+  const startIdx=0;
+  const times=src.hourly.time.slice(startIdx,src.hourly.time.length);
+  const vals=src.hourly.uv_index.slice(startIdx,src.hourly.time.length);
   const labels=times.map(fmtHour);
 
   const cd=CD();
@@ -498,7 +498,7 @@ function buildUVChart(){
   S.charts.uv=new Chart($('cUV'),{
     type:'bar',
     data:{labels,datasets:[{
-      data:vals.map(v=>v??0),
+      data:vals,
       backgroundColor:vals.map(v=>uvColor(v??0)),
       borderWidth:0,
       borderRadius:3,

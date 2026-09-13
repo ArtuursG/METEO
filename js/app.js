@@ -12,6 +12,7 @@ function switchTab(tab,btn){
   $('tab-'+tab).classList.add('on');
   // Radar map, climate and verification data initialize lazily on first open
   if(tab==='radar')initRadar();
+  else if(typeof stopRadarPlayback==='function')stopRadarPlayback();
   if(tab==='climate')initClimate();
   if(tab==='about')initVerification();
 }
@@ -72,6 +73,7 @@ function relangUI(){
   if(_lvcStations.length)renderLvcRows();
   if(_lvgmcStations.length)renderLvgmcRows();
   relabelRadarControl();
+  if(typeof refreshControlLabels==='function')refreshControlLabels();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

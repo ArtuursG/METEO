@@ -1,19 +1,24 @@
-const CACHE = 'prognoze-v9';
+const CACHE = 'prognoze-v11';
 const SHELL = [
-  '/METEO/',
-  '/METEO/index.html',
-  '/METEO/style.css',
-  '/METEO/js/i18n.js',
-  '/METEO/js/pure.js',
-  '/METEO/js/core.js',
-  '/METEO/js/weather.js',
-  '/METEO/js/charts.js',
-  '/METEO/js/climate.js',
-  '/METEO/js/data.js',
-  '/METEO/js/locations.js',
-  '/METEO/js/radar.js',
-  '/METEO/js/app.js',
-  '/METEO/favicon.svg',
+  './',
+  './index.html',
+  './style.css',
+  './style.css?v=11',
+  './js/i18n.js',
+  './js/pure.js',
+  './js/core.js',
+  './js/weather.js',
+  './js/charts.js',
+  './js/climate.js',
+  './js/data.js',
+  './js/locations.js',
+  './js/radar.js',
+  './js/app.js',
+  './js/forecast-range.js',
+  './js/forecast-controls.js',
+  './js/map-controls.js',
+  './js/radar-timeline.js',
+  './favicon.svg',
 ];
 
 self.addEventListener('install', e => {
@@ -24,7 +29,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k.startsWith('prognoze-') && k !== CACHE).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -51,7 +56,7 @@ self.addEventListener('fetch', e => {
           if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
           return r;
         })
-        .catch(() => caches.match(e.request))
+        .catch(async () => (await caches.match(e.request)) || (await caches.match(new URL('./index.html',self.registration.scope).href)) || Response.error())
     );
     return;
   }
