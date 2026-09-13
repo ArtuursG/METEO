@@ -1,0 +1,4 @@
+const test=require('node:test');const assert=require('node:assert/strict');const {chartTimeLabel,chartTimeTitle}=require('../js/chart-time');
+test('wall-clock labels retain both date and hour across midnight',()=>{const a=chartTimeLabel('2026-09-13T23:00','lv-LV'),b=chartTimeLabel('2026-09-14T00:00','lv-LV');assert.equal(a.length,2);assert.match(a[0],/13/);assert.match(b[0],/14/);assert.equal(a[1],'23:00');assert.equal(b[1],'00:00');});
+test('absolute station times convert to Riga while source wall times remain unchanged',()=>{assert.equal(chartTimeLabel('2026-09-13T20:00:00Z','lv-LV','Europe/Riga')[1],'23:00');assert.equal(chartTimeLabel('2026-09-13T20:00','lv-LV','Europe/Riga')[1],'20:00');assert.match(chartTimeTitle('2026-12-31T23:00','lv-LV'),/2026/);});
+test('invalid timestamps have an explicit fallback',()=>{assert.deepEqual(chartTimeLabel('bad'),['-','-']);});

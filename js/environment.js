@@ -5,7 +5,7 @@ const envText=(lv,en)=>LANG==='en'?en:lv;
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
  $('tb-environment').textContent=envText('Vide','Environment');
- const labels={air:['Gaiss un putekšņi','Air & pollen'],warnings:['Brīdinājumi','Warnings'],hydro:['Ūdeņi','Water'],aurora:['Ziemeļblāzma','Aurora']};
+ const labels={air:['Gaiss un putekšņi','Air & pollen'],warnings:['Brīdinājumi','Warnings'],hydro:['Ūdeņi','Water'],marine:['Jūra','Sea'],aurora:['Ziemeļblāzma','Aurora']};
  document.querySelectorAll('[data-env]').forEach(b=>{b.textContent=envText(...labels[b.dataset.env]);b.setAttribute('aria-pressed',String(b.dataset.env===environmentKind));});
 }
 function environmentFreshness(data,maxAge){
@@ -20,11 +20,11 @@ function envChart(id,labels,datasets,unit=''){
  if(S.charts.environment)S.charts.environment.destroy();
  const canvas=envNode('canvas');canvas.id=id;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',unit);
  const wrap=envNode('div',null,'env-chart');wrap.append(canvas);$('environmentContent').append(wrap);
- const cd=CD();S.charts.environment=new Chart(canvas,{type:'line',data:{labels,datasets},options:{...cd,plugins:{...cd.plugins,legend:{display:true,labels:{color:cssVar('--t2')}}}}});
+ const cd=CD();S.charts.environment=new Chart(canvas,{type:'line',data:{labels:labels.map(t=>chartTimeLabel(t,LOCALE)),datasets},options:{...cd,plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{title:items=>chartTimeTitle(labels[items[0].dataIndex],LOCALE)}},legend:{display:true,labels:{color:cssVar('--t2')}}}}});
 }
 async function initEnvironment(){
  environmentLabels();const id=++environmentRequest,kind=environmentKind,lat=S.lat,lon=S.lon;
- const renderKey=[kind,lat.toFixed(2),lon.toFixed(2),LANG,document.documentElement.getAttribute('data-theme')].join('_');
+ const renderKey=[kind,kind==='marine'?marineParameter:'',lat.toFixed(2),lon.toFixed(2),LANG,document.documentElement.getAttribute('data-theme')].join('_');
  if(environmentRenderedKey?.key===renderKey&&Date.now()-environmentRenderedKey.time<300000){environmentMap?.invalidateSize();return;}
  environmentRenderedKey=null;
  if(environmentMap){environmentMap.remove();environmentMap=null;}
@@ -36,10 +36,13 @@ async function initEnvironment(){
    const x=lat.toFixed(2),y=lon.toFixed(2);
    const p=new URLSearchParams({latitude:x,longitude:y,hourly:'european_aqi,pm2_5,pm10,ozone,birch_pollen,alder_pollen,grass_pollen,mugwort_pollen',forecast_days:4,timeformat:'unixtime',timezone:'UTC'});
    data=await environmentalData('air_'+x+'_'+y,'https://air-quality-api.open-meteo.com/v1/air-quality?'+p,3600000);
-  }else data=await environmentalData(kind,'data/'+kind+'.json',kind==='hydro'?1800000:600000);
+  }else if(kind==='marine'){
+   try{data=await environmentalData('marine-'+marineParameter,'data/marine-'+marineParameter+'.json',3600000);}catch{data=null;}
+  }else data=await environmentalData(kind==='warnings'?'warnings-v2':kind,'data/'+kind+'.json',kind==='hydro'?1800000:600000);
   if(id!==environmentRequest||lat!==S.lat||lon!==S.lon||kind!==environmentKind)return;
   content.replaceChildren();
   if(kind==='air')renderAir(data);
+  if(kind==='marine')renderMarine(data);
   if(kind==='warnings')renderWarnings(data);
   if(kind==='hydro')renderHydro(data,lat,lon);
   if(kind==='aurora')renderAurora(data);
@@ -60,7 +63,7 @@ function renderAir(data){
  c.append(envNode('p',envText('Prognozes stunda: ','Forecast hour: ')+new Date(h.time[start]*1000).toLocaleString(LOCALE),'env-note'));
  const pollen=envNode('div',null,'env-grid');for(const [key,lv,en] of [['birch_pollen','Bērzs','Birch'],['alder_pollen','Alksnis','Alder'],['grass_pollen','Graudzāles','Grass'],['mugwort_pollen','Vībotne','Mugwort']])pollen.append(envMetric(envText(lv,en),h[key]?.[start],envText('graudi/m³','grains/m³')));c.append(pollen);
  c.append(envNode('p',envText('Putekšņu dati ir sezonāli. Svītra nozīmē, ka datu nav; tā nenozīmē nulli.','Pollen data is seasonal. A dash means unavailable, not zero.'),'env-note'));
- envChart('airChart',h.time.slice(start).map(t=>new Date(t*1000).toLocaleString(LOCALE,{day:'numeric',month:'short',hour:'2-digit'})),[{label:'European AQI',data:h.european_aqi.slice(start),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],'European AQI');
+ envChart('airChart',h.time.slice(start).map(t=>new Date(t*1000).toISOString()),[{label:'European AQI',data:h.european_aqi.slice(start),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],'European AQI');
  c.append(envSource('Open-Meteo / CAMS · CC BY 4.0','https://open-meteo.com/en/docs/air-quality-api'));
 }
 function renderWarnings(data){
@@ -83,7 +86,7 @@ function renderHydro(data,lat,lon){
   const parameter=envNode('select');parameter.setAttribute('aria-label',envText('Mērījums','Measurement'));for(const k of Object.keys(st.series)){const o=envNode('option',data.parameters[k][LANG]||k);o.value=k;parameter.append(o);}detail.append(parameter);
   const latest=envNode('p',null,'env-note');detail.append(latest);
   const draw=()=>{const k=parameter.value,series=st.series[k],last=series.at(-1);latest.textContent=last[0].replace('T',' ')+' · '+last[1]+' '+data.parameters[k].unit;
-   document.getElementById('hydroChart')?.parentElement.remove();envChart('hydroChart',series.map(p=>p[0].slice(5,16).replace('T',' ')),[{label:st.name+' · '+data.parameters[k].unit,data:series.map(p=>p[1]),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],data.parameters[k].unit);
+   document.getElementById('hydroChart')?.parentElement.remove();envChart('hydroChart',series.map(p=>p[0]),[{label:st.name+' · '+data.parameters[k].unit,data:series.map(p=>p[1]),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],data.parameters[k].unit);
   };parameter.onchange=draw;draw();environmentMap.panTo([st.lat,st.lon]);
  };
  stations.forEach(st=>{const label=envNode('span',st.name);L.circleMarker([st.lat,st.lon],{radius:6,color:'#37618f',fillOpacity:.8}).bindTooltip(label).on('click',()=>{pick.value=st.id;show();}).addTo(environmentMap);});pick.onchange=show;show();
@@ -94,7 +97,7 @@ function renderAurora(data){
  const grid=envNode('div',null,'env-grid');grid.append(envMetric(envText('Planetārais Kp','Planetary Kp'),last.kp,'0-9'));c.append(grid);
  c.append(envNode('p',envText('Kp novērojuma laiks: ','Kp observation time: ')+new Date(last.time).toLocaleString(LOCALE),'env-note'));
  c.append(envNode('p',envText('Kp raksturo globālo ģeomagnētisko aktivitāti. Tas nav ziemeļblāzmas redzamības procents vai garantija izvēlētajā pilsētā. Vajadzīgas tumšas debesis un maz mākoņu.','Kp describes global geomagnetic activity. It is not a local visibility percentage or guarantee. Dark, clear skies are needed.'),'env-note'));
- envChart('auroraChart',data.readings.map(r=>new Date(r.time).toLocaleString(LOCALE,{day:'numeric',hour:'2-digit'})),[{label:'Kp',data:data.readings.map(r=>r.kp),borderColor:cssVar('--acc'),pointRadius:2,borderWidth:2}],'Kp');
+ envChart('auroraChart',data.readings.map(r=>r.time),[{label:'Kp',data:data.readings.map(r=>r.kp),borderColor:cssVar('--acc'),pointRadius:2,borderWidth:2}],'Kp');
  c.append(envSource('NOAA SWPC','https://www.swpc.noaa.gov/products/aurora-30-minute-forecast'));
 }
 document.querySelectorAll('[data-env]').forEach(b=>b.onclick=()=>{environmentKind=b.dataset.env;initEnvironment();});

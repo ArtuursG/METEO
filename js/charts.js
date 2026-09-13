@@ -115,9 +115,9 @@ function CD(){
     }
   },
   scales:{
-    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:16,maxRotation:0,autoSkip:true,
-        // Suppress duplicate date labels when multiple hourly ticks share the same day string
-        callback:function(val,index,ticks){const cur=this.getLabelForValue(val);if(index>0&&this.getLabelForValue(ticks[index-1].value)===cur)return '';return cur;}},
+    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true,
+        // Keep the date and time together; Chart.js handles label spacing.
+        callback:function(val){return this.getLabelForValue(val);}},
       grid:{color:v('--chart-grid')}},
     y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}}
   }
@@ -290,11 +290,7 @@ function mkMultiSelector(containerId,stateKey,title,onSelect){
 }
 
 // Formats a full readable timestamp for chart tooltips
-function fmtTooltipTitle(timeArr,idx){
-  const d=new Date(timeArr[idx]);
-  const wd=d.toLocaleDateString(LOCALE,{weekday:'long'});
-  return `${d.toLocaleDateString(LOCALE,{day:'numeric',month:'long'})} · ${wd} · ${d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'})}`;
-}
+function fmtTooltipTitle(timeArr,idx){return chartTimeTitle(timeArr[idx],LOCALE);}
 
 function buildPrecipCharts(){
   mkMultiSelector('precipCardHd','precipModels',t('chart.precip_mm'),buildPrecipCharts);
@@ -320,7 +316,7 @@ function buildPrecipCharts(){
     data:{labels,datasets},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
-        x:{...chartDefaults.scales.x,ticks:{...chartDefaults.scales.x.ticks,maxTicksLimit:16}},
+        x:{...chartDefaults.scales.x,ticks:{...chartDefaults.scales.x.ticks,maxTicksLimit:8}},
         y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' mm'}}
       },
       plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
@@ -446,7 +442,7 @@ function buildCloudChart(){
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:16}},
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:8}},
         y:{...cd.scales.y,min:0,max:100,ticks:{...cd.scales.y.ticks,callback:v=>v+'%'}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
@@ -507,7 +503,7 @@ function buildUVChart(){
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:20}},
+        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:8}},
         y:{...cd.scales.y,min:0,suggestedMax:8,
            ticks:{...cd.scales.y.ticks,stepSize:1,callback:v=>v>0?v:''}}
       },

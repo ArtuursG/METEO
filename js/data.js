@@ -122,6 +122,7 @@ function splitCombined(raw){
 // Fetches all models in one request; skips models missing from the response
 let _loadId=0, _loadController=null;
 async function loadAll(){
+  if(typeof refreshHomeWarnings==='function')refreshHomeWarnings();
   const id=++_loadId;
   if(_loadController)_loadController.abort();
   _loadController=new AbortController();
