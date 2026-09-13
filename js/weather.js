@@ -24,10 +24,7 @@ function wIcon(c){const k=wKey(c);return k?WICONS[k]:'';}
 function wText(c){const k=wKey(c);return k?t('wx.'+k):'-';}
 
 // Formats an ISO datetime string to short date label used on chart x-axis
-function fmtHour(isoStr){
-  const d=new Date(isoStr);
-  return d.toLocaleDateString(LOCALE,{month:'short',day:'numeric'});
-}
+function fmtHour(isoStr){return chartTimeLabel(isoStr,LOCALE);}
 
 // Formats an ISO date string to a localised weekday + date for the forecast table
 function fmtDate(isoStr){

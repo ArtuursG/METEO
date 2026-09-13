@@ -46,10 +46,20 @@ def warnings():
         if item['status']!='Actual' or item['message_type']=='Cancel':continue
         if not item['expires'] or datetime.fromisoformat(item['expires'])<=datetime.now(timezone.utc):continue
         item['title']=entry.findtext('a:title',default='',namespaces=ns)
+        item['polygons']=[]
+        for polygon in entry.findall('c:polygon',ns):
+            try:
+                ring=[[float(v) for v in pair.split(',')] for pair in (polygon.text or '').split()]
+                if len(ring)>=4 and all(len(p)==2 and -90<=p[0]<=90 and -180<=p[1]<=180 for p in ring):item['polygons'].append(ring)
+            except ValueError:pass
         # Never interpret an arbitrary feed link as a trusted navigation destination.
         item['url']='https://meteoalarm.org/en/live/'
         alerts.append(item)
-    unique={tuple(a[k] for k in ['identifier','areaDesc','event']):a for a in alerts}
+    unique={}
+    for alert in alerts:
+        key=tuple(alert[k] for k in ['identifier','areaDesc','event'])
+        if key in unique:unique[key]['polygons'].extend(alert['polygons'])
+        else:unique[key]=alert
     return {'alerts':list(unique.values()),'sourceUpdated':root.findtext('a:updated',namespaces=ns),'source':'MeteoAlarm / EUMETNET members','license':'CC BY 4.0'}
 def aurora():
     raw=json.loads(get('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json'))
@@ -72,5 +82,14 @@ def build(name,fn):
         # Do not erase a last successful snapshot or renew its original timestamp.
         if not path.exists():path.write_text(json.dumps({'ok':False,'fetchedAt':NOW(),'error':'Source unavailable'}),encoding='utf-8')
 if __name__=='__main__':
+    from marine_data import marine, RESOURCES
     ROOT.mkdir(exist_ok=True)
     with ThreadPoolExecutor(max_workers=3) as pool:list(pool.map(lambda pair:build(*pair),[('warnings',warnings),('hydro',hydro),('aurora',aurora)]))
+    for kind in RESOURCES:
+        path=ROOT/('marine-'+kind+'.json')
+        try:
+            previous=json.loads(path.read_text(encoding='utf-8'))
+            age=(datetime.now(timezone.utc)-datetime.fromisoformat(previous['fetchedAt'])).total_seconds()
+            if previous.get('ok') and age<4*3600:continue
+        except (OSError,ValueError,KeyError):pass
+        build('marine-'+kind,lambda kind=kind:marine(get,num,kind))

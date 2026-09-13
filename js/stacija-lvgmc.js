@@ -15,7 +15,7 @@ const noData=()=>t('stp.no_data');
 // tempCls comes from pure.js
 
 function fmtTime(iso){
-  return new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+  return chartTimeLabel(iso,LOCALE,'Europe/Riga');
 }
 
 // ─── TĒMA ───────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ function CD(){
         titleColor:v('--chart-tip-title'),bodyColor:v('--chart-tip-body'),padding:11,cornerRadius:7},
     },
     scales:{
-      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:12,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
+      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
       y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}},
     }
   };
@@ -164,13 +164,13 @@ async function load(){
 
     $('stAirTemp').innerHTML=`${cur.airTemp!=null?round(cur.airTemp,1):'-'}<span>°C</span>`;
     $('stAirTemp').className='mc-val '+tempCls(cur.airTemp);
-    $('stTime').textContent=fmtTime(cur.time);
+    $('stTime').textContent=fmtTime(cur.time).join(' ');
 
     $('stFeels').innerHTML=`${cur.feelsLike!=null?round(cur.feelsLike,1):'-'}<span>°C</span>`;
     $('stFeels').className='mc-val '+tempCls(cur.feelsLike);
 
-    if(cur.minTemp!=null){$('stMin').innerHTML=`${round(cur.minTemp,1)}<span>°C</span>`;$('stMinTime').textContent=fmtTime(cur.time);}
-    if(cur.maxTemp!=null){$('stMax').innerHTML=`${round(cur.maxTemp,1)}<span>°C</span>`;$('stMaxTime').textContent=fmtTime(cur.time);}
+    if(cur.minTemp!=null){$('stMin').innerHTML=`${round(cur.minTemp,1)}<span>°C</span>`;$('stMinTime').textContent=fmtTime(cur.time).join(' ');}
+    if(cur.maxTemp!=null){$('stMax').innerHTML=`${round(cur.maxTemp,1)}<span>°C</span>`;$('stMaxTime').textContent=fmtTime(cur.time).join(' ');}
 
     $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
     $('dGust').textContent=cur.windGust!=null?`${round(cur.windGust,1)} m/s`:noData();

@@ -41,6 +41,4 @@ buildUVChart=rangedBuild(buildUVChart);
 buildTable=rangedBuild(buildTable);
 const originalSplit=splitCombined;
 splitCombined=function(raw){const result=originalSplit(raw);for(const src of Object.values(result))src.utcOffset=raw.utc_offset_seconds||0;return result;};
-const originalFmtHour=fmtHour;
-fmtHour=function(iso){return forecastHours===48?iso.slice(8,10)+'. '+iso.slice(11,16):originalFmtHour(iso);};
 rangeCopy();

@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=18">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
@@ -71,6 +71,8 @@
     <span class="hero-sun" id="heroSun"></span>
   </div>
 
+  <aside id="localWarnings" class="local-warnings" aria-live="polite" hidden></aside>
+
   <div class="metrics" id="metricsRow">
     <div class="mc"><div class="mc-label" data-i18n="metric.current">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc" data-i18n="metric.loading">Ielādē...</div></div>
     <div class="mc"><div class="mc-label" data-i18n="metric.feels">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
@@ -96,7 +98,7 @@
   </div>
 
   <div class="tc">
-    <div id="tab-environment"><div class="env-nav" role="group" aria-label="Vides dati"><button class="mt" data-env="air"></button><button class="mt" data-env="warnings"></button><button class="mt" data-env="hydro"></button><button class="mt" data-env="aurora"></button></div><div class="card" id="environmentContent" aria-live="polite"></div></div>
+    <div id="tab-environment"><div class="env-nav" role="group" aria-label="Vides dati"><button class="mt" data-env="air"></button><button class="mt" data-env="warnings"></button><button class="mt" data-env="hydro"></button><button class="mt" data-env="marine"></button><button class="mt" data-env="aurora"></button></div><div class="card" id="environmentContent" aria-live="polite"></div></div>
     <div id="tab-temp" class="on">
       <div class="card">
         <div class="card-hd">
@@ -306,22 +308,25 @@
 
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/i18n.js?v=15"></script>
-<script src="js/pure.js?v=15"></script>
-<script src="js/core.js?v=15"></script>
-<script src="js/weather.js?v=15"></script>
-<script src="js/charts.js?v=15"></script>
-<script src="js/climate.js?v=15"></script>
-<script src="js/data.js?v=15"></script>
-<script src="js/locations.js?v=15"></script>
-<script src="js/radar.js?v=15"></script>
-<script src="js/forecast-range.js?v=15"></script>
-<script src="js/forecast-controls.js?v=15"></script>
-<script src="js/map-controls.js?v=15"></script>
-<script src="js/radar-timeline.js?v=15"></script>
-<script src="js/data-cache.js?v=15"></script>
-<script src="js/environment.js?v=15"></script>
-<script src="js/app.js?v=15"></script>
+<script src="js/i18n.js?v=18"></script>
+<script src="js/pure.js?v=18"></script>
+<script src="js/chart-time.js?v=18"></script>
+<script src="js/core.js?v=18"></script>
+<script src="js/weather.js?v=18"></script>
+<script src="js/charts.js?v=18"></script>
+<script src="js/climate.js?v=18"></script>
+<script src="js/data.js?v=18"></script>
+<script src="js/locations.js?v=18"></script>
+<script src="js/radar.js?v=18"></script>
+<script src="js/forecast-range.js?v=18"></script>
+<script src="js/forecast-controls.js?v=18"></script>
+<script src="js/map-controls.js?v=18"></script>
+<script src="js/radar-timeline.js?v=18"></script>
+<script src="js/data-cache.js?v=18"></script>
+<script src="js/marine.js?v=18"></script>
+<script src="js/environment.js?v=18"></script>
+<script src="js/local-warnings.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
 <script>
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js');

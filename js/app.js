@@ -31,6 +31,7 @@ function initTabsA11y(){
     if(!name)return;
     const on=b.classList.contains('active');
     b.setAttribute('role','tab');
+    b.setAttribute('aria-label',b.textContent.trim());
     b.id='tb-'+name;
     b.setAttribute('aria-controls','tab-'+name);
     b.setAttribute('aria-selected',on?'true':'false');
@@ -56,6 +57,7 @@ function initTabsA11y(){
 // Re-renders every piece of dynamic UI text after a language switch. Static
 // [data-i18n] nodes are already handled by applyStaticI18n() in setLang().
 function relangUI(){
+  refreshHomeWarnings();
   environmentLabels();
   if($('tab-environment')?.classList.contains('on'))initEnvironment();
   renderFavBtn();

@@ -18,7 +18,7 @@ const noData=()=>t('stp.no_data');
 // tempCls comes from pure.js
 
 function fmtTime(iso){
-  return new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+  return chartTimeLabel(iso,LOCALE,'Europe/Riga');
 }
 
 // ─── TĒMA ───────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ function CD(){
         titleColor:v('--chart-tip-title'),bodyColor:v('--chart-tip-body'),padding:11,cornerRadius:7},
     },
     scales:{
-      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:12,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
+      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
       y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}},
     }
   };
@@ -183,7 +183,7 @@ async function load(){
 
     $('stAirTemp').innerHTML=`${cur.airTemp!=null?round(cur.airTemp,1):'-'}<span>°C</span>`;
     $('stAirTemp').className='mc-val '+tempCls(cur.airTemp);
-    $('stTime').textContent=fmtTime(cur.time);
+    $('stTime').textContent=fmtTime(cur.time).join(' ');
 
     $('stSurfTemp').innerHTML=`${cur.surfaceTemp!=null?round(cur.surfaceTemp,1):'-'}<span>°C</span>`;
     $('stSurfTemp').className='mc-val '+tempCls(cur.surfaceTemp);
@@ -194,9 +194,9 @@ async function load(){
       const minH=withTemp.reduce((a,b)=>a.airTemp<b.airTemp?a:b);
       const maxH=withTemp.reduce((a,b)=>a.airTemp>b.airTemp?a:b);
       $('stMin').innerHTML=`${round(minH.airTemp,1)}<span>°C</span>`;
-      $('stMinTime').textContent=fmtTime(minH.time);
+      $('stMinTime').textContent=fmtTime(minH.time).join(' ');
       $('stMax').innerHTML=`${round(maxH.airTemp,1)}<span>°C</span>`;
-      $('stMaxTime').textContent=fmtTime(maxH.time);
+      $('stMaxTime').textContent=fmtTime(maxH.time).join(' ');
     }
 
     $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();

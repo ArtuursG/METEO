@@ -75,6 +75,7 @@ async function selectCity(g){
     Object.assign(S,{lat:prev.lat,lon:prev.lon,city:prev.city,country:prev.country});
     $('cityName').textContent=prev.name;
     $('heroSub').textContent=prev.sub;
+    if(typeof refreshHomeWarnings==='function')refreshHomeWarnings();
     return;
   }
 
