@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-15 - Cloud map: combine real satellite frames with the model forecast
+
+- Extended the Mākoņi-tab cloud map from a model-only forecast loop into one continuous timeline, exactly like the radar's past-observations-plus-nowcast: the past ~2 h are real satellite frames, the rest (up to 5 days) is the DWD ICON forecast already used elsewhere.
+- Satellite source: EUMETSAT EUMETView WMS (`msg_fes:vis006`, visible-light channel), free, no API key, confirmed reliable at 15-minute native resolution back to 2020. `msg_fes:rgb_natural` (colour composite) returned occasional 502s in testing - stuck with the plainer, more reliable grayscale channel.
+- One slider spans both halves; each step is labelled "Novērots" (Observed) or "Prognoze" (Forecast) so it is never ambiguous which kind of data is showing. Map/library/frames stay cached after the first load.
+- Known limit (accepted for now, no fallback built): the visible-light channel is dark at night. An infrared layer exists at EUMETSAT for a day/night-aware version later if wanted.
+
 ## 2026-09-15 - On-demand cloud map with a forecast timeline
 
 - Added a cloud-cover map under the Mākoņi (Clouds) tab, below the existing chart: gridded DWD ICON cloud cover rendered via Open-Meteo's `weather-map-layer`, the same model already compared elsewhere on the site.
