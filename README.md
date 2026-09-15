@@ -16,7 +16,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly %; follows the same model selection as the precipitation (mm) chart, skipping models that do not provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
-- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear -> overcast)
+- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear -> overcast). Below the chart, an on-demand **cloud map** (gridded DWD ICON cloud cover via [Open-Meteo's weather-map-layer](https://github.com/open-meteo/weather-map-layer)) with a sat24-style time slider/play control stepping through ~90 forecast frames (hourly, then 3-hourly, up to 5 days out). This is a model forecast animation, not satellite imagery. No API key, no background preloading - the ~2.9 MB rendering library only loads after "Show cloud map" is pressed
 - **UV index** - hourly UV index starting from the current hour, next 5 days; colour-coded bars (Low -> Extreme); ECMWF IFS primary, GFS fallback
 - **Crosshair** - vertical dashed line follows the cursor across all charts for precise value reading
 
@@ -46,7 +46,6 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
 - Scrubber slider through frames, or play as animation
 - 5 selectable base maps (light, dark, OpenStreetMap, topographic, satellite) plus toggleable overlay layers, all via a Leaflet layer control
-- **Cloud cover overlay** - gridded DWD ICON cloud cover (the same model used elsewhere on the site) via [Open-Meteo's weather-map-layer](https://github.com/open-meteo/weather-map-layer). Off by default; the ~2.9 MB rendering library and the tile layer are only fetched the first time the overlay checkbox is switched on, so it costs nothing for users who never touch it. SRI-pinned CDN script, loaded dynamically (not in the initial script tags)
 - Lazy-initialised - Leaflet only loads when the Radar tab is opened
 
 ### Weather stations (Radar tab)
@@ -183,6 +182,7 @@ cloudflare-worker/
 - **Single combined request** - all 14 models are fetched in one Open-Meteo call (`models=` comma-separated). Each variable comes back suffixed per model; a model outside its geographic coverage is simply absent from the response and skipped. No per-model fallback cascade is needed.
 - **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped - a plain array existence check is insufficient.
 - **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) -> dark slate (overcast).
+- **Cloud map** (`js/cloud-map.js`) - lazy: pressing "Show cloud map" fetches the DWD ICON grid metadata (`.../data_spatial/dwd_icon/latest.json`, gives the `valid_times` frame list) in parallel with the SRI-pinned `@openmeteo/weather-map-layer` CDN script. Each frame is `om://.../latest.json?time_step=valid_times_N&variable=cloud_cover`, built as a fresh tile layer and swapped in (the adapter's tile layers have no `setUrl`, so frames can't be mutated in place - same swap-a-new-layer pattern as the RainViewer radar frames). Base map is Esri Gray Canvas, matching the rest of the site (not the CARTO basemap from the library's own examples, which now requires an API key). Closing the tab pauses playback but keeps the built map/library cached for an instant reopen.
 - **Moon phase** - computed client-side using a reference new moon (Jan 6 2000 18:14 UTC) and the 29.53-day synodic cycle. Rendered as a monochrome SVG using two SVG arcs: an outer semicircle (the lit hemisphere boundary) and an elliptical terminator arc whose sweep direction flips between crescent and gibbous phases.
 - **Auto-geolocation** - on load without URL coords, `getCurrentPosition` is called immediately. Loading starts with a placeholder city name; Nominatim resolves the real name in the background without blocking data fetch. If geolocation is denied or times out (5 s), falls back to the default location (Rīga).
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.

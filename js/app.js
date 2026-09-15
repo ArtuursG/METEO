@@ -19,6 +19,8 @@ function switchTab(tab,btn){
   if(tab==='environment')initEnvironment();
   if(tab==='climate')initClimate();
   if(tab==='about')initVerification();
+  if(tab==='cloud')refreshCloudMap();
+  else if(typeof stopCloudPlayback==='function')stopCloudPlayback();
 }
 
 // Wires the tab bar as an ARIA tablist with roving-tabindex arrow-key navigation
@@ -60,6 +62,7 @@ function initTabsA11y(){
 // [data-i18n] nodes are already handled by applyStaticI18n() in setLang().
 function relangUI(){
   refreshWindMap();
+  refreshCloudMap();
   refreshHomeWarnings();
   environmentLabels();
   if($('tab-environment')?.classList.contains('on'))initEnvironment();

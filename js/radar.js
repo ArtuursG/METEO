@@ -4,56 +4,6 @@
 let _rMap=null, _rLayer=null, _rFrames=[], _rIdx=0, _rTimer=null;
 let _rLayerCtrl=null, _rBaseLayers=null;  // kept so the layer-control labels can be re-translated
 
-// ─── CLOUD COVER OVERLAY (Open-Meteo gridded model data, via weather-map-layer) ─
-// _cloudLayer is an empty placeholder registered in the layer control immediately
-// so the checkbox appears at once; the ~2.9 MB rendering library and the actual
-// om:// tile layer are only fetched the first time the user switches it on.
-const OM_LIB_URL='https://cdn.jsdelivr.net/npm/@openmeteo/weather-map-layer@0.1.0/dist/index.js';
-const OM_LIB_SRI='sha512-u+hvuEI1AnNAjhc/gSY6An2l87uDMkk2NiUxeHr7ARj3dEoxHGNqB5Za4m4hshlinJVk8PQKGIwXQXTtbY2hGg==';
-const OM_CLOUD_URL='https://openmeteo.s3.amazonaws.com/data_spatial/dwd_icon/latest.json?time_step=current_time_1H&variable=cloud_cover';
-let _cloudLayer=null, _cloudAdapter=null, _cloudTileLayer=null, _cloudLoading=false;
-
-function loadScript(src,integrity){
-  return new Promise((resolve,reject)=>{
-    const s=document.createElement('script');
-    s.src=src; s.crossOrigin='anonymous'; if(integrity)s.integrity=integrity;
-    s.onload=resolve; s.onerror=()=>reject(new Error('script load failed: '+src));
-    document.head.appendChild(s);
-  });
-}
-
-// Lazily loads @openmeteo/weather-map-layer and builds the om:// cloud-cover tile
-// layer on first activation; later toggles just show/hide the already-built layer.
-async function ensureCloudLayer(){
-  if(_cloudTileLayer||_cloudLoading)return;
-  _cloudLoading=true;
-  showToast(t('radar.cloud_loading'));
-  try{
-    if(!window.OMWeatherMapLayer)await loadScript(OM_LIB_URL,OM_LIB_SRI);
-    if(!_cloudAdapter){
-      _cloudAdapter=OMWeatherMapLayer.addLeafletProtocolSupport(L);
-      _cloudAdapter.addProtocol('om',OMWeatherMapLayer.omProtocol);
-      const updateBounds=()=>{
-        const b=_rMap.getBounds();
-        OMWeatherMapLayer.updateCurrentBounds([b.getWest(),b.getSouth(),b.getEast(),b.getNorth()]);
-      };
-      _rMap.on('moveend',updateBounds);
-      updateBounds();
-    }
-    _cloudTileLayer=_cloudAdapter.createTileLayer('om://'+OM_CLOUD_URL,{
-      opacity:0.6,
-      attribution:'Mākoņi: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> / DWD ICON'
-    });
-    _cloudTileLayer.addTo(_cloudLayer);
-  }catch(e){
-    console.warn('[cloud layer]',e);
-    showToast(t('radar.cloud_failed'));
-    if(_cloudLayer)_rMap.removeLayer(_cloudLayer); // unchecks the control checkbox
-  }finally{
-    _cloudLoading=false;
-  }
-}
-
 // Rebuilds the Leaflet layer control with current-language labels (called on language switch)
 function relabelRadarControl(){
   if(!_rMap||!_rLayerCtrl||!_rBaseLayers)return;
@@ -68,7 +18,6 @@ function relabelRadarControl(){
   const ol={
     [t('radar.overlay_lvc')]:_lvcLayer,
     [t('radar.overlay_lvgmc')]:_lvgmcLayer,
-    [t('radar.overlay_clouds')]:_cloudLayer,
   };
   _rLayerCtrl=L.control.layers(bl,ol,{collapsed:true}).addTo(_rMap);
 }
@@ -128,7 +77,6 @@ async function initRadar(){
 
   _lvcLayer=L.layerGroup().addTo(_rMap);
   _lvgmcLayer=L.layerGroup().addTo(_rMap);
-  _cloudLayer=L.layerGroup(); // unchecked by default - heavy library, loaded on first use
   bindLvcTableSorting();
   bindLvgmcTableSorting();
   _rMap.on('zoomend moveend',declutterAllBadges);
@@ -137,7 +85,6 @@ async function initRadar(){
   const overlays={
     [t('radar.overlay_lvc')]:_lvcLayer,
     [t('radar.overlay_lvgmc')]:_lvgmcLayer,
-    [t('radar.overlay_clouds')]:_cloudLayer,
   };
   _rLayerCtrl=L.control.layers(baseLayers,overlays,{collapsed:true}).addTo(_rMap);
 
@@ -146,7 +93,6 @@ async function initRadar(){
   _rMap.on('overlayadd',e=>{
     if(e.layer===_lvcLayer)_lvcLayerActive=true;
     if(e.layer===_lvgmcLayer)_lvgmcLayerActive=true;
-    if(e.layer===_cloudLayer)ensureCloudLayer();
     updateStationTablesVisibility();
     declutterAllBadges();
   });
