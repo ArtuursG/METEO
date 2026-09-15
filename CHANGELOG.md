@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-15 - On-demand cloud map with a forecast timeline
+
+- Added a cloud-cover map under the Mākoņi (Clouds) tab, below the existing chart: gridded DWD ICON cloud cover rendered via Open-Meteo's `weather-map-layer`, the same model already compared elsewhere on the site.
+- Sat24-style time control: a slider and play button step through ~90 forecast frames (hourly, then 3-hourly out to 5 days). This is a model forecast animation, not satellite imagery - the info text says so explicitly.
+- Off by default, no API key, no background preloading: the map, its ~2.9 MB SRI-pinned rendering library and the grid metadata only load after pressing "Show cloud map", matching the existing Wind-tab embed convention. Reopening after the first load is instant (library, map and metadata stay cached); leaving the tab pauses playback only.
+- Uses Esri Gray Canvas for the base map (keyless) rather than the CARTO tiles in the library's own examples, which now require an API key - the same fix already applied to the main radar map.
+- First attempt added this as a togglable overlay on the radar map's layer control; moved to its own map under the Clouds tab per feedback, and gained the time-series scrubber.
+
 ## 2026-09-13 - On-demand wind maps
 
 - Added official Windy and Ventusky embeds below the Wind chart, centered on the selected location. Windy is the default; Ventusky offers an alternative wind visualization.
