@@ -46,6 +46,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Interactive **RainViewer** radar map with past observations and short-range nowcast
 - Scrubber slider through frames, or play as animation
 - 5 selectable base maps (light, dark, OpenStreetMap, topographic, satellite) plus toggleable overlay layers, all via a Leaflet layer control
+- **Cloud cover overlay** - gridded DWD ICON cloud cover (the same model used elsewhere on the site) via [Open-Meteo's weather-map-layer](https://github.com/open-meteo/weather-map-layer). Off by default; the ~2.9 MB rendering library and the tile layer are only fetched the first time the overlay checkbox is switched on, so it costs nothing for users who never touch it. SRI-pinned CDN script, loaded dynamically (not in the initial script tags)
 - Lazy-initialised - Leaflet only loads when the Radar tab is opened
 
 ### Weather stations (Radar tab)

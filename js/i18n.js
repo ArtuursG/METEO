@@ -164,6 +164,9 @@ const STR = {
     'radar.stations_count': '{n} stacijas',
     'radar.overlay_lvc': 'Ceļa meteostacijas (LVC)',
     'radar.overlay_lvgmc': 'LVĢMC meteostacijas',
+    'radar.overlay_clouds': 'Mākoņu pārklājums',
+    'radar.cloud_loading': 'Ielādē mākoņu slāni...',
+    'radar.cloud_failed': 'Neizdevās ielādēt mākoņu slāni.',
     'radar.attr': 'Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Meteostacijas: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
     'basemap.light': 'Gaišā', 'basemap.dark': 'Tumšā', 'basemap.osm': 'OpenStreetMap',
@@ -409,6 +412,9 @@ const STR = {
     'radar.stations_count': '{n} stations',
     'radar.overlay_lvc': 'Road weather stations (LVC)',
     'radar.overlay_lvgmc': 'LVĢMC weather stations',
+    'radar.overlay_clouds': 'Cloud cover overlay',
+    'radar.cloud_loading': 'Loading cloud layer...',
+    'radar.cloud_failed': 'Could not load the cloud layer.',
     'radar.attr': 'Radar: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Stations: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
     'basemap.light': 'Light', 'basemap.dark': 'Dark', 'basemap.osm': 'OpenStreetMap',
