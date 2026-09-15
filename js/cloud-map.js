@@ -1,12 +1,21 @@
-// ─── CLOUD MAP (Mākoņi tab): gridded cloud-cover forecast on a Leaflet map ────
-// Uses the DWD ICON model grid (same model compared elsewhere on the site) via
-// @openmeteo/weather-map-layer. Off by default - no API keys, no background
-// preloading: the ~2.9 MB rendering library only loads after the user presses
-// "Show cloud map". This is a model forecast animation, not satellite imagery -
-// unlike a sat24-style loop it shows predicted cloud motion, not observed motion.
+// ─── CLOUD MAP (Mākoņi tab): satellite (past) + model forecast (future) ───────
+// One combined timeline, same idea as the RainViewer radar (past observations +
+// short-range nowcast): the past portion is real EUMETSAT satellite imagery,
+// the future portion is the DWD ICON model grid already compared elsewhere on
+// the site (via @openmeteo/weather-map-layer). Off by default - no API keys,
+// no background preloading: everything only loads after "Show cloud map".
 const CLOUD_OM_LIB_URL='https://cdn.jsdelivr.net/npm/@openmeteo/weather-map-layer@0.1.0/dist/index.js';
 const CLOUD_OM_LIB_SRI='sha512-u+hvuEI1AnNAjhc/gSY6An2l87uDMkk2NiUxeHr7ARj3dEoxHGNqB5Za4m4hshlinJVk8PQKGIwXQXTtbY2hGg==';
 const CLOUD_OM_META_URL='https://openmeteo.s3.amazonaws.com/data_spatial/dwd_icon/latest.json';
+
+// EUMETSAT EUMETView WMS - free, no key. msg_fes:vis006 is the raw visible-light
+// channel (0.6 μm), updated every 15 min; the server snaps to the nearest actual
+// scene (nearestValue=1) so exact timestamps don't need to be guessed precisely.
+// Daylight only - frames are dark/blank at night (no infrared fallback yet).
+const SAT_WMS_URL='https://view.eumetsat.int/geoserver/wms';
+const SAT_LAYER='msg_fes:vis006';
+const SAT_STEP_MIN=15;
+const SAT_PAST_COUNT=8; // ~2 h of observed history
 
 let _cloudOpen=false, _cloudLoading=false, _cloudMap=null, _cloudAdapter=null;
 let _cloudFrames=[], _cloudIdx=0, _cloudTimer=null, _cloudTileLayer=null, _cloudPlace='';
@@ -19,6 +28,16 @@ function loadScriptOnce(src,integrity){
     s.onload=resolve; s.onerror=()=>reject(new Error('script load failed: '+src));
     document.head.appendChild(s);
   });
+}
+
+// Past-observed satellite timestamps: floor "now" to the 15-min grid, skip the
+// most recent step (rarely processed yet) as a safety margin, then step back.
+function buildSatFrames(){
+  const stepMs=SAT_STEP_MIN*60000;
+  const latest=Math.floor(Date.now()/stepMs)*stepMs-stepMs;
+  const out=[];
+  for(let i=SAT_PAST_COUNT-1;i>=0;i--)out.push({time:new Date(latest-i*stepMs).toISOString(),kind:'sat'});
+  return out;
 }
 
 function stopCloudPlayback(){
@@ -46,11 +65,18 @@ function fmtCloudFrameTime(iso){
 function showCloudFrame(idx){
   if(!_cloudMap||!_cloudFrames.length)return;
   _cloudIdx=Math.max(0,Math.min(_cloudFrames.length-1,idx));
-  const url=`${CLOUD_OM_META_URL}?time_step=valid_times_${_cloudIdx}&variable=cloud_cover`;
-  const layer=_cloudAdapter.createTileLayer('om://'+url,{
-    opacity:0.6,
-    attribution:'Mākoņi: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> / DWD ICON'
-  });
+  const frame=_cloudFrames[_cloudIdx];
+
+  const layer=frame.kind==='sat'
+    ?L.tileLayer.wms(SAT_WMS_URL,{
+        layers:SAT_LAYER,format:'image/png',version:'1.1.1',transparent:true,
+        crs:L.CRS.EPSG4326,time:frame.time,
+        attribution:'Satelīts: <a href="https://www.eumetsat.int" target="_blank">EUMETSAT</a>'
+      })
+    :_cloudAdapter.createTileLayer('om://'+CLOUD_OM_META_URL+`?time_step=valid_times_${frame.modelIdx}&variable=cloud_cover`,{
+        opacity:0.6,
+        attribution:'Mākoņi: <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> / DWD ICON'
+      });
   layer.addTo(_cloudMap);
   const prev=_cloudTileLayer;
   _cloudTileLayer=layer;
@@ -59,8 +85,10 @@ function showCloudFrame(idx){
   const slider=$('cloudSlider');
   slider.max=_cloudFrames.length-1;
   slider.value=_cloudIdx;
-  slider.setAttribute('aria-valuetext',fmtCloudFrameTime(_cloudFrames[_cloudIdx]));
-  $('cloudTime').textContent=(_cloudIdx===0?uiText('Tagad','Now')+' · ':'')+fmtCloudFrameTime(_cloudFrames[_cloudIdx]);
+  const label=frame.kind==='sat'?uiText('Novērots','Observed'):uiText('Prognoze','Forecast');
+  const text=`${label} · ${fmtCloudFrameTime(frame.time)}`;
+  slider.setAttribute('aria-valuetext',text);
+  $('cloudTime').textContent=text;
 }
 
 async function ensureCloudMap(){
@@ -74,8 +102,13 @@ async function ensureCloudMap(){
       fetch(CLOUD_OM_META_URL).then(r=>{ if(!r.ok)throw new Error('meta '+r.status); return r.json(); }),
       window.OMWeatherMapLayer?Promise.resolve():loadScriptOnce(CLOUD_OM_LIB_URL,CLOUD_OM_LIB_SRI),
     ]);
-    _cloudFrames=meta.valid_times||[];
-    if(!_cloudFrames.length)throw new Error('no valid_times in metadata');
+    const validTimes=meta.valid_times||[];
+    if(!validTimes.length)throw new Error('no valid_times in metadata');
+
+    const satFrames=buildSatFrames();
+    const modelFrames=validTimes.map((time,modelIdx)=>({time,kind:'model',modelIdx}));
+    _cloudFrames=[...satFrames,...modelFrames];
+    const nowIdx=satFrames.length-1; // latest observed frame, same convention as the radar timeline
 
     if(!_cloudMap){
       _cloudMap=L.map('cloudMap',{maxZoom:12}).setView([S.lat,S.lon],6);
@@ -100,9 +133,10 @@ async function ensureCloudMap(){
       updateBounds();
     }
     const endsEl=$('cloudTimelineEnds');
-    endsEl.textContent=`${fmtCloudFrameTime(_cloudFrames[0])} – ${fmtCloudFrameTime(_cloudFrames.at(-1))} (${_cloudFrames.length} ${uiText('kadri','frames')})`;
+    endsEl.textContent=`${fmtCloudFrameTime(_cloudFrames[0].time)} – ${fmtCloudFrameTime(_cloudFrames.at(-1).time)} `
+      +`(${satFrames.length} ${uiText('novēroti','observed')}, ${modelFrames.length} ${uiText('prognoze','forecast')})`;
     status.textContent='';
-    showCloudFrame(0);
+    showCloudFrame(nowIdx);
   }catch(e){
     console.warn('[cloud map]',e);
     status.textContent=uiText('Neizdevās ielādēt mākoņu karti.','Could not load the cloud map.');
@@ -131,8 +165,8 @@ function refreshCloudMap(){
   const card=$('cloudMapCard'); if(!card)return;
   $('cloudMapTitle').textContent=uiText('Mākoņu karte','Cloud map');
   $('cloudMapInfo').textContent=uiText(
-    'Mākoņainuma prognoze uz kartes - tas pats DWD ICON modelis, ko izmanto pārējā lapā. Šī ir modeļa prognoze, nevis satelīta attēls: rāda, kā modelis paredz mākoņu kustību, nevis reāli novērotu kustību.',
-    'Cloud-cover forecast on a map - the same DWD ICON model used elsewhere on this site. This is a model forecast, not a satellite image: it shows predicted cloud motion, not observed motion.'
+    'Pagātnes kadri - īsts EUMETSAT satelīta attēls (redzamās gaismas kanāls, tāpēc naktī tie ir tumši). Nākotnes kadri - DWD ICON modeļa prognoze, tas pats modelis, ko izmanto pārējā lapā.',
+    'Past frames are real EUMETSAT satellite imagery (visible-light channel, so they are dark at night). Future frames are the DWD ICON model forecast, the same model used elsewhere on this site.'
   );
   const btn=$('cloudMapToggle');
   btn.textContent=_cloudOpen?uiText('Paslēpt karti','Hide map'):uiText('Rādīt mākoņu karti','Show cloud map');
@@ -156,4 +190,4 @@ if(typeof document!=='undefined'){
   refreshCloudMap();
 }
 
-if(typeof module!=='undefined')module.exports={};
+if(typeof module!=='undefined')module.exports={buildSatFrames};
