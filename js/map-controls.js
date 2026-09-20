@@ -1,5 +1,14 @@
 const uiText=(lv,en)=>LANG==='en'?en:lv;
 // Map controls and model comparison interactions.
+function timelineTickIndexes(length,count=5){if(length<2)return [0];return [...new Set(Array.from({length:Math.min(count,length)},(_,i)=>Math.round(i*(length-1)/(Math.min(count,length)-1))))];}
+function addMapFullscreen(map,target){
+ const Control=L.Control.extend({options:{position:'topright'},onAdd(){
+  const button=L.DomUtil.create('button','leaflet-fullscreen');button.type='button';button.textContent='⛶';
+  const label=()=>button.setAttribute('aria-label',document.fullscreenElement===target?uiText('Iziet no pilnekrāna','Exit full screen'):uiText('Atvērt pilnekrānā','Open full screen'));
+  label();L.DomEvent.disableClickPropagation(button);L.DomEvent.on(button,'click',async()=>{try{document.fullscreenElement?await document.exitFullscreen():await target.requestFullscreen();}catch{};});
+  const sync=()=>{label();setTimeout(()=>map.invalidateSize(),0);};document.addEventListener('fullscreenchange',sync);map.once('unload',()=>document.removeEventListener('fullscreenchange',sync));return button;
+ }});map.addControl(new Control());
+}
 let radarVisible=true,radarOpacity=.65;
 const toolbar=document.createElement('div');toolbar.className='map-tools';
 const mapButtons={};
@@ -25,6 +34,7 @@ initRadar=async function(){
  if(_rMap&&key===radarCenterKey){_rMap.invalidateSize();ensureLvcStations();ensureLvgmcStations();syncMapButtons();return;}
  radarCenterKey=key;
  const promise=originalRadarInit();
+ if(_rMap&&!_rMap._fullscreenControl){_rMap._fullscreenControl=true;addMapFullscreen(_rMap,$('radarMap').closest('.card'));}
  if(_rMap&&!_rMap._mapControls){_rMap._mapControls=true;_rMap.on('layeradd layerremove',syncMapButtons);}
  syncMapButtons();await promise;syncMapButtons();
 };

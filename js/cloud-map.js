@@ -66,6 +66,7 @@ async function ensureCloudMap(){
   const frames=await cloudFrames(mode);if(id!==_cloudRequest||!_cloudOpen)return;
   if(!_cloudMap){
    _cloudMap=L.map('cloudMap',{maxZoom:10,scrollWheelZoom:false}).setView([S.lat,S.lon],6);
+   addMapFullscreen(_cloudMap,$('cloudMapEmbed'));
    addThemedMapLayer(_cloudMap,'Base');
    const pane=_cloudMap.createPane('cloudLabels');pane.style.zIndex=450;pane.style.pointerEvents='none';
    addThemedMapLayer(_cloudMap,'Reference',{pane:'cloudLabels'});
@@ -73,7 +74,7 @@ async function ensureCloudMap(){
   }
   _cloudMap.invalidateSize();
   if(mode==='model'&&!_cloudAdapter){_cloudAdapter=OMWeatherMapLayer.addLeafletProtocolSupport(L);_cloudAdapter.addProtocol('om',OMWeatherMapLayer.omProtocol);const bounds=()=>{const b=_cloudMap.getBounds();OMWeatherMapLayer.updateCurrentBounds([b.getWest(),b.getSouth(),b.getEast(),b.getNorth()]);};_cloudMap.on('moveend',bounds);bounds();}
-  _cloudFrames=frames;$('cloudTimelineEnds').textContent=fmtCloudFrameTime(frames[0].time)+' - '+fmtCloudFrameTime(frames.at(-1).time);
+  _cloudFrames=frames;const ticks=$('cloudTimelineEnds');ticks.replaceChildren();for(const i of timelineTickIndexes(frames.length)){const span=document.createElement('span');span.textContent=fmtCloudFrameTime(frames[i].time);ticks.append(span);}
   $('cloudMapStatus').textContent=mode==='sat'&&Date.now()-Date.parse(frames.at(-1).time)>3600000?uiText('Jaunākais avota attēls ir vecāks par stundu.','The latest source image is over an hour old.'):'';
   showCloudFrame(mode==='sat'?frames.length-1:0);
  }catch(e){if(id===_cloudRequest)$('cloudMapStatus').textContent=uiText('Šis slānis pašlaik nav pieejams. Izmēģini otru skatu vai mēģini vēlāk.','This layer is unavailable. Try the other view or try again later.');}

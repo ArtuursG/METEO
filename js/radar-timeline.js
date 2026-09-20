@@ -25,7 +25,7 @@ const frameUI=updateRadarUI;
 updateRadarUI=function(){frameUI();const available=_rFrames.length>0;frameSlider.disabled=!available;prevFrame.disabled=!available||_rIdx===0;nextFrame.disabled=!available||_rIdx===_rFrames.length-1;latestFrame.disabled=!available;$('radarPlayBtn').disabled=_rFrames.length<2;
  if(!available){timelineEnds.textContent=uiText('Gaidām radara datus','Waiting for radar data');return;}
  const fmt=f=>new Date(f.time*1000).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
- timelineEnds.replaceChildren();for(const text of [fmt(_rFrames[0]),(_rIdx+1)+' / '+_rFrames.length+uiText(' kadri',' frames'),fmt(_rFrames.at(-1))]){const span=document.createElement('span');span.textContent=text;timelineEnds.append(span);}
+ timelineEnds.replaceChildren();for(const i of timelineTickIndexes(_rFrames.length)){const span=document.createElement('span');span.textContent=fmt(_rFrames[i]);timelineEnds.append(span);}
  frameSlider.setAttribute('aria-valuetext',$('radarTime').textContent);frameSlider.style.setProperty('--progress',100*_rIdx/Math.max(1,_rFrames.length-1)+'%');
 };
 stopRadarPlayback();updateRadarUI();
