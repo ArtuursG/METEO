@@ -66,9 +66,9 @@ async function ensureCloudMap(){
   const frames=await cloudFrames(mode);if(id!==_cloudRequest||!_cloudOpen)return;
   if(!_cloudMap){
    _cloudMap=L.map('cloudMap',{maxZoom:10,scrollWheelZoom:false}).setView([S.lat,S.lon],6);
-   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:16}).addTo(_cloudMap);
+   addThemedMapLayer(_cloudMap,'Base');
    const pane=_cloudMap.createPane('cloudLabels');pane.style.zIndex=450;pane.style.pointerEvents='none';
-   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{pane:'cloudLabels',attribution:'Tiles © Esri',maxZoom:16}).addTo(_cloudMap);
+   addThemedMapLayer(_cloudMap,'Reference',{pane:'cloudLabels'});
    _cloudPlace=S.lat.toFixed(2)+','+S.lon.toFixed(2);
   }
   _cloudMap.invalidateSize();
@@ -76,7 +76,7 @@ async function ensureCloudMap(){
   _cloudFrames=frames;$('cloudTimelineEnds').textContent=fmtCloudFrameTime(frames[0].time)+' - '+fmtCloudFrameTime(frames.at(-1).time);
   $('cloudMapStatus').textContent=mode==='sat'&&Date.now()-Date.parse(frames.at(-1).time)>3600000?uiText('Jaunākais avota attēls ir vecāks par stundu.','The latest source image is over an hour old.'):'';
   showCloudFrame(mode==='sat'?frames.length-1:0);
- }catch(e){if(id===_cloudRequest)$('cloudMapStatus').textContent=uiText('Šis slānis pašlaik nav pieejams. Izmēģini otru skatu vai Sat24.','This layer is unavailable. Try the other view or Sat24.');}
+ }catch(e){if(id===_cloudRequest)$('cloudMapStatus').textContent=uiText('Šis slānis pašlaik nav pieejams. Izmēģini otru skatu vai mēģini vēlāk.','This layer is unavailable. Try the other view or try again later.');}
 }
 function openCloudMap(){_cloudOpen=true;$('cloudMapEmbed').hidden=false;refreshCloudMap();ensureCloudMap();}
 function closeCloudMap(){_cloudOpen=false;++_cloudRequest;stopCloudPlayback();$('cloudMapEmbed').hidden=true;refreshCloudMap();}
