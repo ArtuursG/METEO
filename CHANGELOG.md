@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-20 - Clearer cloud views and environment maps
+
+- Separate observed infrared satellite imagery from cloud-cover forecasts. Read the latest observation timestamp from EUMETSAT metadata; retain a direct Sat24 link.
+- Load forecast rendering only when requested, cache metadata for 15 minutes, and debounce timeline scrubbing.
+- Refresh radar, cloud and marine sliders with touch-friendly controls and progress tracks.
+- Use neutral environment basemaps, accessible water-drop station markers and a highlighted selected station.
+- Refine compact environmental cards and charts, preserving date/time labels on small screens.
+
+
 ## 2026-09-15 - Cloud map: combine real satellite frames with the model forecast
 
 - Extended the Mākoņi-tab cloud map from a model-only forecast loop into one continuous timeline, exactly like the radar's past-observations-plus-nowcast: the past ~2 h are real satellite frames, the rest (up to 5 days) is the DWD ICON forecast already used elsewhere.
