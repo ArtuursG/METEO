@@ -59,7 +59,8 @@ function renderAir(data){
  const c=$('environmentContent'),h=data.hourly;if(!h?.time?.length)throw new Error('No data');
  const now=Math.floor(Date.now()/3600000)*3600;let start=h.time.findIndex(t=>t>=now);if(start<0)throw new Error('Expired forecast');
  c.append(envNode('h2',envText('Gaiss un ziedputekšņi','Air quality and pollen')),
- envNode('p',S.city+' · '+envText('Modelēta prognoze, nevis vietējās stacijas mērījums.','Model forecast, not a local station measurement.'),'env-note'));
+ envNode('p',S.city,'env-location'),
+ envNode('p',envText('Modelēta prognoze, nevis vietējās stacijas mērījums.','Model forecast, not a local station measurement.'),'env-note'));
  const grid=envNode('div',null,'env-grid');
  for(const [key,label,unit] of [['european_aqi',envText('Eiropas AQI','European AQI'),'AQI'],['pm2_5','PM₂.₅','µg/m³'],['pm10','PM₁₀','µg/m³'],['ozone',envText('Ozons','Ozone'),'µg/m³']])grid.append(envMetric(label,h[key]?.[start],unit));c.append(grid);
  c.append(envNode('p',envText('Prognozes stunda: ','Forecast hour: ')+new Date(h.time[start]*1000).toLocaleString(LOCALE),'env-note'));

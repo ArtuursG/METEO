@@ -414,9 +414,22 @@ footer a:hover{text-decoration:underline}
 @media(max-width:600px){.env-metric{padding:8px 10px}.env-metric:nth-child(2){border-right:0}.env-metric:nth-child(-n+2){border-bottom:1px solid var(--b2)}.env-nav button{flex:0 1 auto}.timeline-actions button:nth-last-of-type(1){flex:none;grid-column:auto}.timeline-actions select{grid-column:auto}.timeline-actions button,.timeline-actions select{width:auto}.cloud-modes button{flex:none}.env-chart{height:230px}}
 
 /* Centered time panels beneath maps, inspired by the supplied slider example. */
-.timeline,.marine-timeline{box-sizing:border-box;width:min(100%,420px);margin:12px auto 0;padding:12px 18px;background:var(--panel);border:1px solid var(--b2);border-radius:7px;box-shadow:0 2px 8px #0000000d}
+.timeline,.marine-timeline{box-sizing:border-box;width:min(100%,760px);margin:12px auto 0;padding:12px 18px;background:var(--panel);border:1px solid var(--b2);border-radius:7px;box-shadow:0 2px 8px #0000000d}
 .timeline-heading{justify-content:center;text-align:center;gap:2px}.timeline-heading strong{display:none}.timeline .radar-time{width:100%;font-size:12px;font-weight:500;text-align:center;line-height:1.5}
 .timeline input[type=range],.marine-timeline input[type=range]{width:100%;min-width:0;height:26px;min-height:26px;margin:5px 0 0}
 .timeline-ends{font-size:10px;gap:4px;justify-content:space-between;text-align:center}.timeline-actions,#cloudMapCard .timeline-actions{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap}.timeline-actions button,.timeline-actions select{font-size:11px;padding:3px 6px;min-height:28px;min-width:28px}
 .marine-timeline{grid-template-columns:28px minmax(0,1fr) 28px;gap:3px 6px}.marine-timeline output{font-size:12px;font-weight:500}.marine-timeline input{grid-row:2}.marine-timeline button{min-height:28px;min-width:28px;padding:3px;font-size:14px}
 @media(max-width:600px){.timeline,.marine-timeline{width:min(100%,360px);padding:10px 12px}.timeline-actions button:nth-last-of-type(1){flex:none}.timeline-actions button,.timeline-actions select{width:auto}}
+
+.env-location{font-size:13px;font-weight:500;color:var(--t);margin:8px 0 2px}.env-location+.env-note{margin-top:0}
+@media(min-width:601px){
+ .timeline,.marine-timeline{padding:14px 22px}
+ .timeline .radar-time,.marine-timeline output{font-size:14px}.timeline-ends{font-size:12px}
+ .timeline-actions button,.timeline-actions select,#cloudMapCard .timeline-actions button,.marine-timeline button{min-height:34px;min-width:34px;font-size:13px;padding:5px 10px}
+ .marine-timeline{grid-template-columns:34px minmax(0,1fr) 34px}
+ .timeline input[type=range],.marine-timeline input[type=range]{height:32px;min-height:32px}
+ .timeline input[type=range]::-webkit-slider-runnable-track,.marine-timeline input[type=range]::-webkit-slider-runnable-track{height:4px}
+ .timeline input[type=range]::-webkit-slider-thumb,.marine-timeline input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-6px}
+ .timeline input[type=range]::-moz-range-track,.marine-timeline input[type=range]::-moz-range-track,.timeline input[type=range]::-moz-range-progress,.marine-timeline input[type=range]::-moz-range-progress{height:4px}
+ .timeline input[type=range]::-moz-range-thumb,.marine-timeline input[type=range]::-moz-range-thumb{width:12px;height:12px}
+}
