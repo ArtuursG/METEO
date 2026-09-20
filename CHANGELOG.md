@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-20 - Desktop timeline sizing and air-quality subtitle
+
+- Widen desktop timelines to 760px and enlarge their labels and controls while retaining the compact mobile layout.
+- Put the city and air-quality model explanation on separate lines without a middle-dot separator.
+
+
 ## 2026-09-20 - Centered time sliders below maps
 
 - Restyle radar, cloud and marine timelines as compact centered panels below their maps, with the selected time above the slider.
