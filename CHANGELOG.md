@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-20 - Centered time sliders below maps
+
+- Restyle radar, cloud and marine timelines as compact centered panels below their maps, with the selected time above the slider.
+- Retain playback, keyboard controls and responsive sizing without adding dependencies or data requests.
+
+
 ## 2026-09-20 - Compact controls and synchronized map themes
 
 - Replace environmental metric cards with compact monochrome readings and smaller navigation controls.
