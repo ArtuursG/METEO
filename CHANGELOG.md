@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-20 - Compact controls and synchronized map themes
+
+- Replace environmental metric cards with compact monochrome readings and smaller navigation controls.
+- Reduce timeline buttons, tracks, thumbs and water-station symbols.
+- Synchronize radar, cloud, water and marine basemaps with the site theme; preserve weather overlays.
+- Remove the external Sat24 link from the cloud map.
+
+
 ## 2026-09-20 - Clearer cloud views and environment maps
 
 - Separate observed infrared satellite imagery from cloud-cover forecasts. Read the latest observation timestamp from EUMETSAT metadata; retain a direct Sat24 link.

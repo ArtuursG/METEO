@@ -76,11 +76,17 @@ function renderWarnings(data){
  for(const a of alerts){const card=envNode('article',null,'env-alert');card.dataset.severity=a.severity;card.append(envNode('h3',a.event),envNode('p',a.areaDesc),envNode('p',new Date(a.onset).toLocaleString(LOCALE)+' - '+new Date(a.expires).toLocaleString(LOCALE),'env-note'));c.append(card);}
  c.append(envSource('MeteoAlarm / EUMETNET · CC BY 4.0 · '+envText('Oficiālie brīdinājumi','Official warnings'),'https://meteoalarm.org/en/live/'));
 }
-function environmentBaseMap(map){
- const dark=document.documentElement.getAttribute('data-theme')==='dark';
- L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(dark?'Dark':'Light')+'_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:16}).addTo(map);
- L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(dark?'Dark':'Light')+'_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:16}).addTo(map);
+const themedMapLayers=new Set();
+function themedMapUrl(part){return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light')+'_Gray_'+part+'/MapServer/tile/{z}/{y}/{x}';}
+function addThemedMapLayer(map,part,options={}){
+ const layer=L.tileLayer(themedMapUrl(part),{attribution:'Tiles © Esri',maxZoom:16,...options}).addTo(map);
+ const entry={layer,part};themedMapLayers.add(entry);map.on('unload',()=>themedMapLayers.delete(entry));return layer;
 }
+function environmentBaseMap(map){addThemedMapLayer(map,'Base');addThemedMapLayer(map,'Reference');}
+new MutationObserver(()=>{
+ themedMapLayers.forEach(({layer,part})=>layer.setUrl(themedMapUrl(part)));
+ if(_rMap&&_rBaseLayers){Object.values(_rBaseLayers).forEach(layer=>{if(_rMap.hasLayer(layer))_rMap.removeLayer(layer);});_rBaseLayers[document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'].addTo(_rMap);}
+}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 function hydroIcon(selected=false){return L.divIcon({className:'hydro-pin'+(selected?' is-selected':''),iconSize:[36,40],iconAnchor:[18,36],tooltipAnchor:[0,-30],html:'<svg viewBox="0 0 36 40" aria-hidden="true"><path d="M18 2C12 10 5 17 5 24a13 13 0 0026 0C31 17 24 10 18 2Z" fill="currentColor" stroke="white" stroke-width="2"/><path d="M10 24q4-4 8 0t8 0M12 29q3-3 6 0t6 0" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round"/></svg>'});}
 function renderHydro(data,lat,lon){
  const c=$('environmentContent');c.append(envNode('h2',envText('Ūdens līmenis un temperatūra','Water level and temperature')),environmentFreshness(data,2*3600000));

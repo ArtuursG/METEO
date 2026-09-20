@@ -71,7 +71,7 @@ async function initRadar(){
     [t('basemap.relief')]:_rBaseLayers.relief,
     [t('basemap.satellite')]:_rBaseLayers.satellite,
   };
-  _rBaseLayers.light.addTo(_rMap);
+  _rBaseLayers[document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'].addTo(_rMap);
   // Radar / station attribution stays visible regardless of the selected base map
   _rMap.attributionControl.addAttribution(t('radar.attr'));
 
