@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-21 - Marine timeline label layout
+
+- Split marine timeline labels into separate date and time rows so adjacent labels no longer merge visually.
+- Shorten the selected marine timestamp while keeping the time zone in its accessible label.
+
 ## 2026-09-20 - Data freshness, timeline ticks and full-screen maps
 
 - Show snapshot download times separately from the latest measurement shown in each data view.
