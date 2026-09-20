@@ -15,12 +15,14 @@ function environmentFreshness(data,maxAge){
  return p;
 }
 function envSource(text,url){const p=envNode('p',null,'env-note');const a=envNode('a',text);a.href=url;a.target='_blank';a.rel='noopener';p.append(a);return p;}
-function envMetric(label,value,unit){const card=envNode('div',null,'env-metric');card.append(envNode('span',label),envNode('strong',value==null?'−':Number(value).toLocaleString(LOCALE,{maximumFractionDigits:1})),envNode('small',unit));return card;}
+function envMetric(label,value,unit){const card=envNode('div',null,'env-metric');card.append(envNode('span',label),envNode('strong',value==null?'-':Number(value).toLocaleString(LOCALE,{maximumFractionDigits:1})),envNode('small',unit));return card;}
 function envChart(id,labels,datasets,unit=''){
  if(S.charts.environment)S.charts.environment.destroy();
  const canvas=envNode('canvas');canvas.id=id;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',unit);
  const wrap=envNode('div',null,'env-chart');wrap.append(canvas);$('environmentContent').append(wrap);
- const cd=CD();S.charts.environment=new Chart(canvas,{type:'line',data:{labels:labels.map(t=>chartTimeLabel(t,LOCALE)),datasets},options:{...cd,plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{title:items=>chartTimeTitle(labels[items[0].dataIndex],LOCALE)}},legend:{display:true,labels:{color:cssVar('--t2')}}}}});
+ const cd=CD();
+ canvas.setAttribute('aria-label',datasets.map(d=>d.label).join(', ')+' · '+unit);
+ S.charts.environment=new Chart(canvas,{type:'line',data:{labels:labels.map(t=>chartTimeLabel(t,LOCALE)),datasets:datasets.map(d=>({tension:.2,pointHoverRadius:5,pointHitRadius:16,spanGaps:false,...d}))},options:{...cd,layout:{padding:8},scales:{...cd.scales,x:{...cd.scales.x,grid:{display:false},ticks:{...cd.scales.x.ticks,maxTicksLimit:window.innerWidth<600?4:8}},y:{...cd.scales.y,title:{display:!!unit,text:unit,color:cssVar('--t2')}}},plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{title:items=>items.length?chartTimeTitle(labels[items[0].dataIndex],LOCALE):''}},legend:{display:true,labels:{color:cssVar('--t2'),usePointStyle:true,pointStyle:'line',boxWidth:24,padding:16}}}}});
 }
 async function initEnvironment(){
  environmentLabels();const id=++environmentRequest,kind=environmentKind,lat=S.lat,lon=S.lon;
@@ -74,22 +76,29 @@ function renderWarnings(data){
  for(const a of alerts){const card=envNode('article',null,'env-alert');card.dataset.severity=a.severity;card.append(envNode('h3',a.event),envNode('p',a.areaDesc),envNode('p',new Date(a.onset).toLocaleString(LOCALE)+' - '+new Date(a.expires).toLocaleString(LOCALE),'env-note'));c.append(card);}
  c.append(envSource('MeteoAlarm / EUMETNET · CC BY 4.0 · '+envText('Oficiālie brīdinājumi','Official warnings'),'https://meteoalarm.org/en/live/'));
 }
+function environmentBaseMap(map){
+ const dark=document.documentElement.getAttribute('data-theme')==='dark';
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(dark?'Dark':'Light')+'_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:16}).addTo(map);
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(dark?'Dark':'Light')+'_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:16}).addTo(map);
+}
+function hydroIcon(selected=false){return L.divIcon({className:'hydro-pin'+(selected?' is-selected':''),iconSize:[36,40],iconAnchor:[18,36],tooltipAnchor:[0,-30],html:'<svg viewBox="0 0 36 40" aria-hidden="true"><path d="M18 2C12 10 5 17 5 24a13 13 0 0026 0C31 17 24 10 18 2Z" fill="currentColor" stroke="white" stroke-width="2"/><path d="M10 24q4-4 8 0t8 0M12 29q3-3 6 0t6 0" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round"/></svg>'});}
 function renderHydro(data,lat,lon){
  const c=$('environmentContent');c.append(envNode('h2',envText('Ūdens līmenis un temperatūra','Water level and temperature')),environmentFreshness(data,2*3600000));
  c.append(envNode('p',envText('Līmenis ir avota stacijas atskaites sistēmā, nevis upes dziļums. Piedibens temperatūra nav peldvietas virsmas temperatūra. Laiki: Europe/Riga.','Levels use each station’s reference, not river depth. Near-bottom temperature is not bathing-water surface temperature. Times: Europe/Riga.'),'env-note'));
  const stations=[...data.stations].sort((a,b)=>haversineKm(lat,lon,a.lat,a.lon)-haversineKm(lat,lon,b.lat,b.lon));
  const pick=envNode('select');pick.setAttribute('aria-label',envText('Hidroloģiskā stacija','Hydrological station'));for(const st of stations){const o=envNode('option',st.name+' · '+Math.round(haversineKm(lat,lon,st.lat,st.lon))+' km');o.value=st.id;pick.append(o);}c.append(pick);
- const map=envNode('div');map.id='environmentMap';c.append(map);environmentMap=L.map(map).setView([lat,lon],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(environmentMap);
- const detail=envNode('div');c.append(detail);
+ const map=envNode('div');map.id='environmentMap';c.append(map);environmentMap=L.map(map,{scrollWheelZoom:false}).setView([lat,lon],7);environmentBaseMap(environmentMap);
+ const detail=envNode('div',null,'hydro-detail');c.append(detail);const markers=new Map();
  const show=()=>{
   const st=stations.find(s=>s.id===pick.value);detail.replaceChildren();if(!st)return;
+  markers.forEach((marker,id)=>{marker.setIcon(hydroIcon(id===st.id));marker.setZIndexOffset(id===st.id?1000:0);});detail.append(envNode('h3',st.name));
   const parameter=envNode('select');parameter.setAttribute('aria-label',envText('Mērījums','Measurement'));for(const k of Object.keys(st.series)){const o=envNode('option',data.parameters[k][LANG]||k);o.value=k;parameter.append(o);}detail.append(parameter);
-  const latest=envNode('p',null,'env-note');detail.append(latest);
+  const latest=envNode('p',null,'hydro-latest');detail.append(latest);
   const draw=()=>{const k=parameter.value,series=st.series[k],last=series.at(-1);latest.textContent=last[0].replace('T',' ')+' · '+last[1]+' '+data.parameters[k].unit;
    document.getElementById('hydroChart')?.parentElement.remove();envChart('hydroChart',series.map(p=>p[0]),[{label:st.name+' · '+data.parameters[k].unit,data:series.map(p=>p[1]),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],data.parameters[k].unit);
   };parameter.onchange=draw;draw();environmentMap.panTo([st.lat,st.lon]);
  };
- stations.forEach(st=>{const label=envNode('span',st.name);L.circleMarker([st.lat,st.lon],{radius:6,color:'#37618f',fillOpacity:.8}).bindTooltip(label).on('click',()=>{pick.value=st.id;show();}).addTo(environmentMap);});pick.onchange=show;show();
+ stations.forEach(st=>{const label=envNode('span',st.name);const marker=L.marker([st.lat,st.lon],{icon:hydroIcon(),title:st.name,alt:st.name}).bindTooltip(label,{className:'hydro-tooltip'}).on('click',()=>{pick.value=st.id;show();}).addTo(environmentMap);markers.set(st.id,marker);});pick.onchange=show;show();
  c.append(envSource('LVĢMC / data.gov.lv · CC0','https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi'));
 }
 function renderAurora(data){

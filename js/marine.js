@@ -26,7 +26,7 @@ function renderMarine(data){
  const saved=points.findIndex(p=>p.lat+','+p.lon===marineSelected);pick.value=String(Math.max(0,saved));c.append(pick);
  const map=envNode('div');map.id='environmentMap';c.append(map);
  environmentMap=L.map(map,{scrollWheelZoom:false}).setView([57.3,23.1],7);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(environmentMap);
+ environmentBaseMap(environmentMap);
  environmentMap.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lon])),{padding:[28,28],maxZoom:8});
  const timeline=envNode('div',null,'marine-timeline'),back=envNode('button','‹','mt'),next=envNode('button','›','mt'),stamp=envNode('output');
  back.setAttribute('aria-label',envText('Iepriekšējā stunda','Previous hour'));next.setAttribute('aria-label',envText('Nākamā stunda','Next hour'));
@@ -45,7 +45,7 @@ function renderMarine(data){
   envChart('marineChart',p.series.map(([t])=>t),[{label:(meta[LANG]||meta.lv)+' · '+meta.unit,data:p.series.map(([,v])=>v),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2,spanGaps:false}],(meta[LANG]||meta.lv)+' · '+meta.unit);
  }
  function drawFrame(){
-  const index=Number(slider.value),time=times[index];stamp.textContent=chartTimeTitle(time,LOCALE)+' · '+Intl.DateTimeFormat().resolvedOptions().timeZone;slider.setAttribute('aria-valuetext',stamp.textContent);back.disabled=index===0;next.disabled=index===times.length-1;
+  const index=Number(slider.value),time=times[index];slider.style.setProperty('--progress',100*index/Math.max(1,times.length-1)+'%');stamp.textContent=chartTimeTitle(time,LOCALE)+' · '+Intl.DateTimeFormat().resolvedOptions().timeZone;slider.setAttribute('aria-valuetext',stamp.textContent);back.disabled=index===0;next.disabled=index===times.length-1;
   markers.forEach(({marker,label,values},i)=>{const v=values.get(time);label.textContent=v==null?'-':Number(v).toLocaleString(LOCALE,{maximumFractionDigits:1})+' '+meta.unit;marker.setStyle({fillColor:v==null?'#777':`hsl(${210-Math.max(0,Math.min(1,v/meta.max))*190} 75% 48%)`,radius:i===Number(pick.value)?10:6,weight:i===Number(pick.value)?3:1});});
   const p=points[Number(pick.value)],value=markers[Number(pick.value)].values.get(time);
   detail.textContent=(meta[LANG]||meta.lv)+': '+(value==null?'-':Number(value).toLocaleString(LOCALE,{maximumFractionDigits:2})+' '+meta.unit)+' · '+p.lat.toFixed(3)+', '+p.lon.toFixed(3);
