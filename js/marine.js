@@ -32,7 +32,10 @@ function renderMarine(data){
  const timeline=envNode('div',null,'marine-timeline'),back=envNode('button','‹','mt'),next=envNode('button','›','mt'),stamp=envNode('output');
  back.setAttribute('aria-label',envText('Iepriekšējā stunda','Previous hour'));next.setAttribute('aria-label',envText('Nākamā stunda','Next hour'));
  const slider=envNode('input');slider.type='range';slider.min='0';slider.max=String(times.length-1);slider.value='0';slider.step='1';slider.setAttribute('aria-label',envText('Jūras prognozes laiks','Marine forecast time'));
- const tickRow=envNode('div',null,'timeline-ends');for(const i of timelineTickIndexes(times.length)){tickRow.append(envNode('span',new Date(times[i]).toLocaleString(LOCALE,{day:'2-digit',month:'short',hour:'2-digit'})));}
+ const tickRow=envNode('div',null,'timeline-ends marine-time-ticks');for(const i of timelineTickIndexes(times.length)){
+  const date=new Date(times[i]),label=envNode('span');
+  label.append(envNode('small',date.toLocaleDateString(LOCALE,{day:'2-digit',month:'short'})),envNode('strong',date.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'})));tickRow.append(label);
+ }
  timeline.append(back,stamp,next,slider,tickRow);mapShell.append(timeline);
  const legend=envNode('p',envText('Krāsa: mazāka → lielāka vērtība. Svītra: nav datu.','Colour: lower → higher value. Dash: no data.'),'env-note');c.append(legend);
  const detail=envNode('p',null,'env-note');c.append(detail);
@@ -47,7 +50,7 @@ function renderMarine(data){
   envChart('marineChart',p.series.map(([t])=>t),[{label:(meta[LANG]||meta.lv)+' · '+meta.unit,data:p.series.map(([,v])=>v),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2,spanGaps:false}],(meta[LANG]||meta.lv)+' · '+meta.unit);
  }
  function drawFrame(){
-  const index=Number(slider.value),time=times[index];slider.style.setProperty('--progress',100*index/Math.max(1,times.length-1)+'%');stamp.textContent=chartTimeTitle(time,LOCALE)+' · '+Intl.DateTimeFormat().resolvedOptions().timeZone;slider.setAttribute('aria-valuetext',stamp.textContent);back.disabled=index===0;next.disabled=index===times.length-1;
+  const index=Number(slider.value),time=times[index],date=new Date(time);slider.style.setProperty('--progress',100*index/Math.max(1,times.length-1)+'%');stamp.textContent=date.toLocaleString(LOCALE,{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});slider.setAttribute('aria-valuetext',stamp.textContent+' '+Intl.DateTimeFormat().resolvedOptions().timeZone);back.disabled=index===0;next.disabled=index===times.length-1;
   markers.forEach(({marker,label,values},i)=>{const v=values.get(time);label.textContent=v==null?'-':Number(v).toLocaleString(LOCALE,{maximumFractionDigits:1})+' '+meta.unit;marker.setStyle({fillColor:v==null?'#777':`hsl(${210-Math.max(0,Math.min(1,v/meta.max))*190} 75% 48%)`,radius:i===Number(pick.value)?10:6,weight:i===Number(pick.value)?3:1});});
   const p=points[Number(pick.value)],value=markers[Number(pick.value)].values.get(time);
   detail.textContent=(meta[LANG]||meta.lv)+': '+(value==null?'-':Number(value).toLocaleString(LOCALE,{maximumFractionDigits:2})+' '+meta.unit)+' · '+p.lat.toFixed(3)+', '+p.lon.toFixed(3);
