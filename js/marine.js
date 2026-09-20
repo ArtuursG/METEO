@@ -24,14 +24,16 @@ function renderMarine(data){
  points.sort((a,b)=>haversineKm(S.lat,S.lon,a.lat,a.lon)-haversineKm(S.lat,S.lon,b.lat,b.lon));
  points.forEach((p,i)=>{const o=envNode('option',p.lat.toFixed(3)+', '+p.lon.toFixed(3)+' · '+Math.round(haversineKm(S.lat,S.lon,p.lat,p.lon))+' km '+envText('no izvēlētās vietas','from selected location'));o.value=String(i);pick.append(o);});
  const saved=points.findIndex(p=>p.lat+','+p.lon===marineSelected);pick.value=String(Math.max(0,saved));c.append(pick);
- const map=envNode('div');map.id='environmentMap';c.append(map);
+ const mapShell=envNode('div',null,'map-stage'),map=envNode('div');map.id='environmentMap';mapShell.append(map);c.append(mapShell);
  environmentMap=L.map(map,{scrollWheelZoom:false}).setView([57.3,23.1],7);
  environmentBaseMap(environmentMap);
+ addMapFullscreen(environmentMap,mapShell);
  environmentMap.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lon])),{padding:[28,28],maxZoom:8});
  const timeline=envNode('div',null,'marine-timeline'),back=envNode('button','‹','mt'),next=envNode('button','›','mt'),stamp=envNode('output');
  back.setAttribute('aria-label',envText('Iepriekšējā stunda','Previous hour'));next.setAttribute('aria-label',envText('Nākamā stunda','Next hour'));
  const slider=envNode('input');slider.type='range';slider.min='0';slider.max=String(times.length-1);slider.value='0';slider.step='1';slider.setAttribute('aria-label',envText('Jūras prognozes laiks','Marine forecast time'));
- timeline.append(back,stamp,next,slider);c.append(timeline);
+ const tickRow=envNode('div',null,'timeline-ends');for(const i of timelineTickIndexes(times.length)){tickRow.append(envNode('span',new Date(times[i]).toLocaleString(LOCALE,{day:'2-digit',month:'short',hour:'2-digit'})));}
+ timeline.append(back,stamp,next,slider,tickRow);mapShell.append(timeline);
  const legend=envNode('p',envText('Krāsa: mazāka → lielāka vērtība. Svītra: nav datu.','Colour: lower → higher value. Dash: no data.'),'env-note');c.append(legend);
  const detail=envNode('p',null,'env-note');c.append(detail);
  const markers=points.map((p,i)=>{

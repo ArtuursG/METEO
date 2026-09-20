@@ -10,7 +10,7 @@ function environmentLabels(){
 }
 function environmentFreshness(data,maxAge){
  const age=Date.now()-Date.parse(data.fetchedAt);
- const p=envNode('p',envText('Avots pārbaudīts: ','Source checked: ')+new Date(data.fetchedAt).toLocaleString(LOCALE), 'env-note');
+ const p=envNode('p',envText('Dati lejupielādēti: ','Data downloaded: ')+new Date(data.fetchedAt).toLocaleString(LOCALE), 'env-note env-freshness');
  if(!Number.isFinite(age)||age>maxAge){p.classList.add('env-warning');p.append(document.createTextNode(envText(' - dati var būt novecojuši.',' - data may be outdated.')));}
  return p;
 }
@@ -94,7 +94,7 @@ function renderHydro(data,lat,lon){
  c.append(envNode('p',envText('Līmenis ir avota stacijas atskaites sistēmā, nevis upes dziļums. Piedibens temperatūra nav peldvietas virsmas temperatūra. Laiki: Europe/Riga.','Levels use each station’s reference, not river depth. Near-bottom temperature is not bathing-water surface temperature. Times: Europe/Riga.'),'env-note'));
  const stations=[...data.stations].sort((a,b)=>haversineKm(lat,lon,a.lat,a.lon)-haversineKm(lat,lon,b.lat,b.lon));
  const pick=envNode('select');pick.setAttribute('aria-label',envText('Hidroloģiskā stacija','Hydrological station'));for(const st of stations){const o=envNode('option',st.name+' · '+Math.round(haversineKm(lat,lon,st.lat,st.lon))+' km');o.value=st.id;pick.append(o);}c.append(pick);
- const map=envNode('div');map.id='environmentMap';c.append(map);environmentMap=L.map(map,{scrollWheelZoom:false}).setView([lat,lon],7);environmentBaseMap(environmentMap);
+ const shell=envNode('div',null,'map-stage'),map=envNode('div');map.id='environmentMap';shell.append(map);c.append(shell);environmentMap=L.map(map,{scrollWheelZoom:false}).setView([lat,lon],7);environmentBaseMap(environmentMap);addMapFullscreen(environmentMap,shell);
  const detail=envNode('div',null,'hydro-detail');c.append(detail);const markers=new Map();
  const show=()=>{
   const st=stations.find(s=>s.id===pick.value);detail.replaceChildren();if(!st)return;

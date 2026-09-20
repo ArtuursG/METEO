@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-20 - Data freshness, timeline ticks and full-screen maps
+
+- Show snapshot download times separately from the latest measurement shown in each data view.
+- Add five evenly spaced time labels to radar, cloud and marine sliders.
+- Add a full-screen control to radar, cloud, water and marine maps; keep timeline controls visible in full screen.
+
 ## 2026-09-20 - Desktop timeline sizing and air-quality subtitle
 
 - Widen desktop timelines to 760px and enlarge their labels and controls while retaining the compact mobile layout.
