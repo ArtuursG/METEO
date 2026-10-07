@@ -73,19 +73,26 @@
 
   <aside id="localWarnings" class="local-warnings" aria-live="polite" hidden></aside>
 
-  <div class="metrics" id="metricsRow">
-    <div class="mc"><div class="mc-label" data-i18n="metric.current">Pašreizējā</div><div class="mc-val" id="curTemp">-<span>°C</span></div><div class="mc-sub" id="curDesc" data-i18n="metric.loading">Ielādē...</div></div>
-    <div class="mc"><div class="mc-label" data-i18n="metric.feels">Sajūta</div><div class="mc-val" id="feelsLike">-<span>°C</span></div><div class="mc-sub" id="feelsDesc">-</div></div>
-    <div class="mc"><div class="mc-label" data-i18n="metric.today_max">Šodienas max</div><div class="mc-val" id="todayMax">-<span>°C</span></div><div class="mc-sub" id="todayMin">Min: -</div></div>
-    <div class="mc"><div class="mc-label" data-i18n="metric.wind">Vējš</div><div class="mc-val" id="windNow">-<span>km/h</span></div><div class="mc-sub" id="windDir">-</div></div>
-    <div class="mc"><div class="mc-label" data-i18n="metric.humidity">Mitrums</div><div class="mc-val" id="humNow">-<span>%</span></div><div class="mc-sub" id="precipNow">-</div></div>
-    <div class="mc"><div class="mc-label" data-i18n="metric.models">Modeļi</div><div class="mc-val" id="activeCount">-</div><div class="mc-sub" data-i18n="metric.active_models">aktīvi modeļi</div></div>
-  </div>
-
-  <div id="metricsSrc" class="metrics-src"></div>
+  <section class="now" id="nowBlock" aria-labelledby="cityName">
+    <div class="now-main">
+      <div class="now-temp mono" id="curTemp">-</div>
+      <div class="now-icon wi" id="curIcon" aria-hidden="true"></div>
+      <div class="now-desc"><strong id="curDesc" data-i18n="metric.loading">Ielādē...</strong><span id="feelsLike"></span></div>
+    </div>
+    <p class="now-summary" id="nowSummary" hidden></p>
+    <div class="now-tags"><span class="now-agree" id="nowAgree" hidden></span><span class="now-station" id="nowStation" hidden></span></div>
+    <dl class="now-facts">
+      <div><dt data-i18n="metric.wind">Vējš</dt><dd id="windNow">-</dd></div>
+      <div><dt data-i18n="today.today_range">Šodien</dt><dd id="todayMax">-</dd></div>
+      <div><dt data-i18n="today.precip_today">Nokrišņi šodien</dt><dd id="precipNow">-</dd></div>
+      <div><dt data-i18n="metric.humidity">Mitrums</dt><dd id="humNow">-</dd></div>
+    </dl>
+    <div id="metricsSrc" class="now-src"></div>
+  </section>
 
   <div class="tab-bar">
-    <button class="tb active" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span data-i18n="tab.temp">Temperatūra</span></button>
+    <button class="tb active" onclick="switchTab('today',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span data-i18n="tab.today">Šodien</span></button>
+    <button class="tb" onclick="switchTab('temp',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg><span data-i18n="tab.temp">Temperatūra</span></button>
     <button class="tb" onclick="switchTab('precip',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span data-i18n="tab.precip">Nokrišņi</span></button>
     <button class="tb" onclick="switchTab('wind',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg><span data-i18n="tab.wind">Vējš</span></button>
     <button class="tb" onclick="switchTab('table',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span data-i18n="tab.table">Tabula</span></button>
@@ -99,7 +106,21 @@
 
   <div class="tc">
     <div id="tab-environment"><div class="env-nav" role="group" aria-label="Vides dati"><button class="mt" data-env="air"></button><button class="mt" data-env="warnings"></button><button class="mt" data-env="hydro"></button><button class="mt" data-env="marine"></button><button class="mt" data-env="aurora"></button></div><div class="card" id="environmentContent" aria-live="polite"></div></div>
-    <div id="tab-temp" class="on">
+    <div id="tab-today" class="on">
+      <div class="card">
+        <div class="card-hd"><span class="card-title" data-i18n="today.hours">Nākamās stundas</span><span class="card-meta" data-i18n="today.hours_meta">visu modeļu mediāna</span></div>
+        <div class="hours" id="todayHours" role="list" tabindex="0" data-i18n-aria="today.hours"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title" data-i18n="today.days">Pa dienām</span><span class="card-meta" id="todayDaysMeta"></span></div>
+        <div class="days" id="todayDays" role="list"></div>
+        <div class="days-foot">
+          <span class="days-key"><i class="key-range"></i><span data-i18n="today.key_median">modeļu mediāna</span><i class="key-spread"></i><span data-i18n="today.key_spread">visu modeļu izkliede</span></span>
+          <button type="button" class="mt" onclick="openTab('table')" data-i18n="today.open_table">Detalizēta tabula</button>
+        </div>
+      </div>
+    </div>
+    <div id="tab-temp">
       <div class="card">
         <div class="card-hd">
           <span class="card-title" data-i18n="card.temp_title">Temperatūra 2m - modeļu salīdzinājums (16 dienas)</span>
@@ -347,6 +368,8 @@
 <script src="js/weather.js?v=30"></script>
 <script src="js/charts.js?v=30"></script>
 <script src="js/climate.js?v=30"></script>
+<script src="js/forecast-summary.js?v=30"></script>
+<script src="js/today.js?v=30"></script>
 <script src="js/data.js?v=30"></script>
 <script src="js/locations.js?v=30"></script>
 <script src="js/radar.js?v=30"></script>

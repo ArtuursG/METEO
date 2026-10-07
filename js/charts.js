@@ -41,12 +41,10 @@ function buildToggles(){
       on?S.active.add(m.id):S.active.delete(m.id);
       b.classList.toggle('on',on);
       b.setAttribute('aria-pressed',on?'true':'false');
-      $('activeCount').textContent=S.active.size;
       rebuildTempChart();
     };
     wrap.appendChild(b);
   });
-  $('activeCount').textContent=S.active.size;
 }
 
 // ─── MODEL INFO LIST ─────────────────────────────────────────────────────────

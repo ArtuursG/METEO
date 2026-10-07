@@ -36,29 +36,28 @@ function updateMetrics(){
   if(!ecmwf)return;
   const c=ecmwf.current;
   if(c){
-    $('curTemp').innerHTML=`${r0(c.temperature_2m)}<span>°C</span>`;
-    $('curDesc').innerHTML='<span class="wico">'+wIcon(c.weather_code)+'</span>'+wText(c.weather_code);
-    const fl=r0(c.apparent_temperature);
-    $('feelsLike').innerHTML=`${fl!=null?fl:'-'}<span>°C</span>`;
-    const diff=fl!=null&&c.temperature_2m!=null?fl-Math.round(c.temperature_2m):null;
-    $('feelsDesc').textContent=diff==null?'-':diff>1?t('feels.warmer'):diff<-1?t('feels.colder'):t('feels.matches');
-    $('windNow').innerHTML=`${windConv(c.wind_speed_10m)}<span>${S.windUnit}</span>`;
-    const gust=c.wind_gusts_10m!=null?` · ${t('metric.gust')} ${windConv(c.wind_gusts_10m)} ${S.windUnit}`:'';
-    $('windDir').innerHTML=`${t('metric.direction')}: ${wDir(c.wind_direction_10m)}${gust}`;
-    $('humNow').innerHTML=`${r0(c.relative_humidity_2m)}<span>%</span>`;
-    const snow=c.snowfall>0?` · ${t('metric.snow')} ${round(c.snowfall,1)} cm`:'';
-    $('precipNow').textContent=`${t('metric.precip')}: ${round(c.precipitation,1)} mm${snow}`;
+    $('curTemp').textContent=fmtTemp(c.temperature_2m);
+    $('curIcon').innerHTML=wIcon(c.weather_code);
+    $('curIcon').className='now-icon wi wi-'+(wKey(c.weather_code)||'none');
+    $('curDesc').textContent=wText(c.weather_code);
+    const fl=c.apparent_temperature;
+    $('feelsLike').textContent=fl!=null?t('today.feels',{n:fmtTemp(fl)}):'';
+    const w=v=>fmtNum(windConv(v),S.windUnit==='m/s'?1:0);
+    const gust=c.wind_gusts_10m!=null?`, ${t('metric.gust')} ${w(c.wind_gusts_10m)}`:'';
+    $('windNow').innerHTML=`${w(c.wind_speed_10m)} ${S.windUnit} ${wDir(c.wind_direction_10m)}<small>${gust}</small>`;
+    $('humNow').textContent=c.relative_humidity_2m!=null?`${r0(c.relative_humidity_2m)}%`:'-';
   }
-  if(ecmwf.daily?.temperature_2m_max?.[0]!=null){
-    $('todayMax').innerHTML=`${r0(ecmwf.daily.temperature_2m_max[0])}<span>°C</span>`;
-    $('todayMin').textContent=`${t('metric.min')}: ${r0(ecmwf.daily.temperature_2m_min?.[0])}°C`;
+  const d=ecmwf.daily;
+  if(d?.temperature_2m_max?.[0]!=null)$('todayMax').textContent=`${fmtTemp(d.temperature_2m_min?.[0])} … ${fmtTemp(d.temperature_2m_max[0])}`;
+  if(d?.precipitation_sum?.[0]!=null){
+    const snow=c?.snowfall>0?`, ${t('metric.snow')} ${fmtNum(c.snowfall,1)} cm`:'';
+    $('precipNow').textContent=`${fmtNum(d.precipitation_sum[0],1)} mm${snow}`;
   }
-  // Data freshness: shown both on the temperature card and in the always-visible
-  // metrics row (so it is present on every tab, not just Temperature)
-  $('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
-  const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(Object.keys(S.data)[0]||'?');
+  const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(MODELS.find(m=>S.data[m.id]===ecmwf)?.name||'?');
   const srcEl=$('metricsSrc');
-  if(srcEl)srcEl.textContent=`${t('metric.source')}: ${srcModel} · ${t('metric.updated')} ${relTime(S.dataTs)}`;
+  if(srcEl)srcEl.textContent=t('today.src',{model:srcModel,ago:relTime(S.dataTs)});
+  if($('lastUpdate'))$('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
+  if(typeof renderToday==='function')renderToday();
   // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
     const fmt=iso=>new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
