@@ -104,3 +104,20 @@ test('processClimate reduces a daily series', () => {
   assert.ok(out.sd > 0 && Number.isFinite(out.centre));
   assert.equal(out.doyClim.length, 367);
 });
+
+test('median ignores missing values', () => {
+  assert.equal(P.median([]), null);
+  assert.equal(P.median([null, undefined]), null);
+  assert.equal(P.median([3, null, 1, 2]), 2);
+  assert.equal(P.median([4, 1, 3, 2]), 2.5);
+  assert.equal(P.median([-1.5]), -1.5);
+});
+
+test('tempColor clamps and interpolates', () => {
+  assert.equal(P.tempColor(null), null);
+  assert.equal(P.tempColor(-40), '#8ea9f5');
+  assert.equal(P.tempColor(45), '#e2716d');
+  assert.equal(P.tempColor(10), '#d3e59c');
+  assert.match(P.tempColor(12.5), /^#[0-9a-f]{6}$/);
+  assert.notEqual(P.tempColor(12.5), P.tempColor(10));
+});

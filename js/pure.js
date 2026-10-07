@@ -93,6 +93,31 @@ function processClimate(time,mean){
 // Are two {lat,lon} within ~2 km of each other
 const sameLoc=(a,b)=>Math.abs(a.lat-b.lat)<0.02&&Math.abs(a.lon-b.lon)<0.02;
 
+// Median of the finite numbers in a list; null when there are none
+function median(values){
+  const v=(values||[]).filter(x=>x!=null&&Number.isFinite(+x)).map(Number).sort((a,b)=>a-b);
+  if(!v.length)return null;
+  const m=v.length>>1;
+  return v.length%2?v[m]:(v[m-1]+v[m])/2;
+}
+
+// Background colour for a temperature pill or bar (dark text stays readable on it in both themes).
+// Linear interpolation between fixed stops, clamped at both ends.
+const TEMP_STOPS=[[-20,'#8ea9f5'],[-10,'#a3bdf7'],[0,'#b8d8ef'],[5,'#b6e2cf'],[10,'#d3e59c'],[15,'#efd27d'],[20,'#f2b36b'],[25,'#ee9064'],[30,'#e2716d']];
+function tempColor(v){
+  if(v==null||!Number.isFinite(+v))return null;
+  v=+v;
+  if(v<=TEMP_STOPS[0][0])return TEMP_STOPS[0][1];
+  for(let i=1;i<TEMP_STOPS.length;i++){
+    const [t1,c1]=TEMP_STOPS[i];
+    if(v>t1)continue;
+    const [t0,c0]=TEMP_STOPS[i-1],f=(v-t0)/(t1-t0);
+    const ch=(c,k)=>parseInt(c.slice(1+k*2,3+k*2),16);
+    return '#'+[0,1,2].map(k=>Math.round(ch(c0,k)+(ch(c1,k)-ch(c0,k))*f).toString(16).padStart(2,'0')).join('');
+  }
+  return TEMP_STOPS[TEMP_STOPS.length-1][1];
+}
+
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg};
+  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor};
 }
