@@ -50,6 +50,9 @@ const $=id=>document.getElementById(id);
 const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
 const r0=v=>v!=null?Math.round(v):null;
 const cssVar=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+// Locale-aware number for display (lv: decimal comma, proper minus sign); '-' when missing
+const fmtNum=(v,d=1)=>v==null||!Number.isFinite(+v)?'-':(+v).toLocaleString(LOCALE,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtTemp=(v,d=0)=>v==null||!Number.isFinite(+v)?'-':fmtNum(Math.abs(+v)<0.5/10**d?0:v,d)+'°';
 // API returns m/s (wind_speed_unit=ms); converts to km/h only when that unit is selected
 const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(v*10)/10;
 
