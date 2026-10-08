@@ -78,19 +78,23 @@ async function loadWorker(){
   return (await import('data:text/javascript;base64,'+Buffer.from(src).toString('base64'))).default;
 }
 // Minimal D1 stand-in: the latest-readings query and the recent-readings query
-function fakeDb({latest,recent,recentFails=false}){
+function fakeDb({latest,recent,recentFails=false,snapshots={}}){
   return {prepare(sql){
-    const isRecent=/air_temp IS NOT NULL OR surface_temp IS NOT NULL/.test(sql);
-    const stmt={bind:()=>stmt,all:async()=>{
+    const isRecent=/FROM readings WHERE time >= \? AND air_temp IS NOT NULL/.test(sql);
+    let arg=null;
+    const stmt={bind:(...a)=>{arg=a[0];return stmt;},all:async()=>{
       if(isRecent&&recentFails)throw new Error('D1 error');
       return {results:isRecent?recent:latest};
+    },first:async()=>{
+      const name=/name = 'lvc'/.test(sql)?'lvc':arg;
+      return name in snapshots?{json:snapshots[name]}:null;
     }};
     return stmt;
   }};
 }
 const listJson=async(worker,db)=>(await worker.fetch(new Request('https://w.example/'),{DB:db})).json();
 
-test('worker: every station gets prevTime, prevAirTemp, prevSurfaceTemp',async()=>{
+test('worker: every station gets prevTime and prevAirTemp',async()=>{
   const worker=await loadWorker();
   const latest=[
     {id:'a',name:'A1',lat:56.9,lon:24.1,time:'2026-10-08T12:00:00+03:00',airTemp:7.3,surfaceTemp:6},
@@ -109,10 +113,9 @@ test('worker: every station gets prevTime, prevAirTemp, prevSurfaceTemp',async()
   const by=Object.fromEntries(d.stations.map(s=>[s.id,s]));
   assert.equal(by.a.prevTime,'2026-10-08T11:00:00+03:00');
   assert.equal(by.a.prevAirTemp,6.5);
-  assert.equal(by.a.prevSurfaceTemp,5.5);
   assert.equal(by.a.airTemp,7.3,'latest fields are unchanged');
   // b: only 20 and 120 minutes back, c: no recent readings at all
-  for(const id of ['b','c'])assert.deepEqual([by[id].prevTime,by[id].prevAirTemp,by[id].prevSurfaceTemp],[null,null,null]);
+  for(const id of ['b','c'])assert.deepEqual([by[id].prevTime,by[id].prevAirTemp],[null,null]);
   assert.ok(d.updated);
 });
 test('worker: a reading without air temperature is skipped for prevAirTemp',async()=>{
@@ -126,7 +129,6 @@ test('worker: a reading without air temperature is skipped for prevAirTemp',asyn
   const s=(await listJson(worker,fakeDb({latest,recent}))).stations[0];
   assert.equal(s.prevTime,'2026-10-08T08:45:00+03:00','45 and 75 min tie, the newer wins');
   assert.equal(s.prevAirTemp,9.4);
-  assert.equal(s.prevSurfaceTemp,5);
 });
 test('worker: the list still works when the recent-readings query fails',async()=>{
   const worker=await loadWorker();
@@ -135,4 +137,16 @@ test('worker: the list still works when the recent-readings query fails',async()
   assert.equal(d.stations.length,1);
   assert.equal(d.stations[0].airTemp,7);
   assert.equal(d.stations[0].prevAirTemp,null);
+});
+
+test('worker: the list and public data come from the stored snapshot with a short cache',async()=>{
+  const worker=await loadWorker();
+  const db=fakeDb({latest:[],recent:[],snapshots:{lvc:'{"stations":[{"id":"x"}]}',warnings:'{"ok":true,"alerts":[]}'}});
+  const list=await worker.fetch(new Request('https://w.example/'),{DB:db});
+  assert.deepEqual(await list.json(),{stations:[{id:'x'}]});
+  assert.match(list.headers.get('Cache-Control'),/max-age=60/);
+  const w=await worker.fetch(new Request('https://w.example/?data=warnings'),{DB:db});
+  assert.deepEqual(await w.json(),{ok:true,alerts:[]});
+  assert.equal((await worker.fetch(new Request('https://w.example/?data=../secret'),{DB:db})).status,404);
+  assert.equal((await worker.fetch(new Request('https://w.example/?data=hydro'),{DB:db})).status,503);
 });

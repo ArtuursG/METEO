@@ -92,8 +92,8 @@ Vadlīnijas visam sarakstam:
 - [x] Stacijas lapām valodas poga, mierīga atpakaļ saite, saite uz prognozi stacijas vietā.
 - [x] Kopējā pārskata labojumi (16 atradumi).
 - [x] Īsais prognozes teksts noņemts: lapu lieto sinoptiķi, viņiem pietiek ar datiem.
-- [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`), lai LVC
-      stacijām parādās tendence.
+- [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`): LVC tendence,
+      gatavais staciju saraksts un publiskie dati. **Vispirms worker, tikai tad zaru apvieno ar main.**
 
 ## 10. Svaigi dati, mazāk pieprasījumu un izvietojumu (nākamais solis)
 
@@ -103,11 +103,12 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 
 - [x] Prognoze atjaunojas, kamēr lapa atvērta (ik 30 min un atgriežoties pēc 15 min),
       saglabātā prognoze derīga 10 min, stacijas lapas atjaunojas ik 10 min.
-- [ ] Datu momentuzņēmumi (brīdinājumi, hidro, Kp, jūra) nevis caur Pages izvietošanu
-      ik 30 min, bet no Cloudflare, ko atjauno cron.
-- [ ] LVC worker cron reizi 15 min saglabā gatavu staciju saraksta JSON (ar iepriekšējo
-      mērījumu). Saraksta pieprasījums = 1 rinda, nevis visas tabulas skenēšana.
-- [ ] Īss kešs (ap 1 min) tikai pret vienlaicīgu pieprasījumu viļņiem, nevis vecu datu rādīšanai.
+- [x] Brīdinājumi, hidro, Kp un jūras dati vairs nav atkarīgi no Pages izvietošanas: tos
+      atjauno LVC worker cron (brīdinājumi ik 15 min, Kp un hidro ik 30 min, jūra ik 4 h)
+      un glabā D1. Pages publicē tikai koda izmaiņas, grafika vairs nav.
+- [x] LVC worker cron saglabā gatavu staciju sarakstu (ar rādījumu ~1 h agrāk).
+      Saraksta pieprasījums = 1 rinda, nevis visas tabulas skenēšana.
+- [x] Īss kešs (60 s) tikai pret vienlaicīgu pieprasījumu viļņiem.
 - [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā mainās lēni.
 
 ## Vēlāk
@@ -124,10 +125,9 @@ Lapa ir statiska, būvēšana nav vajadzīga.
 ```sh
 git fetch origin redizains
 git checkout redizains
-python scripts/build_public_data.py   # brīdinājumi, hidro, Kp, jūra (vienreiz)
 python -m http.server 8000           # vai VS Code paplašinājums "Live Server"
 ```
 
 Atver http://localhost:8000. Dati nāk no tiem pašiem avotiem kā īstajā lapā.
 
-Testi: `npm test` un `python -m unittest discover -s test -p "*_test.py"`.
+Testi: `npm test`.

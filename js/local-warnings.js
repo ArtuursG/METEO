@@ -21,7 +21,7 @@ async function refreshHomeWarnings(){
  // Latvia-only feed; no source request for locations far outside its coverage.
  if(lat<55.5||lat>58.2||lon<20.8||lon>28.3)return;
  try{
-  const data=await environmentalData('warnings-v2','data/warnings.json',600000);
+  const data=await environmentalData('warnings-v2',publicDataUrl('warnings'),600000);
   if(id!==homeWarningRequest||lat!==S.lat||lon!==S.lon)return;
   const alerts=warningsAtPlace(data.alerts,lat,lon);if(!alerts.length)return;
   box.hidden=false;box.dataset.severity=alerts[0].severity;
