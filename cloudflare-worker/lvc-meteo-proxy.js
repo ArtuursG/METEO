@@ -514,7 +514,7 @@ export default {
     ctx.waitUntil(runCron(env));
   },
 
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
     const url = new URL(request.url);
@@ -524,8 +524,21 @@ export default {
     try {
       if (dataName) {
         if (!Object.hasOwn(PUBLIC_DATA, dataName)) return json({ error: "Unknown data" }, 404);
-        const row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(dataName).first();
-        return row ? cachedJson(row.json) : json({ ok: false, error: "Not ready" }, 503);
+        let row = null;
+        try {
+          row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(dataName).first();
+        } catch (e) {
+          // Tikko izvietots, cron vēl nav bijis: tabulu izveido uzreiz
+          await ensureSnapshots(env);
+        }
+        if (row) return cachedJson(row.json);
+        // Vieglos avotus (brīdinājumi, Kp) salasa uzreiz; lielos atstāj cron
+        if (!PUBLIC_DATA[dataName].heavy) {
+          await storeSnapshot(env, dataName, PUBLIC_DATA[dataName].build);
+          row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(dataName).first();
+          if (row && JSON.parse(row.json).ok) return cachedJson(row.json);
+        }
+        return json({ ok: false, error: "Not ready" }, 503);
       }
 
       if (stationId) {
