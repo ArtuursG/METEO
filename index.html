@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=31">
+<link rel="stylesheet" href="style.css?v=32">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
@@ -173,24 +173,17 @@
         <div class="cw"><div class="loading" id="loadCl"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="cCl" role="img" data-i18n-aria="chart.aria_cloud" aria-label="Mākoņu sega" style="display:none"></canvas></div>
         <div class="legend" id="legCl"></div>
       </div>
-      <section class="card wind-map-card" id="cloudMapCard" aria-labelledby="cloudMapTitle">
-        <h2 id="cloudMapTitle">Mākoņu karte</h2>
+      <section class="card wind-map-card cloud-map-card" id="cloudMapCard" aria-labelledby="cloudMapTitle">
+        <h2 id="cloudMapTitle">Mākoņi virs reģiona</h2>
         <p class="env-note" id="cloudMapInfo"></p>
         <div class="wind-map-actions">
-          <div class="env-nav cloud-modes"><button class="mt" id="cloudObserved" type="button"></button><button class="mt" id="cloudForecast" type="button"></button></div>
-          <button type="button" class="mt" id="cloudMapToggle" aria-controls="cloudMapEmbed" aria-expanded="false">Rādīt mākoņu karti</button>
+          <div class="env-nav cloud-modes" id="cloudModes" role="group" aria-label="Mākoņu kartes skats"><button class="mt" id="cloudObserved" type="button" aria-pressed="true"></button><button class="mt" id="cloudForecast" type="button" aria-pressed="false"></button></div>
+          <button type="button" class="mt" id="cloudMapToggle" aria-controls="cloudMapEmbed" aria-expanded="false">Atvērt mākoņu karti</button>
         </div>
         <div id="cloudMapEmbed" hidden>
-          <div id="cloudMap"></div>
-          <div class="timeline">
-            <div class="timeline-heading"><strong id="cloudTimelineTitle">Laika skala</strong><span id="cloudTime" class="radar-time">-</span></div>
-            <input type="range" id="cloudSlider" class="radar-slider" min="0" max="0" value="0" step="1">
-            <div class="timeline-ends" id="cloudTimelineEnds"></div>
-            <div class="timeline-actions">
-              <button type="button" class="mt" id="cloudPrev">‹</button><button type="button" class="mt" id="cloudPlayBtn" aria-label="Atskaņot">▶</button><button type="button" class="mt" id="cloudNext">›</button>
-            </div>
+          <div class="map-stage cloud-stage" id="cloudStage">
+            <div id="cloudMap" role="region" aria-label="Mākoņi virs reģiona"></div>
           </div>
-          <p class="card-meta" id="cloudMapStatus"></p>
         </div>
         <p class="env-note" id="cloudMapHint"></p>
       </section>
@@ -247,75 +240,60 @@
     </div>
 
     <div id="tab-radar">
-      <div class="card">
+      <section class="card radar-card" aria-labelledby="radarTitle">
         <div class="card-hd">
-          <span class="card-title" data-i18n="card.radar_title">Nokrišņu radars</span>
+          <h2 class="card-title" id="radarTitle" data-i18n="card.radar_title">Nokrišņu radars</h2>
           <span class="card-meta" data-i18n="card.radar_src">Dati: RainViewer</span>
         </div>
-        <div id="radarMap"></div>
-        <div class="radar-ctrl">
-          <button class="mt" id="radarPlayBtn" onclick="radarTogglePlay()">▶</button>
-          <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1">
-          <span id="radarTime" class="radar-time">-</span>
-          <span id="radarStatus" class="radar-status"></span>
+        <div class="map-stage radar-stage" id="radarStage">
+          <div id="radarMap" role="region" aria-label="Nokrišņu radara karte"></div>
+          <div class="radar-bar" id="radarBar" role="toolbar" aria-label="Kartes slāņi">
+            <div class="radar-layers">
+              <button type="button" class="radar-toggle" id="radarTogglePrecip" aria-pressed="true"><i class="radar-key is-precip" aria-hidden="true"></i><span data-i18n="rad.layer_precip">Nokrišņi</span></button>
+              <button type="button" class="radar-toggle" id="radarToggleLvc" aria-pressed="true"><i class="radar-key is-lvc" aria-hidden="true"></i><span>LVC</span><span class="radar-count" id="radarCountLvc"></span></button>
+              <button type="button" class="radar-toggle" id="radarToggleLvgmc" aria-pressed="true"><i class="radar-key is-lvgmc" aria-hidden="true"></i><span>LVĢMC</span><span class="radar-count" id="radarCountLvgmc"></span></button>
+            </div>
+            <div class="radar-metric" id="radarMetric" role="group" aria-labelledby="radarMetricLabel">
+              <span class="radar-metric-label" id="radarMetricLabel" data-i18n="rad.on_map">Uz kartes</span>
+              <button type="button" data-metric="temp" aria-pressed="true" data-i18n="rad.metric_temp">T°</button>
+              <button type="button" data-metric="road" aria-pressed="false" data-i18n="rad.metric_road">Ceļš</button>
+              <button type="button" data-metric="wind" aria-pressed="false" data-i18n="rad.metric_wind">Vējš</button>
+              <button type="button" data-metric="precip" aria-pressed="false" data-i18n="rad.metric_precip">Nokr.</button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="card" id="stationTablesCard" style="display:none">
+      <section class="card st-card" id="stationTablesCard" aria-labelledby="stTitle">
         <div class="card-hd">
-          <span class="card-title" data-i18n="card.stations">Meteostacijas</span>
+          <h2 class="card-title" id="stTitle" data-i18n="card.stations">Meteostacijas</h2>
+          <span class="card-meta st-times" id="stTimes"></span>
         </div>
-        <div class="mt-wrap" id="tableTabs" style="display:none">
-          <button class="mt on" id="tabLvcBtn" onclick="showStationTable('lvc')" data-i18n="radar.lvc_tab">Ceļa meteostacijas (LVC)</button>
-          <button class="mt" id="tabLvgmcBtn" onclick="showStationTable('lvgmc')" data-i18n="radar.lvgmc_tab">LVĢMC meteostacijas</button>
-        </div>
-
-        <div id="lvcTableWrap">
-          <div class="card-meta" id="lvcMeta" style="margin-bottom:.6rem" data-i18n="radar.lvc_src">Dati: transportdata.gov.lv (LVC)</div>
-          <div class="tw">
-            <table id="lvcTable">
-              <thead>
-                <tr>
-                  <th data-sort="name" data-i18n="th.station">Stacija</th>
-                  <th data-sort="dist" data-i18n="th.dist">Attālums</th>
-                  <th data-sort="time" data-i18n="th.time">Laiks</th>
-                  <th data-sort="airTemp" data-i18n="th.air_t">Gaisa t.</th>
-                  <th data-sort="surfaceTemp" data-i18n="th.road_t">Ceļa t.</th>
-                  <th data-sort="humidity" data-i18n="th.humidity">Mitrums</th>
-                  <th data-sort="precipMmH" data-i18n="th.precip">Nokrišņi</th>
-                  <th data-sort="roadCondition" data-i18n="th.road_cond">Ceļa stāvoklis</th>
-                  <th data-sort="minTemp" data-i18n="th.min_t">min t°</th>
-                  <th data-sort="maxTemp" data-i18n="th.max_t">max t°</th>
-                </tr>
-              </thead>
-              <tbody id="lvcBody"></tbody>
-            </table>
+        <div class="st-filters">
+          <label class="st-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <input type="search" id="stSearch" autocomplete="off" spellcheck="false" data-i18n-ph="st.search_ph" data-i18n-aria="st.search" placeholder="Meklēt staciju" aria-label="Meklēt staciju pēc nosaukuma">
+          </label>
+          <div class="st-seg" id="stNetFilter" role="group" data-i18n-aria="st.net_aria" aria-label="Tīkls">
+            <button type="button" data-net="all" aria-pressed="true"><span data-i18n="st.all">Visas</span><span class="st-count"></span></button>
+            <button type="button" data-net="lvc" aria-pressed="false"><span>LVC</span><span class="st-count"></span></button>
+            <button type="button" data-net="lvgmc" aria-pressed="false"><span>LVĢMC</span><span class="st-count"></span></button>
           </div>
+          <label class="st-check"><input type="checkbox" id="stInView"><span data-i18n="st.in_view">Tikai kartē redzamās</span></label>
         </div>
-
-        <div id="lvgmcTableWrap">
-          <div class="card-meta" id="lvgmcMeta" style="margin-bottom:.6rem" data-i18n="radar.lvgmc_src">Dati: data.gov.lv (LVĢMC)</div>
-          <div class="tw">
-            <table id="lvgmcTable">
-              <thead>
-                <tr>
-                  <th data-sort="name" data-i18n="th.station">Stacija</th>
-                  <th data-sort="dist" data-i18n="th.dist">Attālums</th>
-                  <th data-sort="time" data-i18n="th.time">Laiks</th>
-                  <th data-sort="airTemp" data-i18n="th.air_t">Gaisa t.</th>
-                  <th data-sort="feelsLike" data-i18n="th.feels_t">Sajūtu t.</th>
-                  <th data-sort="windSpeed" data-i18n="th.wind">Vējš</th>
-                  <th data-sort="humidity" data-i18n="th.humidity">Mitrums</th>
-                  <th data-sort="precipHour" data-i18n="th.precip_h">Nokrišņi (h)</th>
-                  <th data-sort="minTemp" data-i18n="th.min_t">min t°</th>
-                  <th data-sort="maxTemp" data-i18n="th.max_t">max t°</th>
-                </tr>
-              </thead>
-              <tbody id="lvgmcBody"></tbody>
-            </table>
-          </div>
+        <p class="st-msg" id="stMsg" role="status" hidden></p>
+        <div class="st-scroll">
+          <table class="st-table" id="stationTable" hidden>
+            <thead><tr id="stHeadRow"></tr></thead>
+            <tbody id="stBody"></tbody>
+          </table>
         </div>
-      </div>
+        <ul class="st-list" id="stList" hidden></ul>
+        <div class="st-foot">
+          <span class="st-foot-note" id="stFootNote"></span>
+          <button type="button" class="st-more" id="stMore" aria-expanded="false" aria-controls="stationTable stList" hidden></button>
+        </div>
+      </section>
     </div>
 
     <div id="tab-about">
@@ -361,29 +339,29 @@
 
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/i18n.js?v=31"></script>
-<script src="js/pure.js?v=31"></script>
-<script src="js/chart-time.js?v=31"></script>
-<script src="js/core.js?v=31"></script>
-<script src="js/weather.js?v=31"></script>
-<script src="js/charts.js?v=31"></script>
-<script src="js/climate.js?v=31"></script>
-<script src="js/forecast-summary.js?v=31"></script>
-<script src="js/today.js?v=31"></script>
-<script src="js/data.js?v=31"></script>
-<script src="js/locations.js?v=31"></script>
-<script src="js/radar.js?v=31"></script>
-<script src="js/forecast-range.js?v=31"></script>
-<script src="js/forecast-controls.js?v=31"></script>
-<script src="js/map-controls.js?v=31"></script>
-<script src="js/radar-timeline.js?v=31"></script>
-<script src="js/cloud-map.js?v=31"></script>
-<script src="js/data-cache.js?v=31"></script>
-<script src="js/marine.js?v=31"></script>
-<script src="js/environment.js?v=31"></script>
-<script src="js/local-warnings.js?v=31"></script>
-<script src="js/wind-map.js?v=31"></script>
-<script src="js/app.js?v=31"></script>
+<script src="js/i18n.js?v=32"></script>
+<script src="js/pure.js?v=32"></script>
+<script src="js/chart-time.js?v=32"></script>
+<script src="js/core.js?v=32"></script>
+<script src="js/weather.js?v=32"></script>
+<script src="js/charts.js?v=32"></script>
+<script src="js/climate.js?v=32"></script>
+<script src="js/forecast-summary.js?v=32"></script>
+<script src="js/today.js?v=32"></script>
+<script src="js/data.js?v=32"></script>
+<script src="js/locations.js?v=32"></script>
+<script src="js/radar.js?v=32"></script>
+<script src="js/forecast-range.js?v=32"></script>
+<script src="js/forecast-controls.js?v=32"></script>
+<script src="js/map-utils.js?v=32"></script>
+<script src="js/timeline.js?v=32"></script>
+<script src="js/cloud-map.js?v=32"></script>
+<script src="js/data-cache.js?v=32"></script>
+<script src="js/marine.js?v=32"></script>
+<script src="js/environment.js?v=32"></script>
+<script src="js/local-warnings.js?v=32"></script>
+<script src="js/wind-map.js?v=32"></script>
+<script src="js/app.js?v=32"></script>
 <script>
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js');

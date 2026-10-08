@@ -152,11 +152,20 @@ async function initVerification(){
   }
 }
 
+// Models picked for the chart; null until the first render (then the 3 most accurate)
+let _verifChosen=null;
+
 function renderVerification(st,dist,rows,series){
   $('verifMeta').textContent=t('verif.station',{name:st.name,dist:round(dist)});
   const best=rows[0];
   $('verifIntro').textContent=t('verif.intro',
     {station:st.name,best:best.name,mae:best.mae.toFixed(1),count:rows.length});
+
+  const available=new Set(rows.map(r=>r.id));
+  _verifChosen=_verifChosen===null?new Set(rows.slice(0,3).map(r=>r.id)):new Set([..._verifChosen].filter(id=>available.has(id)));
+  let hint=$('modelCompareHint');
+  if(!hint){hint=document.createElement('p');hint.id='modelCompareHint';hint.className='compare-hint';$('verifTable').before(hint);}
+  hint.textContent=t('st.verif_hint');
 
   const fmtBias=v=>{const x=+v.toFixed(1); return x===0?'±0.0°C':`${x>0?'+':'−'}${Math.abs(x).toFixed(1)}°C`;};
   const tb=$('verifBody'); tb.textContent='';
@@ -164,8 +173,14 @@ function renderVerification(st,dist,rows,series){
     const tr=document.createElement('tr');
     if(i===0)tr.className='verif-best';
     const td1=document.createElement('td');
+    const label=document.createElement('label');
+    const check=document.createElement('input');
+    check.type='checkbox';check.checked=_verifChosen.has(rw.id);
+    check.setAttribute('aria-label',t('st.verif_compare',{name:rw.name}));
+    check.addEventListener('change',()=>{check.checked?_verifChosen.add(rw.id):_verifChosen.delete(rw.id);drawVerifChart();});
     const dot=document.createElement('span'); dot.className='mt-dot'; dot.style.background=rw.color;
-    td1.appendChild(dot); td1.appendChild(document.createTextNode(rw.name));
+    label.append(check,dot,document.createTextNode(rw.name));
+    td1.appendChild(label);
     const td2=document.createElement('td'); td2.textContent=`${rw.mae.toFixed(1)}°C`;
     const td3=document.createElement('td'); td3.textContent=fmtBias(rw.bias);
     const td4=document.createElement('td'); td4.textContent=rw.n;
@@ -176,15 +191,20 @@ function renderVerification(st,dist,rows,series){
   const cd=CD();
   const labels=series.times.map(fmtHour);
   const obsData=series.times.map(iso=>series.obs[iso.slice(0,13)]??null);
-  const ds=[{label:`${st.name} (${t('verif.measured')})`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3}];
-  rows.slice(0,3).forEach(rw=>ds.push({
+  const measured={label:`${st.name} (${t('verif.measured')})`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3};
+  const datasets=()=>[measured,...rows.filter(rw=>_verifChosen.has(rw.id)).map(rw=>({
     label:rw.name,data:series.hourly[`temperature_2m_${rw.id}`],
     borderColor:rw.color,borderWidth:1.5,pointRadius:0,tension:0.3,borderDash:[4,3]
-  }));
+  }))];
+  function drawVerifChart(){
+    if(!S.charts.verif)return;
+    S.charts.verif.data.datasets=datasets();
+    S.charts.verif.update();
+  }
   if(S.charts.verif)S.charts.verif.destroy();
   $('cVerif').style.display='block';
   S.charts.verif=new Chart($('cVerif'),{
-    type:'line',data:{labels,datasets:ds},
+    type:'line',data:{labels,datasets:datasets()},
     options:{...cd,
       scales:{...cd.scales,
         x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:12}},
@@ -198,4 +218,3 @@ function renderVerification(st,dist,rows,series){
     }
   });
 }
-
