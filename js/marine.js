@@ -4,14 +4,14 @@ const marineMeta={wave:{unit:'m',max:3},temperature:{unit:'°C',max:25},current:
 const marineName=key=>t('env.m_'+key);
 function renderMarine(data){
  const c=$('environmentContent'),meta=marineMeta[marineParameter],name=marineName(marineParameter);
- c.append(envNode('h2',t('env.marine_title')));
+ envHead(t('env.marine_title'),null,data?.points?.length?data:null,18*3600000);
  const tabs=envNode('div',null,'env-nav');
  for(const [key,m] of Object.entries(marineMeta)){
   const b=envNode('button',marineName(key),'mt');b.setAttribute('aria-pressed',String(key===marineParameter));
   b.onclick=()=>{marineParameter=key;initEnvironment();};tabs.append(b);
  }c.append(tabs);
  if(!data?.points?.length){c.append(envNode('p',t('env.marine_none'),'env-warning'));const retry=envNode('button',t('env.retry'),'mt');retry.onclick=()=>{environmentRenderedKey=null;initEnvironment();};c.append(retry);return;}
- c.append(environmentFreshness(data,18*3600000),envNode('p',t('env.marine_intro'),'env-note'));
+ c.append(envNode('p',t('env.marine_intro'),'env-note'));
  const start=Math.floor(Date.now()/3600000)*3600000,end=start+marineHours*3600000;
  const points=data.points.map(p=>({...p,series:p.series.filter(([t])=>Date.parse(t)>=start&&Date.parse(t)<end)})).filter(p=>p.series.some(([,v])=>v!=null));
  if(!points.length){c.append(envNode('p',t('env.marine_expired'),'env-warning'));return;}
