@@ -5,6 +5,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Worker code, docs and tests are not part of the published site
+    paths-ignore:
+      - 'cloudflare-worker/**'
+      - 'docs/**'
+      - 'test/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
