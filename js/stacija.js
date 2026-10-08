@@ -5,7 +5,11 @@
 // pirms datu ielādes un mini-kartei).
 
 const $=id=>document.getElementById(id);
-const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
+// Skaitļi ar decimālkomatu latviski (punktu angliski); '-', ja vērtības nav
+const fmtN=(v,d=1)=>v==null||!Number.isFinite(+v)?'-':(+v).toLocaleString(LOCALE,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtT=v=>v==null||!Number.isFinite(+v)?'-':fmtN(Math.abs(+v)<0.05?0:v,1)+'°';
+const _mapLayers=[];
+const mapTileUrl=part=>`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light'}_Gray_${part}/MapServer/tile/{z}/{y}/{x}`;
 const LVC_API='https://lvc-meteo-proxy.jkedainis.workers.dev/';
 
 applyStaticI18n();
@@ -15,7 +19,6 @@ const roadCondLv=c=>c?(ROAD_COND_KEY[c]?t(ROAD_COND_KEY[c]):c):'-';
 
 const windDirLv=deg=>deg==null?'':COMPASS[LANG][compassIndex(deg)];
 const noData=()=>t('stp.no_data');
-// tempCls comes from pure.js
 
 function fmtTime(iso){
   return chartTimeLabel(iso,LOCALE,'Europe/Riga');
@@ -34,6 +37,7 @@ function setTheme(th){
   try{localStorage.setItem('theme',th);}catch(e){}
   renderThemeIcon();
   if(_lastHist.length){renderChart(_lastHist);renderMinMaxChart(_lastHist);renderWindChart(_lastHist);}
+  _mapLayers.forEach(({layer,part})=>layer.setUrl(mapTileUrl(part)));
 }
 $('themeToggle').addEventListener('click',()=>{
   const cur=document.documentElement.getAttribute('data-theme');
@@ -54,7 +58,7 @@ function CD(){
         titleColor:v('--chart-tip-title'),bodyColor:v('--chart-tip-body'),padding:11,cornerRadius:7},
     },
     scales:{
-      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
+      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:window.innerWidth<=600?4:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
       y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}},
     }
   };
@@ -132,7 +136,7 @@ function renderWindChart(hist){
     type:'line',
     data:{labels,datasets:[
       {label:t('stp.ds_wind_speed'),data:hist.map(h=>h.windSpeed),borderColor:'#7fb37a',borderWidth:1.5,pointRadius:0,tension:0.3},
-      {label:t('stp.ds_gust'),data:hist.map(h=>h.windGust),borderColor:'#4a8f44',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_gust'),data:hist.map(h=>h.windGust),borderColor:'#7fb37a',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0.3},
     ]},
     options:CD(),
   });
@@ -141,11 +145,11 @@ function renderWindChart(hist){
 function renderMiniMap(lat,lon,name){
   if(lat==null||lon==null)return;
   _miniMap=L.map('stMiniMap',{zoomControl:false,attributionControl:true}).setView([lat,lon],11);
-  // Esri Gray Canvas (bez API atslēgas); base + nosaukumu slānis atsevišķi
-  const esriTile=svc=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{
-    attribution:'Tiles © Esri',maxZoom:16});
-  esriTile('Canvas/World_Light_Gray_Base').addTo(_miniMap);
-  esriTile('Canvas/World_Light_Gray_Reference').addTo(_miniMap);
+  // Esri Gray Canvas lapas tēmā (bez API atslēgas); pamatne un nosaukumu slānis atsevišķi
+  for(const part of ['Base','Reference']){
+    const layer=L.tileLayer(mapTileUrl(part),{attribution:'Tiles © Esri',maxZoom:16}).addTo(_miniMap);
+    _mapLayers.push({layer,part});
+  }
   const marker=L.circleMarker([lat,lon],{radius:8,color:'#fff',weight:2,fillColor:'#e0796d',fillOpacity:0.95}).addTo(_miniMap);
   if(name)marker.bindTooltip(name,{permanent:false,direction:'top'});
 }
@@ -181,32 +185,31 @@ async function load(){
     const cur=hist[hist.length-1];
     document.title=`${nameHint||id} - prognoze.lv`;
 
-    $('stAirTemp').innerHTML=`${cur.airTemp!=null?round(cur.airTemp,1):'-'}<span>°C</span>`;
-    $('stAirTemp').className='mc-val '+tempCls(cur.airTemp);
+    $('stAirTemp').textContent=fmtT(cur.airTemp);
     $('stTime').textContent=fmtTime(cur.time).join(' ');
-
-    $('stSurfTemp').innerHTML=`${cur.surfaceTemp!=null?round(cur.surfaceTemp,1):'-'}<span>°C</span>`;
-    $('stSurfTemp').className='mc-val '+tempCls(cur.surfaceTemp);
-    $('stRoadCond').textContent=roadCondLv(cur.roadCondition);
+    $('stSurfTemp').textContent=fmtT(cur.surfaceTemp);
+    $('stRoadCond').textContent=cur.roadCondition?roadCondLv(cur.roadCondition):'';
 
     const withTemp=hist.filter(h=>h.airTemp!=null);
     if(withTemp.length){
       const minH=withTemp.reduce((a,b)=>a.airTemp<b.airTemp?a:b);
       const maxH=withTemp.reduce((a,b)=>a.airTemp>b.airTemp?a:b);
-      $('stMin').innerHTML=`${round(minH.airTemp,1)}<span>°C</span>`;
+      $('stMin').textContent=fmtT(minH.airTemp);
       $('stMinTime').textContent=fmtTime(minH.time).join(' ');
-      $('stMax').innerHTML=`${round(maxH.airTemp,1)}<span>°C</span>`;
+      $('stMax').textContent=fmtT(maxH.airTemp);
       $('stMaxTime').textContent=fmtTime(maxH.time).join(' ');
     }
 
-    $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
-    $('dGust').textContent=cur.windGust!=null?`${round(cur.windGust,1)} m/s`:noData();
-    $('dHum').textContent=cur.humidity!=null?`${round(cur.humidity,0)}%`:noData();
-    $('dPrecip').textContent=cur.precipMmH!=null?`${round(cur.precipMmH,1)} mm/h`:noData();
-    $('dDew').textContent=cur.dewPoint!=null?`${round(cur.dewPoint,1)}°C`:noData();
-    $('dVis').textContent=cur.visibilityM!=null?`${round(cur.visibilityM/1000,1)} km`:noData();
+    $('dWind').textContent=cur.windSpeed!=null?`${fmtN(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
+    $('dGust').textContent=cur.windGust!=null?`${fmtN(cur.windGust,1)} m/s`:noData();
+    $('dHum').textContent=cur.humidity!=null?`${fmtN(cur.humidity,0)}%`:noData();
+    $('dPrecip').textContent=cur.precipMmH!=null?`${fmtN(cur.precipMmH,1)} mm/h`:noData();
+    // Berzes koeficients 0-1: sauss asfalts ap 0,8, slapjš ap 0,5, ledus zem 0,3
+    $('dFriction').textContent=cur.friction!=null?fmtN(cur.friction,2):noData();
+    $('dDew').textContent=cur.dewPoint!=null?`${fmtN(cur.dewPoint,1)}°C`:noData();
+    $('dVis').textContent=cur.visibilityM!=null?`${fmtN(cur.visibilityM/1000,1)} km`:noData();
     // com:distance DATEX II laukos ir metros (tāpat kā ledus biezums) - pārrēķina uz cm parastai sniega dziļuma vienībai
-    $('dSnow').textContent=cur.snowDepthM!=null?`${round(cur.snowDepthM*100,1)} cm`:noData();
+    $('dSnow').textContent=cur.snowDepthM!=null?`${fmtN(cur.snowDepthM*100,1)} cm`:noData();
 
     $('stChartMeta').textContent=t('stp.measurements',{n:hist.length,h:24});
     renderChart(hist);

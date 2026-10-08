@@ -13,6 +13,8 @@
 - Scripts load with defer, so the page appears before the chart and map libraries arrive.
 - Numbers in the new views use the Latvian decimal comma.
 - All remaining inline Latvian/English strings moved into the string tables; unused translations removed.
+- Station pages use the same current-conditions block as the home page, a map that follows the light/dark theme and dashed gust lines. LVĢMC min/max now covers the last 24 hours. Road stations show road grip instead of an always-empty pressure row.
+- Remove unused styles from the old tab bar and metric cards.
 
 ## 2026-09-21 - Marine timeline label layout
 

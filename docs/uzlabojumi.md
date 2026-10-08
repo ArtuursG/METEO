@@ -40,6 +40,8 @@ Vadlīnijas visam sarakstam:
 - [x] Kolonnas "Laiks" vietā laiks virsrakstā, atzīmētas tikai novecojušās stacijas.
 - [x] Kārtošana ar bultiņām, lietojama ar tastatūru.
 - [x] Telefonā saraksts ar kartītēm, nevis plata tabula.
+- [x] Stacijas lapās tāds pats "tagad" bloks kā sākumā, karte seko gaišajai/tumšajai tēmai,
+      LVĢMC min/max ir par pēdējām 24 h, ceļu stacijām spiediena (LVC to nemēra) vietā saķere.
 
 ## 4. Sākums ("Šodien")
 

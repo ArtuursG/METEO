@@ -155,27 +155,7 @@ main{max-width:1120px;margin:0 auto;padding:2.5rem 1.5rem 1rem}
 .share-btn.wa:hover{color:#25d366}
 .share-btn.tg:hover{color:#2aabee}
 
-/* ── METRICS ────────────────────────────────────────────────────────────────── */
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin-bottom:2rem;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.mc{background:var(--panel);padding:1.1rem 1.2rem;transition:background .35s}
-.mc-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;font-weight:500}
-.mc-val{font-size:27px;font-weight:500;letter-spacing:-1px;font-family:'IBM Plex Mono',ui-monospace,monospace}
-.mc-val span{font-size:13px;font-weight:400;color:var(--t3);margin-left:2px;letter-spacing:0}
-.mc-sub{font-size:12px;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:5px}
-.wico{display:inline-flex;color:var(--t2)}
-.wico svg{width:14px;height:14px;stroke-width:1.7}
-
-.metrics-src{font-size:11px;color:var(--t3);text-align:right;margin-bottom:1.5rem;font-family:'IBM Plex Mono',ui-monospace,monospace}
-
-/* ── TABS ───────────────────────────────────────────────────────────────────── */
-.tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:2rem;overflow-x:auto;scrollbar-width:none}
-.tab-bar::-webkit-scrollbar{display:none}
-.tb{display:flex;align-items:center;gap:7px;background:none;border:none;color:var(--t3);font-size:13px;font-family:inherit;padding:11px 14px;cursor:pointer;border-bottom:1.5px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .15s,border-color .15s}
-.tb svg{width:15px;height:15px;stroke-width:1.7;opacity:.85}
-.tb.active{color:var(--t);border-bottom-color:var(--acc);font-weight:500}
-.tb.active svg{opacity:1}
-.tb:hover:not(.active){color:var(--t2)}
-.tb:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;border-radius:4px}
+/* ── PANELS ─────────────────────────────────────────────────────────────────── */
 .tc>div[role="tabpanel"]:focus-visible{outline:2px solid var(--acc);outline-offset:4px;border-radius:6px}
 
 /* ── CARD ───────────────────────────────────────────────────────────────────── */
@@ -268,15 +248,7 @@ tr:hover td{background:var(--s2)}
 .model-info{background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:.85rem 1.1rem;font-size:12px;color:var(--t3);margin-bottom:1.1rem;line-height:1.55;transition:background .35s}
 .model-info b{color:var(--t2)}
 
-/* ── SPREAD BAND TOGGLE ─────────────────────────────────────────────────────── */
-.spread-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-.4rem 0 1rem}
-.spread-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none}
-.spread-toggle input{accent-color:var(--acc);cursor:pointer;margin:0}
-
 .card-meta{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace}
-#metricsRow{margin-bottom:.5rem}
-
-
 
 /* ── STACIJAS LAPA (stacija.html) ──────────────────────────────────────────── */
 .st-detail-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
@@ -285,12 +257,15 @@ tr:hover td{background:var(--s2)}
 .st-detail-grid .lbl{color:var(--t3)}
 .st-detail-grid .val{color:var(--t2);font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;text-align:right}
 #stMiniMap{height:220px;border-radius:8px;overflow:hidden;background:var(--s2)}
+.st-now .now-facts{grid-template-columns:repeat(3,minmax(0,1fr))}
+.st-now .now-facts dd small{display:block;margin-top:2px;font-size:11px;white-space:nowrap}
 .st-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12.5px;color:var(--t3);margin-top:1rem}
 .st-info-grid b{color:var(--t2);font-weight:500}
 @media(max-width:600px){
   .st-detail-grid{grid-template-columns:1fr}
   .st-detail-grid>div:nth-child(odd){border-right:none}
   .st-info-grid{grid-template-columns:1fr}
+  .st-now .now-facts{gap:12px}
 }
 
 /* ── FOOTER ─────────────────────────────────────────────────────────────────── */
@@ -306,17 +281,10 @@ footer a:hover{text-decoration:underline}
   .sa{order:3;flex:0 0 100%;max-width:100%}
   .sbtn{padding:8px 13px}
 
-  /* Cilnes - tikai ikonas */
-  .tb span{display:none}
-  .tb{padding:10px 16px;justify-content:center}
-  .tb svg{width:18px;height:18px}
-
   /* Saturs */
   main{padding:1.2rem .9rem .9rem}
   .hero-top h1{font-size:24px}
   .hero{margin-bottom:1.2rem;gap:8px}
-  .metrics{margin-bottom:1.2rem}
-  .metrics{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
 
   /* Grafiki */
   .cw{height:230px}
@@ -333,21 +301,11 @@ footer a:hover{text-decoration:underline}
 /* Card and interaction refinements. */
 :root[data-theme="dark"]{--t3:#a09f95;--chart-tick:#a09f95;--line:rgba(255,255,255,.12)}
 :root[data-theme="light"]{--t3:#6b695e;--chart-tick:#6b695e}
-.preview-note{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px;color:var(--t3);font-size:12px}
-.preview-note a{color:var(--acc);text-decoration:none}
-.metrics{gap:10px;background:transparent;border:0;overflow:visible;margin-bottom:12px}
-.mc{border:1px solid var(--b2);border-radius:11px;padding:20px 16px;background:var(--panel);box-shadow:0 4px 14px #0000000a}
-.mc:first-child{border-top:3px solid var(--acc);padding-top:18px}
-.mc-label{font-size:11px}
-.mc-val{font-size:30px}
-.mc-sub{font-size:13px;color:var(--t2)}
-.metrics-src{font-size:12px}
 .card{border:1px solid var(--b2);border-radius:12px;box-shadow:0 6px 24px #0000000d}
 .card-title{font-size:13px}
 .card-meta{font-size:12px}
 .model-info{font-size:13px}
 .mt{font-size:12px;min-height:36px}
-.tb{font-size:13px;min-height:44px}
 .range-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 18px;padding:12px 14px;background:var(--panel);border:1px solid var(--b2);border-radius:10px}
 .range-label{font-size:12px;color:var(--t2)}
 .range-buttons{display:flex;gap:4px}
@@ -358,9 +316,6 @@ footer a:hover{text-decoration:underline}
 .range-note{color:var(--t3);font-size:12px;flex:1;min-width:190px}
 .cw-tall{height:380px}
 @media(max-width:600px){
- .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
- .mc{padding:16px 12px}
- .mc:first-child{padding-top:14px}
  .range-bar{padding:10px;gap:8px}
  .range-label{width:100%}
  .range-buttons{width:100%}
@@ -477,7 +432,6 @@ footer a:hover{text-decoration:underline}
  .env-nav button{flex:0 1 auto}
  .env-chart{height:230px}
 }
-
 
 .env-location{font-size:13px;font-weight:500;color:var(--t);margin:8px 0 2px}
 .env-location+.env-note{margin-top:0}
