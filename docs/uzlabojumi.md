@@ -80,6 +80,24 @@ Vadlīnijas visam sarakstam:
 - [x] `.timeline` stili vienā vietā.
 - [x] Jaunie teksti `i18n.js`, nevis iekļauti kodā.
 
+## 9. Otrā kārta
+
+- [x] Visus 14 modeļus var izvēlēties arī mākoņu grafikā un dienu tabulā. ECMWF IFS,
+      ICON-EU un MET Norway paliek ieteiktie un ir noklusējums arī temperatūrai.
+- [x] Modeļu precizitāte pret tuvāko LVĢMC staciju (pēdējās 48 h) grafikā un modeļu sarakstā.
+      Tikai informācija, noklusējumu nemaina.
+- [x] Šodien blokā rinda par slidenu ceļu (LVC ceļa virsma zem 0° vai tuvu tam).
+- [x] Šodien blokā rinda par to, kā prognoze mainījusies kopš iepriekšējā apmeklējuma.
+- [x] Temperatūras tendence stacijās (tabula, kartes logs, stacijas lapa).
+- [x] Stacijas lapām valodas poga, mierīga atpakaļ saite, saite uz prognozi stacijas vietā.
+- [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`), lai LVC
+      stacijām parādās tendence.
+- [ ] Pabeigt kopējā pārskata labojumus.
+- [ ] Izlemt par īso teksta kopsavilkumu Šodien blokā (lapu lieto sinoptiķi, viņiem
+      pietiek ar datiem): noņemt vai aizstāt ar faktiem.
+- [ ] Mazāk GitHub Pages izvietojumu: tagad lapa tiek publicēta ik 30 min, jo atjaunojas
+      dati. Publicēt tikai tad, kad dati tiešām mainījušies.
+
 ## Vēlāk
 
 - EUMETNET OPERA radars (CC BY 4.0, 1 km / 5 min). Dati nāk kā faili, nevis kartes
