@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-09 - Free model choice, road ice, forecast changes, station trends
+
+- Every model can be chosen in the cloud chart and the daily table. ECMWF IFS, ICON-EU and MET Norway stay the recommended, visible choice and are now also the temperature chart default.
+- Recent model accuracy against the nearest LVĢMC station appears under the temperature chart and in the model picker, as information only.
+- The now block reports icy road surfaces from nearby LVC road weather stations and what changed in the forecast since the previous visit. The short forecast sentence is removed: the numbers, hours and days say it more precisely.
+- Temperature trend arrows in the station table, popups and station pages. The LVC worker returns the reading about an hour before the latest one (redeploy the worker to get LVC trends).
+- Station pages get the language switch, a calm back link and a link to the forecast for the station's place.
+
 ## 2026-10-08 - Today view, new radar and shared map timeline
 
 - Add a Today tab and a compact current-conditions block: a short summary computed from all models, a model agreement dot, the nearest LVĢMC reading, the next 24 hours and up to 10 days with model spread.

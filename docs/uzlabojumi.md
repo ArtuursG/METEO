@@ -45,9 +45,9 @@ Vadlīnijas visam sarakstam:
 
 ## 4. Sākums ("Šodien")
 
-- [x] Viena teikuma kopsavilkums: kad līs, cik silts, rīt siltāks vai vēsāks.
+- [x] ~~Viena teikuma kopsavilkums~~ (vēlāk noņemts, sk. 9. sadaļu).
       Rēķina pēc noteikumiem no visu modeļu datiem (mediāna un cik modeļu piekrīt).
-- [x] Cik modeļi vienisprātis, blakus kopsavilkumam.
+- [x] Cik modeļi vienisprātis.
 - [x] Tuvākās LVĢMC stacijas mērījums (ja stacija ir tuvāk par ~25 km).
 - [x] Stundu josla nākamajām stundām: laiks, ikona, temperatūra, lietus varbūtība.
 - [x] Dienu saraksts ar min/max joslām. Gaišākā josla rāda modeļu izkliedi.
@@ -90,31 +90,23 @@ Vadlīnijas visam sarakstam:
 - [x] Šodien blokā rinda par to, kā prognoze mainījusies kopš iepriekšējā apmeklējuma.
 - [x] Temperatūras tendence stacijās (tabula, kartes logs, stacijas lapa).
 - [x] Stacijas lapām valodas poga, mierīga atpakaļ saite, saite uz prognozi stacijas vietā.
+- [x] Kopējā pārskata labojumi (16 atradumi).
+- [x] Īsais prognozes teksts noņemts: lapu lieto sinoptiķi, viņiem pietiek ar datiem.
 - [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`), lai LVC
       stacijām parādās tendence.
-- [x] Kopējā pārskata labojumi lapā (16 atradumi): ceļu rinda seko LVC atjaunošanai,
-      tendence tikai svaigiem mērījumiem, teksti, krāsas, pogas bez datiem paslēptas.
-- [ ] LVC worker: saraksta vaicājums bez visas tabulas skenēšanas, prevSurfaceTemp ārā.
 
-## 10. Mazāk pieprasījumu un izvietojumu (nākamais solis)
+## 10. Svaigi dati, mazāk pieprasījumu un izvietojumu (nākamais solis)
 
-Mērķis: GitHub Pages publicēt tikai pēc koda izmaiņām, apmeklētāju pieprasījumus apvienot
-un kešot, palikt bezmaksas limitos (Cloudflare Workers 100k pieprasījumu dienā, D1 5M
-nolasītu rindu dienā).
+Mērķis: atverot lapu, visi dati ir aktuāli; GitHub Pages publicē tikai pēc koda izmaiņām;
+apmeklētāju pieprasījumi ir lēti un paliek bezmaksas limitos (Cloudflare Workers 100k
+pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 
-- [ ] Datu momentuzņēmumi (brīdinājumi, hidro, Kp, jūra) vairs ne caur Pages izvietošanu
-      ik 30 min, bet no Cloudflare (D1 tabula ar gatavu JSON), ko atjauno cron.
-      Pages izvieto tikai koda izmaiņas.
+- [ ] Datu momentuzņēmumi (brīdinājumi, hidro, Kp, jūra) nevis caur Pages izvietošanu
+      ik 30 min, bet no Cloudflare, ko atjauno cron.
 - [ ] LVC worker cron reizi 15 min saglabā gatavu staciju saraksta JSON (ar iepriekšējo
       mērījumu). Saraksta pieprasījums = 1 rinda, nevis visas tabulas skenēšana.
-- [ ] Atbildēm Cache-Control (5 min), lai pārlūks un starpniekserveri tās atkārto.
-- [ ] Pārlūkā staciju sarakstus glabāt ar derīguma laiku, lai pārlādēšana un vairākas
-      cilnes nepieprasa no jauna.
-- [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā lēni mainās.
-- [ ] Izlemt par īso teksta kopsavilkumu Šodien blokā (lapu lieto sinoptiķi, viņiem
-      pietiek ar datiem): noņemt vai aizstāt ar faktiem.
-- [ ] Mazāk GitHub Pages izvietojumu: tagad lapa tiek publicēta ik 30 min, jo atjaunojas
-      dati. Publicēt tikai tad, kad dati tiešām mainījušies.
+- [ ] Īss kešs (ap 1 min) tikai pret vienlaicīgu pieprasījumu viļņiem, nevis vecu datu rādīšanai.
+- [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā mainās lēni.
 
 ## Vēlāk
 
@@ -130,7 +122,10 @@ Lapa ir statiska, būvēšana nav vajadzīga.
 ```sh
 git fetch origin redizains
 git checkout redizains
-npx serve .            # vai VS Code paplašinājums "Live Server"
+python scripts/build_public_data.py   # brīdinājumi, hidro, Kp, jūra (vienreiz)
+python -m http.server 8000           # vai VS Code paplašinājums "Live Server"
 ```
+
+Atver http://localhost:8000. Dati nāk no tiem pašiem avotiem kā īstajā lapā.
 
 Testi: `npm test` un `python -m unittest discover -s test -p "*_test.py"`.

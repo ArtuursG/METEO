@@ -10,24 +10,25 @@ Free meteorological forecast site displaying **14 leading global weather models*
 
 ### Forecast charts
 - Shared **48 h / 7 days / 14 days+** period switch above each chart, defaulting to 7 days. Hourly views begin at the current forecast-local hour; extended views use the available model horizon.
-- **Model picker** on the temperature, precipitation and wind charts: chips for the models on the chart (they double as the legend, × removes one) and a "+N modeļi" panel listing every model with its organisation, resolution and horizon, plus Visi / Neviens / Noklusējums. The choice is remembered per chart; models outside their coverage for the chosen place are shown greyed out.
+- **Model picker** on the temperature, precipitation and wind charts: chips for the models on the chart (they double as the legend, × removes one) and a "+N modeļi" panel listing every model with its organisation, resolution and horizon, plus Visi / Neviens / Noklusējums. ECMWF IFS, ICON-EU and MET Norway, the models recommended for Latvia, are listed first; the temperature picker also shows each model's recent error against the nearest LVĢMC station. The choice is remembered per chart; models outside their coverage for the chosen place are shown greyed out.
 
-- **Temperature** - by default the median of all models (thick line), the spread band and two models (ECMWF IFS, ICON-EU); any of the 14 models can be added
+- **Temperature** - by default the median of all models (thick line), the spread band and the three recommended models (ECMWF IFS, ICON-EU, MET Norway); any of the 14 models can be added. A quiet line under the chart names the model that came closest to the nearest LVĢMC station over the past 48 h, with buttons to compare or to add it to the chart. It is information only and never changes the defaults
 - **Model spread band** - shaded range between the coldest and warmest of all models at each hour, drawn behind the lines; a verdict with a status dot next to the title ("Modeļi vienisprātis" / "daļēji atšķiras" / "Liela nenoteiktība", ± half the average spread over the next 48 h). Median and band are toggles in the picker, saved to localStorage
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly %; follows the same model selection as the precipitation (mm) chart, skipping models that do not provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
-- **Cloud cover** - hourly cloud cover (%) for the next 5 days; single model, colour-coded bars (clear -> overcast). Below the chart, an on-demand **cloud map** combining real satellite imagery with a model forecast in one sat24-style timeline: the past ~2 h are actual [EUMETSAT](https://www.eumetsat.int) satellite frames (free, no key), the future (up to 5 days, hourly then 3-hourly) is gridded DWD ICON cloud cover via [Open-Meteo's weather-map-layer](https://github.com/open-meteo/weather-map-layer) - the same model compared elsewhere on the site. One slider/play control spans both; satellite frames are dark at night (visible-light channel, no infrared fallback yet). No API key, no background preloading - the map, its ~2.9 MB rendering library and the satellite tiles only load after "Show cloud map" is pressed
+- **Cloud cover** - hourly cloud cover (%) for the next 5 days; one model at a time (the three recommended as buttons, every other model with data at the place under "Citi"), colour-coded bars (clear -> overcast). Below the chart, an on-demand **cloud map** combining real satellite imagery with a model forecast in one sat24-style timeline: the past ~2 h are actual [EUMETSAT](https://www.eumetsat.int) satellite frames (free, no key), the future (up to 5 days, hourly then 3-hourly) is gridded DWD ICON cloud cover via [Open-Meteo's weather-map-layer](https://github.com/open-meteo/weather-map-layer) - the same model compared elsewhere on the site. One slider/play control spans both; satellite frames are dark at night (visible-light channel, no infrared fallback yet). No API key, no background preloading - the map, its ~2.9 MB rendering library and the satellite tiles only load after "Show cloud map" is pressed
 - **UV index** - hourly UV index starting from the current hour, next 5 days; colour-coded bars (Low -> Extreme); ECMWF IFS primary, GFS fallback
 - **Crosshair** - vertical dashed line follows the cursor across all charts for precise value reading
 
 ### Daily forecast table
 - Day-by-day summary: weather icon, max/min temperature as coloured pills, precipitation with a small bar, precipitation probability, max wind, cloud cover, humidity. On phones the date column stays in place while the table scrolls sideways
-- Switchable between ECMWF IFS, ICON-EU and MET Norway
+- Any of the 14 models: the three recommended as buttons, the rest under "Citi". The choice is remembered
 
 ### Today (Šodien tab and the block above the tabs)
 - Current conditions in one block: temperature, weather, feels like, wind with direction and gusts, today's min..max, today's precipitation and humidity, with the source model and data age
-- A one or two sentence summary computed from all models (median and how many models agree): when precipitation starts or stops, rain or snow, the day and night temperatures and whether tomorrow is warmer or cooler. Wording hedges ("iespējams lietus") when models disagree
+- Slippery roads: one line reports nearby LVC road weather stations with a surface at or below 0° (or frost, ice or snow reported), or close to 0°, with the coldest station. It follows every station refresh and opens the station table
+- Forecast changes: the browser keeps a few snapshots of the all-model forecast per place and one line tells what changed for today, tomorrow and the day after since the previous visit (at least 3 hours earlier): warmer or cooler by 2° or more, rain or snow appearing or disappearing, clearly more or less precipitation
 - A status dot for model agreement (temperature spread and how many models show precipitation). The temperature chart's verdict uses the same temperature measure, so the two never contradict each other
 - The nearest LVĢMC station reading when one is within 25 km and less than 90 minutes old
 - Hourly strip for the next 24 hours (median temperature, icon from cloud cover and precipitation with a moon at night, chance of precipitation, precipitation bars) and a daily list for up to 10 days with the median min..max on a shared scale and the full model spread behind it
@@ -52,7 +53,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **LVC road weather stations** ([transportdata.gov.lv](https://www.transportdata.gov.lv), CC0) - air/road-surface temperature, humidity, precipitation, wind, road condition
 - **LVĢMC meteorological stations** ([data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi), CC0) - air/apparent temperature, wind, humidity, pressure, precipitation, visibility, UV index
 - Station labels never overlap: the selected station, the one nearest the chosen place and the current extremes keep a label, the rest become small temperature-coloured dots until you zoom in
-- One table for both networks: search by name, Visas / LVC / LVĢMC filter, "only stations visible on the map", the 10 nearest by default with "Rādīt visas". Columns: temperature pill, road temperature, wind arrow, precipitation bar, humidity, road condition tag and a 24 h min..max bar. Stale stations are marked
+- One table for both networks: search by name, Visas / LVC / LVĢMC filter, "only stations visible on the map", the 10 nearest by default with "Rādīt visas". Columns: temperature pill with a trend arrow for the last hour (current readings only), road temperature, wind arrow, precipitation bar, humidity, road condition tag and a 24 h min..max bar. Stale stations are marked
 - Clicking a row highlights the station on the map and opens its popup; the station name links to the detail page with 24h/48h charts. LVĢMC popups include a 24 h temperature sparkline
 - On phones the table becomes a card list
 
@@ -162,7 +163,10 @@ js/                                   - all application logic, plain sequential 
   data.js       - current-conditions metrics, combined multi-model fetch, load pipeline
   locations.js  - city search, theme, saved/recent places, share, geolocation
   forecast-summary.js - model consensus for the Today view (pure, tested)
-  today.js      - Today view: summary sentence, agreement, nearest station, hourly strip, daily list
+  today.js      - Today view: agreement, nearest station, road and forecast change lines, hourly strip, daily list
+  road-ice.js   - slippery road summary from the LVC stations (pure, tested)
+  forecast-change.js - forecast snapshots and what changed since the previous visit (pure, tested)
+  model-skill.js - recent model accuracy against the nearest LVĢMC station, shared by the chart and the Modeļi view
   radar.js      - RainViewer radar map, LVC + LVĢMC station networks, station table
   timeline.js   - shared map timeline (radar and cloud map)
   map-utils.js  - map helpers: full screen control, tick positions, badge declutter
