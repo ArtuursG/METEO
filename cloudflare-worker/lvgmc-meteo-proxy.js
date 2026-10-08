@@ -93,11 +93,18 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
+// Kļūdu nekešo, lai īslaicīga avota kļūme neturas pārlūkā 10 minūtes
 function json(data, status = 200) {
+  const cache = status === 200 ? `public, max-age=${CACHE_SECONDS}` : "no-store";
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": `public, max-age=${CACHE_SECONDS}`, ...CORS_HEADERS },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": cache, ...CORS_HEADERS },
   });
+}
+async function getText(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("Avots atbildēja HTTP " + r.status);
+  return r.text();
 }
 
 export default {
@@ -111,8 +118,8 @@ export default {
 
     try {
       const [stationsCsv, readingsCsv] = await Promise.all([
-        fetch(STATIONS_URL).then((r) => r.text()),
-        fetch(READINGS_URL).then((r) => r.text()),
+        getText(STATIONS_URL),
+        getText(READINGS_URL),
       ]);
       const stations = parseStations(stationsCsv);
       const readingsByStation = parseReadings(readingsCsv);
@@ -123,6 +130,7 @@ export default {
           const history = Object.values(readingsByStation[id]).sort((a, b) => (a.time < b.time ? -1 : 1));
           return { ...stations[id], history };
         });
+      if (!result.length) throw new Error("Avotā nav staciju datu");
 
       const response = json({ updated: new Date().toISOString(), stations: result });
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
