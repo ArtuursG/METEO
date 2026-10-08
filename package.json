@@ -1,6 +1,6 @@
 {
   "name": "prognoze-lv",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "14 laika prognožu modeļu salīdzinājums, nokrišņu radars un Latvijas meteostacijas",
   "private": true,
   "scripts": {

@@ -1,16 +1,9 @@
 let environmentKind='air',environmentRequest=0,environmentMap=null,environmentRenderedKey=null;
 let environmentStorage;try{environmentStorage=localStorage;}catch{}
 const environmentalData=createDataCache({storage:environmentStorage});
-// Warnings, hydro, Kp and marine snapshots, refreshed by the LVC worker's cron (radar.js LVC_API).
-// Until the worker answers ?data= (it has to be redeployed once), the copies the live site
-// still publishes are used instead.
+// Warnings, hydro, Kp and marine snapshots, refreshed by the LVC worker's cron (radar.js LVC_API)
 const publicDataUrl=name=>LVC_API+'?data='+encodeURIComponent(name);
-const PAGES_DATA='https://artuursg.github.io/METEO/data/';
-async function publicData(key,name,ttl){
- // The old worker answers any address with its station list, so a snapshot must carry fetchedAt
- try{const d=await environmentalData(key,publicDataUrl(name),ttl);if(d?.fetchedAt)return d;}catch{}
- return environmentalData(key+'@pages',PAGES_DATA+name+'.json',ttl);
-}
+const publicData=(key,name,ttl)=>environmentalData(key,publicDataUrl(name),ttl);
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
  $('tb-environment').textContent=t('nav.env');

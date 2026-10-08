@@ -1,20 +1,26 @@
 # Changelog
 
-## 2026-10-09 - Free model choice, road ice, forecast changes, station trends
+## v2.0.0 - 2026-10-08
+
+The redesigned site: five sections, a Today view, a new radar, live data from the workers instead of scheduled builds.
+
+### Free model choice, road ice, forecast changes, station trends
 
 - Every model can be chosen in the cloud chart and the daily table. ECMWF IFS, ICON-EU and MET Norway stay the recommended, visible choice and are now also the temperature chart default.
 - Recent model accuracy against the nearest LVĢMC station appears under the temperature chart and in the model picker, as information only.
 - The now block reports icy road surfaces from nearby LVC road weather stations and what changed in the forecast since the previous visit. The short forecast sentence is removed: the numbers, hours and days say it more precisely.
-- Temperature trend arrows in the station table, popups and station pages. The LVC worker returns the reading about an hour before the latest one (redeploy the worker to get LVC trends).
+- Temperature trend arrows in the station table, popups and station pages. The LVC worker returns the reading about an hour before the latest one.
 - Station pages get the language switch, a calm back link and a link to the forecast for the station's place.
-- No more scheduled deployments: warnings, hydrology, Kp and marine snapshots are built by the LVC worker's cron (warnings every 15 minutes, Kp and hydrology every 30, marine every 4 hours) and read from it; GitHub Pages only publishes code changes. The worker also stores the ready station list, so a list request reads one row instead of scanning all readings. Redeploy the LVC worker before merging.
-- Redesigned Vide views: a section switch like the rest of the site, a title row with the data age, air quality as a large index with its European level and coloured pollutant levels, warnings with a count, a map of the warning areas and coloured cards with plain times ("šodien 19:00 – rīt 05:00"), water stations with the map and the values side by side and their change over 24 hours, and the Kp index with its level, a 0-9 scale and coloured 3-hour bars. Until the LVC worker is redeployed, the data falls back to the copies the live site still publishes.
+- No more scheduled deployments: warnings, hydrology, Kp and marine snapshots are built by the LVC worker's cron (warnings every 15 minutes, Kp and hydrology every 30, marine every 4 hours) and read from it; GitHub Pages only publishes code changes. The worker also stores the ready station list, so a list request reads one row instead of scanning all readings. Right after a deployment the worker answers warnings and Kp at once; hydrology and marine follow one per cron run.
+- Redesigned Vide views: a section switch like the rest of the site, a title row with the data age, air quality as a large index with its European level and coloured pollutant levels, warnings with a count, a map of the warning areas and coloured cards with plain times ("šodien 19:00 – rīt 05:00"), water stations with the map and the values side by side and their change over 24 hours, and the Kp index with its level, a 0-9 scale and coloured 3-hour bars.
 - Radar playback within RainViewer's free limit (100 requests a minute from one address): every tile request goes through a queue that keeps to 90 a minute, the frame on screen first, so all frames load instead of most being refused. Tiles come from the host named in the API answer, and a frame whose tiles failed is loaded again a minute later.
 - Fresh data while the page stays open: the forecast reloads every 30 minutes while the page is visible and at once when it is shown again after 15 minutes, the data age label updates every minute, and the station pages reload their readings every 10 minutes. A saved forecast is reused for 10 minutes instead of an hour; an older copy only stands in when the network fails.
+- MeteoAlarm sends one entry per municipality and in English. Entries for the same event and time are merged into one card with the list of areas, and titles and areas are shown in Latvian ("Dzeltenais brīdinājums: vējš", "Ķekavas novads", "Rīgas jūras līča rietumu daļa"). The home page also lists warnings that start later, with their start time.
+- The daily table shows the minimum temperature before the maximum.
 
-## 2026-10-08 - Today view, new radar and shared map timeline
+### Today view, new radar and shared map timeline
 
-- Add a Today tab and a compact current-conditions block: a short summary computed from all models, a model agreement dot, the nearest LVĢMC reading, the next 24 hours and up to 10 days with model spread.
+- Add a Today tab and a compact current-conditions block: a model agreement dot, the nearest LVĢMC reading, the next 24 hours and up to 10 days with model spread.
 - Rebuild the radar: observed frames only (RainViewer's free tier no longer has a nowcast), automatic refresh every 5 minutes, preloaded frames for smooth playback, controls and timeline on the map, a precipitation legend and a settings button for base map and opacity.
 - Station labels no longer overlap; stations without a label show as coloured dots.
 - Replace the two station tables with one table: search, network filter, nearest stations first, temperature pills, wind arrows, precipitation bars, road condition tags and 24 h ranges. Phones get a card list.
