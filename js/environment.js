@@ -7,8 +7,9 @@ const environmentalData=createDataCache({storage:environmentStorage});
 const publicDataUrl=name=>LVC_API+'?data='+encodeURIComponent(name);
 const PAGES_DATA='https://artuursg.github.io/METEO/data/';
 async function publicData(key,name,ttl){
- try{return await environmentalData(key,publicDataUrl(name),ttl);}
- catch(e){return environmentalData(key+'@pages',PAGES_DATA+name+'.json',ttl);}
+ // The old worker answers any address with its station list, so a snapshot must carry fetchedAt
+ try{const d=await environmentalData(key,publicDataUrl(name),ttl);if(d?.fetchedAt)return d;}catch{}
+ return environmentalData(key+'@pages',PAGES_DATA+name+'.json',ttl);
 }
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
