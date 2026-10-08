@@ -34,6 +34,7 @@ const R={
   idx:-1,
   followLatest:true,
   fetchedAt:0,failedAt:0,failed:false,loading:null,
+  host:RAINVIEWER_TILES,  // tile host from the API answer
   show:true,opacity:.7,base:'theme',metric:'temp',
   themeLayers:[],extraBase:{},
   timeline:null,legend:null,settings:null,place:null,attr:'',
@@ -322,6 +323,8 @@ function loadRadarFrames(){
         .sort((a,b)=>a.time-b.time);
       if(!frames.length)throw new Error('no frames');
       const idx=mergeFrameIndex(R.frames.map(f=>f.time),R.idx,frames.map(f=>f.time),R.followLatest);
+      // Tiles come from the host the API names (only a RainViewer https host is accepted)
+      if(typeof d.host==='string'&&/^https:\/\/[a-z0-9.-]+\.rainviewer\.com$/.test(d.host))R.host=d.host;
       R.frames=frames;R.fetchedAt=Date.now();R.failed=false;
       syncFrameLayers();
       R.timeline?.setFrames(frames.map(f=>f.time*1000),idx);
@@ -337,24 +340,64 @@ function loadRadarFrames(){
   return R.loading;
 }
 
-// One tile layer per frame, all on the map at opacity 0, so switching frames is only an
-// opacity change and the animation does not flicker. Frames that dropped out are removed.
+// RainViewer's free tier allows 100 requests a minute from one address. Every radar tile
+// request goes through this queue, which keeps to 90 a minute; tiles of the frame on
+// screen go first, tiles that left the view are dropped from the queue.
+const RV_PER_MIN=90;
+const _rvQueue=[];let _rvSent=[],_rvTimer=null;
+function rvPump(){
+  const now=Date.now();
+  _rvSent=_rvSent.filter(t=>now-t<60000);
+  while(_rvQueue.length&&_rvSent.length<RV_PER_MIN){
+    const job=_rvQueue.shift();
+    if(job.cancelled)continue;
+    _rvSent.push(now);job.run();
+  }
+  clearTimeout(_rvTimer);_rvTimer=null;
+  if(_rvQueue.length)_rvTimer=setTimeout(rvPump,60000-(now-_rvSent[0])+50);
+}
+const RadarTileLayer=L.TileLayer.extend({
+  createTile(coords,done){
+    const tile=document.createElement('img');
+    L.DomEvent.on(tile,'load',L.Util.bind(this._tileOnLoad,this,done,tile));
+    L.DomEvent.on(tile,'error',L.Util.bind(this._tileOnError,this,done,tile));
+    tile.alt='';tile.setAttribute('role','presentation');
+    const url=this.getTileUrl(coords);
+    tile._rv={path:this.options.path,run:()=>{tile.src=url;}};
+    if(this.options.path===R.frames[R.idx]?.path)_rvQueue.unshift(tile._rv);else _rvQueue.push(tile._rv);
+    rvPump();
+    return tile;
+  },
+});
+
+// One tile layer per frame at opacity 0, so switching frames is only an opacity change and
+// the animation does not flicker. Frames that dropped out are removed.
+function frameLayer(f){
+  let layer=R.layers.get(f.path);
+  if(layer)return layer;
+  layer=new RadarTileLayer(`${R.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,{
+    path:f.path,opacity:0,tileSize:256,maxNativeZoom:6,keepBuffer:0,pane:'radarPane',className:'radar-frame'});
+  layer.on('load',()=>{if(!R.loaded.has(f.path)){R.loaded.add(f.path);updateRadarStatus();}});
+  layer.on('tileunload',e=>{if(e.tile?._rv)e.tile._rv.cancelled=true;});
+  // A tile that still failed (limit or network) is asked again a minute later, once per frame
+  layer.on('tileerror',()=>{
+    if(layer._retry)return;
+    layer._retry=setTimeout(()=>{if(R.layers.get(f.path)===layer&&_rMap?.hasLayer(layer))layer.redraw();},60000);
+  });
+  R.layers.set(f.path,layer);
+  return layer;
+}
 function syncFrameLayers(){
   if(!_rMap)return;
   const {removed}=diffFrameKeys([...R.layers.keys()],R.frames.map(f=>f.path));
   for(const path of removed){_rMap.removeLayer(R.layers.get(path));R.layers.delete(path);R.loaded.delete(path);}
   for(const f of R.frames){
-    let layer=R.layers.get(f.path);
-    if(!layer){
-      layer=L.tileLayer(`${RAINVIEWER_TILES}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,{
-        opacity:0,tileSize:256,pane:'radarPane',maxNativeZoom:6,className:'radar-frame'});
-      layer.on('load',()=>{if(!R.loaded.has(f.path)){R.loaded.add(f.path);updateRadarStatus();}});
-      R.layers.set(f.path,layer);
-    }
+    const layer=frameLayer(f);
     if(R.show)layer.addTo(_rMap);else _rMap.removeLayer(layer);
   }
   applyFrameOpacity();
 }
+
 function applyFrameOpacity(){
   const current=R.frames[R.idx]?.path;
   R.layers.forEach((layer,path)=>layer.setOpacity(R.show&&path===current?R.opacity:0));
@@ -362,6 +405,12 @@ function applyFrameOpacity(){
 function showRadarFrame(idx){
   if(!R.frames[idx])return;
   R.idx=idx;
+  // Tiles still waiting for the frame now on screen move to the front of the queue
+  const path=R.frames[idx].path;
+  if(_rvQueue.some(j=>j.path===path)){
+    const mine=_rvQueue.filter(j=>j.path===path),rest=_rvQueue.filter(j=>j.path!==path);
+    _rvQueue.length=0;_rvQueue.push(...mine,...rest);
+  }
   applyFrameOpacity();
 }
 
