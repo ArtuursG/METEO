@@ -1,5 +1,6 @@
 // ─── TODAY: summary sentence, nearest station, hourly strip, daily list ─────
-// Reads S.data through the pure helpers in forecast-summary.js; all text via t().
+// Reads S.data through the pure helpers in forecast-summary.js (road-ice.js and
+// forecast-change.js for the road and "forecast changed" lines); all text via t().
 
 // Opens a panel by name (kept for the "Detalizēta tabula" button)
 function openTab(name){switchTab(name);document.getElementById('navSub')?.scrollIntoView?.({block:'nearest'});}
@@ -56,6 +57,9 @@ function renderAgreement(s){
   el.title=bits.join(', ');
 }
 
+// The LVĢMC and LVC stations only help in and around Latvia
+const nearLatvia=()=>S.lat>=55.5&&S.lat<=58.2&&S.lon>=20.8&&S.lon<=28.3;
+
 // Nearest LVĢMC station: only near Latvia, loaded once, never blocks the hero
 let _stationReq=0;
 async function renderNearestStation(){
@@ -68,13 +72,132 @@ async function renderNearestStation(){
     el.textContent=t('today.station',{name:r.name,km:fmtNum(r.dist,r.dist<10?1:0),temp:fmtTemp(r.temp,1),
       ago:r.ageMin<1?t('reltime.just_now'):t('reltime.min_ago',{n:r.ageMin})});
   };
-  if(S.lat<55.5||S.lat>58.2||S.lon<20.8||S.lon>28.3||typeof ensureLvgmcStations!=='function'){show(null);return;}
+  if(!nearLatvia()||typeof ensureLvgmcStations!=='function'){show(null);return;}
   if(!_lvgmcStations.length){
     show(null);
     try{await ensureLvgmcStations();}catch{}
     if(id!==_stationReq)return;
   }
   show(nearestStationReading(_lvgmcStations,S.lat,S.lon));
+}
+
+// ─── Road surface from the LVC road stations ───
+// +0,6° / −1,4°: the sign matters this close to freezing
+const signedTemp=v=>{const r=Math.round(v*10)/10;return (r>0?'+':'')+fmtTemp(r,1);};
+// Latvian numbers ending in 1 (but not 11) take the singular
+const lvSingular=n=>n%10===1&&n%100!==11;
+
+function roadText(r){
+  const c=r.coldest;
+  const coldest=c?t(r.total>1?'today.road_coldest':'today.road_named',{name:c.name,temp:signedTemp(c.surfaceTemp)}):'';
+  if(r.level==='near')return t('today.road_near',{coldest});
+  const all=r.count===r.total;
+  const where=r.total===1?t('today.road_single')
+    :all&&r.total===2?t('today.road_both')
+    :all&&!lvSingular(r.total)?t('today.road_all',{n:r.count})
+    :t(lvSingular(r.total)?'today.road_of_one':'today.road_of',{n:r.count,total:r.total});
+  return t('today.road_ice',{where,what:t(r.frost?'today.road_frost':'today.road_below'),coldest});
+}
+
+// Loads after the main render and never blocks it; a late answer for an old place is dropped
+let _roadReq=0;
+async function renderRoad(){
+  const el=$('nowRoad');
+  if(!el)return;
+  const id=++_roadReq;
+  const show=()=>{
+    let r=null;
+    try{r=roadIceSummary(_lvcStations,S.lat,S.lon);}catch(e){console.warn('[today] road',e);}
+    el.hidden=!r;
+    if(!r)return;
+    el.dataset.level=r.level;
+    el.textContent=roadText(r);
+    el.title=t('today.road_open');
+  };
+  if(!nearLatvia()||typeof ensureLvcStations!=='function'){el.hidden=true;return;}
+  if(_lvcStations.length)show();else el.hidden=true;
+  try{await ensureLvcStations();}catch{}
+  if(id!==_roadReq)return;
+  show();
+}
+
+// ─── Forecast change since the previous visit ───
+// A few consensus snapshots per place (two decimals, about 1 km) in localStorage
+const CHANGE_PFX='fc1_';
+const changeKey=(lat,lon)=>`${CHANGE_PFX}${lat.toFixed(2)}_${lon.toFixed(2)}`;
+function readSnapshots(lat,lon){
+  try{const v=JSON.parse(localStorage.getItem(changeKey(lat,lon))||'[]');return Array.isArray(v)?v:[];}catch{return [];}
+}
+
+// loadAll() calls this only for data fresh from the API, never for the cached copy,
+// so every snapshot stands for a real fetch at S.dataTs
+function saveForecastSnapshot(lat,lon){
+  try{
+    const snap=snapshotFromDaily(dailyConsensus(S.data,{maxDays:3}),S.dataTs);
+    if(!snap.days.length)return;
+    localStorage.setItem(changeKey(lat,lon),JSON.stringify(addSnapshot(readSnapshots(lat,lon),snap)));
+    pruneSnapshots();
+  }catch{}
+}
+// Places not opened for four days are forgotten
+function pruneSnapshots(){
+  const old=Date.now()-4*864e5,drop=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k?.startsWith(CHANGE_PFX))continue;
+    let last=0;
+    try{last=Math.max(0,...JSON.parse(localStorage.getItem(k)).map(s=>+s?.ts||0));}catch{}
+    if(last<old)drop.push(k);
+  }
+  drop.forEach(k=>localStorage.removeItem(k));
+}
+
+// "šodien 07:10", "vakar 18:40", else the weekday (the visitor's own clock)
+function sinceText(ts){
+  const d=new Date(ts),time=d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+  const days=Math.round((new Date().setHours(0,0,0,0)-new Date(ts).setHours(0,0,0,0))/864e5);
+  if(days<=0)return t('today.since_today',{time});
+  if(days===1)return t('today.since_yesterday',{time});
+  return t('today.since_day',{day:t('today.wd_'+d.getDay()),time});
+}
+
+const CHANGE_DAYS=['today','tomorrow','dayafter'];
+const changeKind=c=>c.kind==='tmax'?(c.delta>0?'warmer':'cooler')
+  :c.kind==='tmin'?(c.delta>0?'min_up':'min_down')
+  :(c.snow?'snow':'rain')+c.kind.slice(6);   // precip_new -> rain_new
+
+// The chosen changes are told day by day, temperature first, naming each day once:
+// "rīt par 3° siltāks, lietus vairs negaida"; different days are split by a semicolon
+function changeText(changes,ts,rows){
+  const offset=new Map(rows.map(r=>[r.date,r.offset]));
+  const isTemp=c=>c.kind==='tmax'||c.kind==='tmin';
+  let list='',last=null;
+  for(const c of changes.slice().sort((a,b)=>a.date.localeCompare(b.date)||isTemp(b)-isTemp(a))){
+    const day=CHANGE_DAYS[offset.get(c.date)];
+    if(!day)continue;
+    const same=c.date===last;
+    const part=t('today.chg_'+changeKind(c),{day:same?'':dayWord(day),n:Math.abs(c.delta),mm:fmtNum(c.mm,c.mm<10?1:0)});
+    list+=(list?(same?', ':'; '):'')+part.replace(/\s+([,.])/g,'$1').replace(/\s{2,}/g,' ').trim();
+    last=c.date;
+  }
+  return list?t('today.chg',{when:sinceText(ts),list}):'';
+}
+
+// From 15:00 today's sum is mostly rain that has fallen or not, so it is left out
+const CHANGE_LATE_H=15;
+function renderChange(){
+  const el=$('nowChange');
+  if(!el)return;
+  let text='';
+  try{
+    const rows=dailyConsensus(S.data,{maxDays:3});
+    const base=pickBaseline(readSnapshots(S.lat,S.lon),S.dataTs||Date.now());
+    const hour=new Date(Date.now()+(Object.values(S.data)[0]?.utcOffset||0)*1000).getUTCHours();
+    const noPrecip=hour>=CHANGE_LATE_H?rows.filter(r=>r.offset===0).map(r=>r.date):[];
+    if(base)text=changeText(compareForecasts(base,snapshotFromDaily(rows,S.dataTs),{noPrecip}),base.ts,rows);
+  }catch(e){console.warn('[today] change',e);}
+  el.textContent=text;
+  el.hidden=!text;
 }
 
 function iconFor(key){return key?(WICONS[key]||''):'';}
@@ -170,4 +293,6 @@ function renderToday(){
   renderHours();
   renderDays();
   renderNearestStation();
+  renderRoad();
+  renderChange();
 }

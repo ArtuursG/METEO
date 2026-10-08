@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=38">
+<link rel="stylesheet" href="style.css?v=39">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
@@ -18,17 +18,19 @@
 
 <header>
   <a class="logo" href="index.html">prognoze<span>.lv</span></a>
-  <div class="sa">
-    <a href="index.html#tab-radar" class="sbtn" style="text-decoration:none;display:inline-flex;align-items:center" data-i18n="stp.back_radar">Atpakaļ uz radaru</a>
-  </div>
-  <button class="tt" id="themeToggle" data-i18n-title="ui.toggle_theme" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
+  <button class="tt" id="langToggle" type="button" data-i18n-title="ui.toggle_lang" title="Switch to English" aria-label="Switch to English">EN</button>
+  <button class="tt" id="themeToggle" type="button" data-i18n-title="ui.toggle_theme" title="Mainīt tēmu" aria-label="Mainīt tēmu"></button>
 </header>
 
 <main>
-  <div class="hero">
+  <div class="hero st-hero">
+    <div class="st-links">
+      <a class="st-back" href="index.html#tab-radar"><span aria-hidden="true">←</span> <span data-i18n="stp.back_radar">Radars</span></a>
+      <a class="st-forecast" id="stForecast" href="index.html" hidden><span data-i18n="stp.forecast_here">Prognoze šai vietai</span> <span aria-hidden="true">→</span></a>
+    </div>
     <div class="hero-top">
       <div class="hero-city">
-        <h1 id="stName" data-i18n="metric.loading">Ielādē...</h1>
+        <h1 id="stName">Ielādē...</h1>
         <span class="hero-sub" id="stSub" data-i18n="stp.road_station">Ceļa meteostacija</span>
       </div>
     </div>
@@ -37,7 +39,7 @@
   <section class="now st-now" aria-labelledby="stName">
     <div class="now-main">
       <div class="now-temp mono" id="stAirTemp">-</div>
-      <div class="now-desc"><strong data-i18n="stp.air_now">Gaisa temperatūra</strong><span id="stTime">-</span></div>
+      <div class="now-desc"><strong data-i18n="stp.air_now">Gaisa temperatūra</strong><span id="stTime">-</span><span class="st-trend-line" id="stTrend" hidden></span></div>
     </div>
     <dl class="now-facts">
       <div><dt data-i18n="stp.road_surface_temp">Ceļa virsma</dt><dd><span id="stSurfTemp">-</span><small id="stRoadCond"></small></dd></div>
@@ -64,20 +66,20 @@
     <div class="on">
       <div class="card">
         <div class="card-hd">
-          <span class="card-title" id="stChartTitle" data-i18n="stp.chart_temp">Temperatūra</span>
+          <span class="card-title" id="stChartTitle">Temperatūra (24 h)</span>
           <span class="card-meta" id="stChartMeta"></span>
         </div>
-        <div class="cw cw-tall"><div class="loading" id="stLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stChart" role="img" aria-label="24h temperatūras vēsture" style="display:none"></canvas></div>
+        <div class="cw cw-tall"><div class="loading" id="stLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stChart" role="img" aria-label="Temperatūra (24 h)" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-hd"><span class="card-title" id="stMinMaxTitle">Temperatūra (24h) - min/max</span></div>
-        <div class="cw"><div class="loading" id="stMinMaxLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stMinMaxChart" role="img" aria-label="24h min/max temperatūra" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" id="stMinMaxTitle">Stundas minimums un maksimums (24 h)</span></div>
+        <div class="cw"><div class="loading" id="stMinMaxLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stMinMaxChart" role="img" aria-label="Stundas minimums un maksimums (24 h)" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-hd"><span class="card-title" id="stWindTitle">Vējš (24h)</span></div>
-        <div class="cw"><div class="loading" id="stWindLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stWindChart" role="img" aria-label="24h vēja vēsture" style="display:none"></canvas></div>
+        <div class="card-hd"><span class="card-title" id="stWindTitle">Vējš (24 h)</span></div>
+        <div class="cw"><div class="loading" id="stWindLoading"><div class="spinner"></div><span data-i18n="metric.loading">Ielādē...</span></div><canvas id="stWindChart" role="img" aria-label="Vējš (24 h)" style="display:none"></canvas></div>
       </div>
 
       <div class="card">
@@ -97,9 +99,10 @@
   <a href="index.html" data-i18n="stp.back_home">Atpakaļ uz prognoze.lv</a>
 </footer>
 
-<script src="js/i18n.js?v=38"></script>
-<script src="js/pure.js?v=38"></script>
-<script src="js/chart-time.js?v=38"></script>
-<script src="js/stacija.js?v=38"></script>
+<script src="js/i18n.js?v=39"></script>
+<script src="js/pure.js?v=39"></script>
+<script src="js/chart-time.js?v=39"></script>
+<script src="js/map-utils.js?v=39"></script>
+<script src="js/stacija.js?v=39"></script>
 </body>
 </html>

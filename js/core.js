@@ -20,8 +20,8 @@ const MODELS = [
   { id:'dmi_harmonie_arome_europe', name:'HARMONIE DK', org:'DMI (Denmark)',        res:'2km',   days:3,  color:'#795548', dash:[3,5] },
 ];
 
-// Models available in the daily forecast table selector
-const TABLE_MODELS=[
+// Picked for Latvia after comparing the models: the defaults and the first buttons in every model choice
+const RECOMMENDED_MODELS=[
   {id:'ecmwf_ifs025', name:'ECMWF IFS'},
   {id:'icon_eu', name:'ICON-EU'},
   {id:'metno_seamless', name:'MET Norway'},
@@ -32,8 +32,8 @@ const TABLE_MODELS=[
 const S = {
   lat:56.946, lon:24.106,       // default: Riga, Latvia
   city:'Rīga', country:'Latvija',
-  active: new Set(['ecmwf_ifs025','icon_eu']), // models drawn on the temp chart (charts.js restores the saved choice)
-  tableModel:   'ecmwf_ifs025',
+  active: new Set(RECOMMENDED_MODELS.map(m=>m.id)), // models drawn on the temp chart (charts.js restores the saved choice)
+  tableModel:   'ecmwf_ifs025', // single-model choices; charts.js restores the saved ones
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   cloudModel:   'ecmwf_ifs025',

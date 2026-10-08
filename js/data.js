@@ -89,7 +89,7 @@ async function fetchAllModels(lat,lon,signal){
   if(!r.ok)throw new Error(r.status);
   const data=await r.json();
   setCache(lat,lon,data);
-  return {d:data,ts:Date.now()};
+  return {d:data,ts:Date.now(),fresh:true};
 }
 
 // Splits the combined multi-model response back into the per-model {hourly,daily,current}
@@ -159,12 +159,16 @@ async function loadAll(){
   S.data=fresh;
   S.dataTs=fetched.ts;
   updateMetrics();
+  // Snapshots for the "forecast changed" line come only from a fresh API response
+  if(fetched.fresh&&typeof saveForecastSnapshot==='function')saveForecastSnapshot(lat,lon);
   rebuildTempChart();
   buildPrecipCharts();
   buildWindChart();
   buildCloudChart();
   buildUVChart();
   buildTable();
+  // Model accuracy near this place, in the background (model-skill.js)
+  if(typeof loadModelSkill==='function')loadModelSkill();
   // Climate / verification tabs cache per-location; refresh if the user is on them
   if($('tab-environment')?.classList.contains('on'))initEnvironment();
   if($('tab-climate')?.classList.contains('on'))initClimate();

@@ -1,7 +1,8 @@
 // ─── MAP UTILITIES ──────────────────────────────────────────────────────────
 // Shared by the radar, the cloud map and the environment/marine maps.
 // The helpers above the browser section have no DOM or Leaflet dependency and are
-// require()-able from Node (test/declutter.test.js, test/timeline.test.js).
+// require()-able from Node (test/declutter.test.js, test/timeline.test.js, test/trend.test.js).
+// The station pages load this file too, for parseStationTime and the trend helpers.
 
 // Indexes for the time labels under a frame slider: evenly spread, both ends included.
 function timelineTickIndexes(length,count=5){
@@ -78,6 +79,37 @@ function parseStationTime(value){
 
 // Case and diacritic insensitive match for the station search ("riga" finds "Rīga")
 function foldText(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+
+// ─── TEMPERATURE TREND ──────────────────────────────────────────────────────
+// Compares the latest reading with one about an hour older (40-90 min back).
+const TEMP_TREND={min:40,target:60,max:90};
+const _trendNum=v=>v!=null&&v!==''&&Number.isFinite(+v)?+v:null;
+
+// Times may be ms or station time strings. Returns {delta (rounded to 0.1°), minutes}
+// or null when a value is missing or the older reading is not 40-90 minutes older.
+function tempTrend(curTemp,curTimeMs,prevTemp,prevTimeMs){
+  const cur=_trendNum(curTemp),prev=_trendNum(prevTemp);
+  const minutes=Math.round((parseStationTime(curTimeMs)-parseStationTime(prevTimeMs))/60000);
+  if(cur==null||prev==null||!(minutes>=TEMP_TREND.min&&minutes<=TEMP_TREND.max))return null;
+  return {delta:Math.round((cur-prev)*10)/10||0,minutes};
+}
+
+// The reading closest to 60 minutes before `latest` (ms or time string), 40-90 minutes
+// back, that has a value for `key`. Works for hourly and 15-minute histories in any
+// order; on a tie the newer reading wins. Returns the history item or null.
+function prevReading(history,latest,key='airTemp'){
+  const end=parseStationTime(latest);
+  if(!Number.isFinite(end)||!Array.isArray(history))return null;
+  let best=null,bestGap=Infinity,bestAge=Infinity;
+  for(const h of history){
+    if(!h||_trendNum(h[key])==null)continue;
+    const age=(end-parseStationTime(h.time))/60000;
+    if(!(age>=TEMP_TREND.min&&age<=TEMP_TREND.max))continue;
+    const gap=Math.abs(age-TEMP_TREND.target);
+    if(gap<bestGap||(gap===bestGap&&age<bestAge)){best=h;bestGap=gap;bestAge=age;}
+  }
+  return best;
+}
 
 // ─── BROWSER ONLY ───────────────────────────────────────────────────────────
 // "pirms 6 min" style age; '' when the time is unknown
@@ -160,5 +192,5 @@ function addMapFullscreen(map,target){
 function relabelMapFullscreen(){_fullscreenButtons.forEach(fn=>fn());}
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={timelineTickIndexes,declutterBadges,badgePriorities,parseStationTime,rigaOffsetMs,foldText};
+  module.exports={timelineTickIndexes,declutterBadges,badgePriorities,parseStationTime,rigaOffsetMs,foldText,tempTrend,prevReading};
 }
