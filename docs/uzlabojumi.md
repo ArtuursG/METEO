@@ -92,7 +92,25 @@ Vadlīnijas visam sarakstam:
 - [x] Stacijas lapām valodas poga, mierīga atpakaļ saite, saite uz prognozi stacijas vietā.
 - [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`), lai LVC
       stacijām parādās tendence.
-- [ ] Pabeigt kopējā pārskata labojumus.
+- [x] Kopējā pārskata labojumi lapā (16 atradumi): ceļu rinda seko LVC atjaunošanai,
+      tendence tikai svaigiem mērījumiem, teksti, krāsas, pogas bez datiem paslēptas.
+- [ ] LVC worker: saraksta vaicājums bez visas tabulas skenēšanas, prevSurfaceTemp ārā.
+
+## 10. Mazāk pieprasījumu un izvietojumu (nākamais solis)
+
+Mērķis: GitHub Pages publicēt tikai pēc koda izmaiņām, apmeklētāju pieprasījumus apvienot
+un kešot, palikt bezmaksas limitos (Cloudflare Workers 100k pieprasījumu dienā, D1 5M
+nolasītu rindu dienā).
+
+- [ ] Datu momentuzņēmumi (brīdinājumi, hidro, Kp, jūra) vairs ne caur Pages izvietošanu
+      ik 30 min, bet no Cloudflare (D1 tabula ar gatavu JSON), ko atjauno cron.
+      Pages izvieto tikai koda izmaiņas.
+- [ ] LVC worker cron reizi 15 min saglabā gatavu staciju saraksta JSON (ar iepriekšējo
+      mērījumu). Saraksta pieprasījums = 1 rinda, nevis visas tabulas skenēšana.
+- [ ] Atbildēm Cache-Control (5 min), lai pārlūks un starpniekserveri tās atkārto.
+- [ ] Pārlūkā staciju sarakstus glabāt ar derīguma laiku, lai pārlādēšana un vairākas
+      cilnes nepieprasa no jauna.
+- [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā lēni mainās.
 - [ ] Izlemt par īso teksta kopsavilkumu Šodien blokā (lapu lieto sinoptiķi, viņiem
       pietiek ar datiem): noņemt vai aizstāt ar faktiem.
 - [ ] Mazāk GitHub Pages izvietojumu: tagad lapa tiek publicēta ik 30 min, jo atjaunojas

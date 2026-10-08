@@ -476,8 +476,8 @@ footer a:hover{text-decoration:underline}
 .now-agree[data-level=low]::before{background:var(--bad)}
 .now-station{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:var(--t2)}
 .now-text{grid-column:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
-.now-road{font:inherit;font-size:13px;line-height:1.45;color:var(--t);background:none;border:0;margin:0;padding:3px 0;text-align:left;cursor:pointer;max-width:58ch;text-decoration:underline dotted var(--t3);text-underline-offset:3px}
-.now-road::before{content:'';display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--rain);box-shadow:0 0 0 3px color-mix(in srgb,var(--rain) 22%,transparent);vertical-align:1px}
+.now-road{font:inherit;font-size:13px;line-height:1.45;color:var(--t);background:none;border:0;margin:0;padding:3px 0 3px 16px;text-indent:-16px;text-align:left;cursor:pointer;max-width:58ch;text-decoration:underline dotted var(--t3);text-underline-offset:3px}
+.now-road::before{content:'';display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 22%,transparent);vertical-align:1px}
 .now-road[data-level=near]::before{background:var(--warn);box-shadow:none}
 .now-road:hover{text-decoration-color:currentColor}
 .now-road:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:4px}
@@ -525,6 +525,7 @@ footer a:hover{text-decoration:underline}
 
 @media(max-width:600px){
  .now{grid-template-columns:1fr;padding:16px 16px 12px;margin-bottom:16px}
+ .now-road{padding-top:8px;padding-bottom:8px;margin:-5px 0}
  .now-temp{font-size:48px}
  .now-facts{grid-column:1;grid-row:auto;padding:12px 0 0;border-left:0;border-top:1px solid var(--line);margin-top:10px}
  .now-src{text-align:left}

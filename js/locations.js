@@ -77,6 +77,9 @@ async function selectCity(g){
     $('heroSub').textContent=prev.sub;
   if(typeof refreshWindMap==='function')refreshWindMap();
     if(typeof refreshHomeWarnings==='function')refreshHomeWarnings();
+    // Lines drawn while the new place was loading belong to it: redraw them for the old place
+    if(typeof renderToday==='function')renderToday();
+    if(typeof renderSkillLine==='function')renderSkillLine();
     return;
   }
 
