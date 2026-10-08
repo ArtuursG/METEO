@@ -1,47 +1,11 @@
-// ─── TODAY: summary sentence, nearest station, hourly strip, daily list ─────
+// ─── TODAY: model agreement, nearest station, hourly strip, daily list ──────
 // Reads S.data through the pure helpers in forecast-summary.js (road-ice.js and
 // forecast-change.js for the road and "forecast changed" lines); all text via t().
 
 // Opens a panel by name (kept for the "Detalizēta tabula" button)
 function openTab(name){switchTab(name);document.getElementById('navSub')?.scrollIntoView?.({block:'nearest'});}
 
-const hhmm=key=>key.slice(11,16);
-// A window that runs past midnight (or for a day or more) is told by its start and length
-const crossesMidnight=w=>new Date(Date.parse(w.to+'Z')-60000).toISOString().slice(0,10)!==w.from.slice(0,10);
-const hourRange=(a,b)=>`${+a.slice(11,13)}–${+b.slice(11,13)===0?24:+b.slice(11,13)}`;
-
 function dayWord(day){return t('today.day_'+day);}
-
-// One or two sentences: precipitation first, then temperature
-function summaryText(s){
-  if(!s?.ok)return '';
-  const parts=[];
-  const kind=w=>t(w.snow?'today.snow':'today.rain');
-  if(s.now.raining){
-    const what=t(s.now.snow?'today.snowing':'today.raining');
-    if(s.now.stop){
-      const at=t('today.at',{time:hhmm(s.now.stop.time)});
-      const when=s.now.stop.day==='today'?at:`${dayWord(s.now.stop.day)} ${at}`;
-      parts.push(t(s.now.stop.sure?'today.stops':'today.may_stop',{what,when}));
-    }else parts.push(t('today.continues',{what}));
-  }else if(s.first){
-    const w=s.first,withMm=w.mm>=0.5&&w.likely?'_mm':'';
-    const vars={day:dayWord(w.day),kind:kind(w),mm:fmtNum(w.mm,w.mm<10?1:0)};
-    if(crossesMidnight(w))parts.push(t((w.likely?'today.long':'today.long_possible')+withMm,{...vars,at:t('today.at',{time:hhmm(w.from)}),h:w.hours}));
-    else parts.push(t((w.likely?'today.expected':'today.possible')+withMm,{...vars,hours:hourRange(w.from,w.to)}));
-  }else parts.push(t('today.dry'));
-  if(s.clears&&!s.now.continues)parts.push(t('today.clears'));
-
-  const tmax=s.tomorrow.max;
-  if(s.phase==='day'&&s.restMax!=null){
-    parts.push(t('today.day_temp',{max:fmtTemp(s.restMax),min:fmtTemp(s.nightMin)}));
-    if(s.trend==='warmer'||s.trend==='cooler')parts.push(t('today.trend_'+s.trend,{max:fmtTemp(tmax)}));
-  }else if(s.nightMin!=null){
-    const trend=s.trend==='warmer'||s.trend==='cooler'?t('today.tomorrow_'+s.trend):t('today.tomorrow');
-    parts.push(t('today.night_temp',{min:fmtTemp(s.nightMin),tomorrow:trend,max:fmtTemp(tmax)}));
-  }
-  return parts.map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ');
-}
 
 function renderAgreement(s){
   const el=$('nowAgree');
@@ -102,22 +66,12 @@ function roadText(r){
   return t('today.road_ice',{where,what:t(what),coldest});
 }
 
-// Road ice needs a cold night or day: below this forecast minimum the road stations are not even asked
-const ROAD_COLD_T=4;
-function roadWeatherCold(){
-  try{
-    const now=fsNum((S.data['ecmwf_ifs025']||Object.values(S.data)[0])?.current?.temperature_2m);
-    const lows=dailyConsensus(S.data,{maxDays:2}).map(r=>r.tmin);
-    return [now,...lows].some(v=>v!=null&&v<=ROAD_COLD_T);
-  }catch{return false;}
-}
-
 // Draws the line from the stations already loaded; radar.js calls it again after every LVC refresh
 function showRoad(){
   const el=$('nowRoad');
   if(!el)return;
   let r=null;
-  if(nearLatvia()&&Object.keys(S.data).length&&roadWeatherCold()){
+  if(nearLatvia()&&Object.keys(S.data).length){
     try{r=roadIceSummary(_lvcStations,S.lat,S.lon);}catch(e){console.warn('[today] road',e);}
   }
   el.hidden=!r;
@@ -132,7 +86,7 @@ let _roadReq=0;
 async function renderRoad(){
   const id=++_roadReq;
   showRoad();
-  if(!nearLatvia()||typeof ensureLvcStations!=='function'||!roadWeatherCold())return;
+  if(!nearLatvia()||typeof ensureLvcStations!=='function')return;
   try{await ensureLvcStations();}catch{}
   if(id!==_roadReq)return;
   showRoad();
@@ -304,8 +258,6 @@ function renderToday(){
   if(!Object.keys(S.data).length)return;
   let s=null;
   try{s=forecastSummary(S.data,{current:(S.data['ecmwf_ifs025']||Object.values(S.data)[0])?.current});}catch(e){console.warn('[today] summary',e);}
-  const sum=$('nowSummary');
-  if(sum){sum.textContent=summaryText(s);sum.hidden=!sum.textContent;}
   renderAgreement(s);
   renderHours();
   renderDays();

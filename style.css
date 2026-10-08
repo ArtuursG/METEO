@@ -467,7 +467,6 @@ footer a:hover{text-decoration:underline}
 .now-desc{display:flex;flex-direction:column;gap:2px;min-width:0}
 .now-desc strong{font-size:16px;font-weight:500}
 .now-desc span{font-size:13px;color:var(--t2)}
-.now-summary{grid-column:1;font-size:15px;line-height:1.55;color:var(--t);margin:12px 0 2px;max-width:46ch}
 .now-tags{grid-column:1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--t2);margin-top:6px}
 .now-tags>span[hidden]{display:none}
 .now-agree{display:inline-flex;align-items:center;gap:7px;cursor:help}
