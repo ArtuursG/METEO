@@ -101,6 +101,8 @@ Mērķis: atverot lapu, visi dati ir aktuāli; GitHub Pages publicē tikai pēc 
 apmeklētāju pieprasījumi ir lēti un paliek bezmaksas limitos (Cloudflare Workers 100k
 pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 
+- [x] Prognoze atjaunojas, kamēr lapa atvērta (ik 30 min un atgriežoties pēc 15 min),
+      saglabātā prognoze derīga 10 min, stacijas lapas atjaunojas ik 10 min.
 - [ ] Datu momentuzņēmumi (brīdinājumi, hidro, Kp, jūra) nevis caur Pages izvietošanu
       ik 30 min, bet no Cloudflare, ko atjauno cron.
 - [ ] LVC worker cron reizi 15 min saglabā gatavu staciju saraksta JSON (ar iepriekšējo

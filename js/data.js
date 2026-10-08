@@ -30,6 +30,15 @@ function moonPhaseInfo(){
   return {svg, name:t('moon.'+i)};
 }
 
+// How old the shown forecast is; app.js redraws it every minute while the page is open
+let _srcModel='';
+function renderDataAge(){
+  if(!S.dataTs)return;
+  const srcEl=$('metricsSrc');
+  if(srcEl)srcEl.textContent=t('today.src',{model:_srcModel,ago:relTime(S.dataTs)});
+  if($('lastUpdate'))$('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
+}
+
 // Fills the "now" block and hero sunrise/sunset, with ECMWF as the main source
 function updateMetrics(){
   const ecmwf=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
@@ -54,9 +63,8 @@ function updateMetrics(){
   if(d?.temperature_2m_max?.[0]!=null)$('todayMax').textContent=`${fmtTemp(d.temperature_2m_min?.[0])} … ${fmtTemp(d.temperature_2m_max[0])}`;
   if(d?.precipitation_sum?.[0]!=null)$('precipNow').textContent=`${fmtNum(d.precipitation_sum[0],1)} mm`;
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(MODELS.find(m=>S.data[m.id]===ecmwf)?.name||'?');
-  const srcEl=$('metricsSrc');
-  if(srcEl)srcEl.textContent=t('today.src',{model:srcModel,ago:relTime(S.dataTs)});
-  if($('lastUpdate'))$('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
+  _srcModel=srcModel;
+  renderDataAge();
   if(typeof renderToday==='function')renderToday();
   // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
@@ -78,7 +86,16 @@ function updateMetrics(){
 async function fetchAllModels(lat,lon,signal){
   const hit=getCached(lat,lon);
   if(hit)return hit;
+  try{return await fetchModelsNow(lat,lon,signal);}
+  catch(e){
+    // No network: an older saved forecast is better than none (its age is shown)
+    const old=e?.name!=='AbortError'&&getCached(lat,lon,CACHE_KEEP);
+    if(old)return old;
+    throw e;
+  }
+}
 
+async function fetchModelsNow(lat,lon,signal){
   const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
   const h='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
   const d='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
@@ -120,7 +137,8 @@ function splitCombined(raw){
 
 // Fetches all models in one request; skips models missing from the response
 let _loadId=0, _loadController=null;
-async function loadAll(){
+// quiet: a background refresh; on failure the data on screen stays without a message
+async function loadAll({quiet=false}={}){
   if(typeof refreshWindMap==='function')refreshWindMap();
   if(typeof refreshHomeWarnings==='function')refreshHomeWarnings();
   const id=++_loadId;
@@ -146,7 +164,7 @@ async function loadAll(){
   if(!fresh||!Object.keys(fresh).length){
     if(hadData){
       // Keep the previous location's data on screen rather than blanking everything
-      showToast(t('toast.reload_failed'));
+      if(!quiet)showToast(t('toast.reload_failed'));
       return false;
     }
     ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{

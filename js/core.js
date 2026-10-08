@@ -57,24 +57,27 @@ const fmtTemp=(v,d=0)=>v==null||!Number.isFinite(+v)?'-':fmtNum(Math.abs(+v)<0.5
 const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(v*10)/10;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-const CACHE_TTL=60*60*1000; // 1 hour in ms
+// A saved forecast is reused for 10 minutes (reloads, place changes back and forth);
+// an older one up to 3 h only stands in when the network request fails
+const CACHE_FRESH=10*60*1000;
+const CACHE_KEEP=3*60*60*1000;
 // Prefix is bumped when API request variables change, to invalidate stale entries
 const CACHE_PFX='wx7_';
 
-function getCached(lat,lon){
+function getCached(lat,lon,maxAge=CACHE_FRESH){
   try{
     const raw=localStorage.getItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`);
     if(!raw)return null;
     const{ts,d}=JSON.parse(raw);
-    return Date.now()-ts<CACHE_TTL?{d,ts}:null;
+    return Date.now()-ts<maxAge?{d,ts}:null;
   }catch{return null;}
 }
 
-// "pirms N min" for the data timestamp; cache TTL caps this at ~1 h
+// "pirms N min" / "pirms N h" for the data timestamp
 function relTime(ts){
   if(!ts)return t('reltime.just_now');
   const m=Math.round((Date.now()-ts)/60000);
-  return m<1?t('reltime.just_now'):t('reltime.min_ago',{n:m});
+  return m<1?t('reltime.just_now'):m<90?t('reltime.min_ago',{n:m}):t('reltime.h_ago',{n:Math.round(m/60)});
 }
 
 // Brief bottom-centre notification; auto-dismisses

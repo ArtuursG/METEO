@@ -113,6 +113,7 @@ const STR = {
 
     'reltime.just_now': 'tikko',
     'reltime.min_ago': 'pirms {n} min',
+    'reltime.h_ago': 'pirms {n} h',
 
     'err.load_failed': 'Neizdevās ielādēt datus. Pārbaudi interneta savienojumu.',
     'toast.reload_failed': 'Neizdevās ielādēt jaunos datus. Rādīti iepriekšējie.',
@@ -592,6 +593,7 @@ const STR = {
 
     'reltime.just_now': 'just now',
     'reltime.min_ago': '{n} min ago',
+    'reltime.h_ago': '{n} h ago',
 
     'err.load_failed': 'Could not load data. Check your internet connection.',
     'toast.reload_failed': 'Could not load the new data. Showing the previous location.',

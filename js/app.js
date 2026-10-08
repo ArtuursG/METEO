@@ -169,3 +169,14 @@ if(new URLSearchParams(location.search).has('lat')){
 }
 // The workers refresh every 15 min; this only picks up the latest while the map exists
 setInterval(()=>{ if(_rMap){ ensureLvcStations(); ensureLvgmcStations(); } },5*60*1000);
+
+// The forecast stays current while the page is open (often all day on a second screen):
+// reloaded every 30 min while visible, and at once when the page is shown again after
+// 15 min or more. Hidden pages make no requests. Open-Meteo updates hourly at most.
+const FORECAST_REFRESH=30*60*1000, FORECAST_STALE=15*60*1000;
+function refreshForecast(maxAge){
+  if(document.hidden||!S.dataTs||Date.now()-S.dataTs<maxAge||document.body.classList.contains('busy'))return;
+  loadAll({quiet:true});
+}
+setInterval(()=>{renderDataAge();refreshForecast(FORECAST_REFRESH);},60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderDataAge();refreshForecast(FORECAST_STALE);}});
