@@ -1,12 +1,8 @@
 // ─── TODAY: summary sentence, nearest station, hourly strip, daily list ─────
 // Reads S.data through the pure helpers in forecast-summary.js; all text via t().
 
-// Opens a tab by name using its button in the tab bar
-function openTab(name){
-  const btn=[...document.querySelectorAll('.tb')].find(b=>(b.getAttribute('onclick')||'').includes(`'${name}'`));
-  switchTab(name,btn);
-  btn?.scrollIntoView?.({block:'nearest',inline:'nearest'});
-}
+// Opens a panel by name (kept for the "Detalizēta tabula" button)
+function openTab(name){switchTab(name);document.getElementById('navSub')?.scrollIntoView?.({block:'nearest'});}
 
 const hhmm=key=>key.slice(11,16);
 const hourRange=(a,b)=>`${+a.slice(11,13)}–${+b.slice(11,13)===0?24:+b.slice(11,13)}`;

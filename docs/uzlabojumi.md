@@ -49,9 +49,9 @@ Vadlīnijas visam sarakstam:
 - [x] Tuvākās LVĢMC stacijas mērījums (ja stacija ir tuvāk par ~25 km).
 - [x] Stundu josla nākamajām stundām: laiks, ikona, temperatūra, lietus varbūtība.
 - [x] Dienu saraksts ar min/max joslām. Gaišākā josla rāda modeļu izkliedi.
-- [ ] Saglabātās vietas kā pogas zem meklēšanas.
+- [x] Saglabātās vietas kā pogas zem meklēšanas.
 - [x] Sešu rādītāju kartīšu vietā viens kompakts bloks. Kartīte "Modeļi: 14" noņemta.
-- [ ] Brīdinājumu kļūdas stāvoklis aizņem vienu pelēku rindu.
+- [x] Brīdinājumu kļūdas stāvoklis aizņem vienu pelēku rindu.
 
 ## 5. Grafiki
 
@@ -62,21 +62,21 @@ Vadlīnijas visam sarakstam:
 
 ## 6. Navigācija
 
-- [ ] 10 ciļņu vietā 5: Šodien, Grafiki, Radars, Vide, Vairāk.
+- [x] 10 ciļņu vietā 5: Šodien, Grafiki, Radars, Vide, Vairāk.
       Grafikiem un "Vairāk" ir otrā līmeņa pārslēdzējs.
-- [ ] Telefonā navigācija ekrāna apakšā.
-- [ ] Pēdējā atvērtā sadaļa saglabājas adresē, saites `#tab-radar` turpina strādāt.
+- [x] Telefonā navigācija ekrāna apakšā.
+- [x] Pēdējā atvērtā sadaļa saglabājas adresē, saites `#tab-radar` turpina strādāt.
 
 ## 7. Ātrums
 
-- [ ] Ārējās bibliotēkas neaizkavē lapas parādīšanos (`defer`).
+- [x] Ārējās bibliotēkas neaizkavē lapas parādīšanos (`defer`).
 
 ## 8. Kods
 
 - [x] Viena laika skalas komponente radaram un mākoņu kartei.
 - [x] Radara funkcijas vairs netiek pārrakstītas vairākos failos.
 - [x] `.timeline` stili vienā vietā.
-- [ ] Jaunie teksti `i18n.js`, nevis iekļauti kodā.
+- [ ] Jaunie teksti `i18n.js`, nevis iekļauti kodā. Jaunajās daļās izdarīts; Vides sadaļā (gaiss, brīdinājumi, ūdeņi, jūra) un mākoņu kartes aprakstos vēl ir teksti kodā.
 
 ## Vēlāk
 
