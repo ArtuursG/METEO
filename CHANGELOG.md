@@ -6,7 +6,7 @@
 - Rebuild the radar: observed frames only (RainViewer's free tier no longer has a nowcast), automatic refresh every 5 minutes, preloaded frames for smooth playback, controls and timeline on the map, a precipitation legend and a settings button for base map and opacity.
 - Station labels no longer overlap; stations without a label show as coloured dots.
 - Replace the two station tables with one table: search, network filter, nearest stations first, temperature pills, wind arrows, precipitation bars, road condition tags and 24 h ranges. Phones get a card list.
-- The cloud map uses the same timeline as the radar.
+- The cloud map and the marine forecast map use the same timeline as the radar, drawn on the map. Marine point labels no longer overlap, and choosing a point in the list moves the map to it.
 - Numbers in the new views use the Latvian decimal comma.
 
 ## 2026-09-21 - Marine timeline label layout
