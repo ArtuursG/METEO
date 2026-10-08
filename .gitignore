@@ -1,5 +1,2 @@
 
-# Generated public snapshots are prepared during deployment.
-data/*.json
-data/*.tmp
 __pycache__/

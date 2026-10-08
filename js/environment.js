@@ -1,6 +1,8 @@
 let environmentKind='air',environmentRequest=0,environmentMap=null,environmentRenderedKey=null;
 let environmentStorage;try{environmentStorage=localStorage;}catch{}
 const environmentalData=createDataCache({storage:environmentStorage});
+// Warnings, hydro, Kp and marine snapshots, refreshed by the LVC worker's cron (radar.js LVC_API)
+const publicDataUrl=name=>LVC_API+'?data='+encodeURIComponent(name);
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
  $('tb-environment').textContent=t('nav.env');
@@ -38,8 +40,8 @@ async function initEnvironment(){
    const p=new URLSearchParams({latitude:x,longitude:y,hourly:'european_aqi,pm2_5,pm10,ozone,birch_pollen,alder_pollen,grass_pollen,mugwort_pollen',forecast_days:4,timeformat:'unixtime',timezone:'UTC'});
    data=await environmentalData('air_'+x+'_'+y,'https://air-quality-api.open-meteo.com/v1/air-quality?'+p,3600000);
   }else if(kind==='marine'){
-   try{data=await environmentalData('marine-'+marineParameter,'data/marine-'+marineParameter+'.json',3600000);}catch{data=null;}
-  }else data=await environmentalData(kind==='warnings'?'warnings-v2':kind,'data/'+kind+'.json',kind==='hydro'?1800000:600000);
+   try{data=await environmentalData('marine-'+marineParameter,publicDataUrl('marine-'+marineParameter),3600000);}catch{data=null;}
+  }else data=await environmentalData(kind==='warnings'?'warnings-v2':kind,publicDataUrl(kind),kind==='hydro'?1800000:600000);
   if(id!==environmentRequest||lat!==S.lat||lon!==S.lon||kind!==environmentKind)return;
   content.replaceChildren();
   if(kind==='air')renderAir(data);
