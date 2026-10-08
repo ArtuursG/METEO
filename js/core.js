@@ -100,7 +100,7 @@ function setCache(lat,lon,d){
 // Encodes current location into the URL so forecast links can be shared
 function updateURL(){
   const p=new URLSearchParams({lat:S.lat,lon:S.lon,city:S.city,country:S.country});
-  history.replaceState(null,'','?'+p);
+  history.replaceState(null,'','?'+p+(location.hash||''));
 }
 
 function validCoords(lat,lon){

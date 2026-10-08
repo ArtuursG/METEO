@@ -454,6 +454,16 @@ const STR = {
     'ch.period_hint': 'no pašreizējās stundas',
     'ch.period_note': 'Grafiki sākas ar pašreizējo stundu. Modeļu prognožu garums atšķiras; "14 dienas+" rāda visu pieejamo. Tabulā vienmēr pilnas dienas.',
     'th.weather': 'Laikapstākļi',
+    // Navigācija
+    'nav.aria': 'Sadaļas',
+    'nav.sub_aria': '{name}: skati',
+    'nav.today': 'Šodien',
+    'nav.charts': 'Grafiki',
+    'nav.radar': 'Radars',
+    'nav.env': 'Vide',
+    'nav.more': 'Vairāk',
+    'nav.overview': 'Pārskats',
+    'places.aria': 'Saglabātās vietas',
   },
 
   en: {
@@ -886,6 +896,16 @@ const STR = {
     'ch.period_hint': 'from the current hour',
     'ch.period_note': 'Charts start at the current hour. Model horizons differ; "14 days+" shows everything available. The table always shows whole days.',
     'th.weather': 'Weather',
+    // Navigation
+    'nav.aria': 'Sections',
+    'nav.sub_aria': '{name}: views',
+    'nav.today': 'Today',
+    'nav.charts': 'Charts',
+    'nav.radar': 'Radar',
+    'nav.env': 'Environment',
+    'nav.more': 'More',
+    'nav.overview': 'Overview',
+    'places.aria': 'Saved places',
   },
 };
 

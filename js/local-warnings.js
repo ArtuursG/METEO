@@ -17,7 +17,7 @@ function warningsAtPlace(alerts,lat,lon,now=Date.now()){
 let homeWarningRequest=0;
 async function refreshHomeWarnings(){
  const box=$('localWarnings');if(!box)return;
- const id=++homeWarningRequest,lat=S.lat,lon=S.lon;box.hidden=true;box.replaceChildren();
+ const id=++homeWarningRequest,lat=S.lat,lon=S.lon;box.hidden=true;box.replaceChildren();box.classList.remove('is-quiet');
  // Latvia-only feed; no source request for locations far outside its coverage.
  if(lat<55.5||lat>58.2||lon<20.8||lon>28.3)return;
  try{
@@ -32,8 +32,11 @@ async function refreshHomeWarnings(){
   box.append(envSource('MeteoAlarm · '+envText('Oficiālais brīdinājums','Official warning'),'https://meteoalarm.org/en/live/'));
  }catch{
   if(id!==homeWarningRequest||lat!==S.lat||lon!==S.lon)return;
-  box.hidden=false;box.removeAttribute('data-severity');
-  box.append(envNode('p',envText('Brīdinājumu datus pašlaik nevar pārbaudīt.','Warning data cannot currently be checked.'),'env-note'),envSource('MeteoAlarm','https://meteoalarm.org/en/live/'));
+  // A failed check is one quiet line, not a box that looks like a warning
+  box.hidden=false;box.removeAttribute('data-severity');box.classList.add('is-quiet');
+  const line=envNode('p',envText('Brīdinājumus pašlaik nevar pārbaudīt. ','Warnings cannot be checked right now. '));
+  const link=envNode('a','MeteoAlarm');link.href='https://meteoalarm.org/en/live/';link.target='_blank';link.rel='noopener';
+  line.append(link);box.append(line);
  }
 }
 if(typeof module!=='undefined')module.exports={insideWarningPolygon,warningsAtPlace};

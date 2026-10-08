@@ -84,7 +84,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Auto-geolocation** on page load - requests GPS permission immediately; shows "Pašreizējā atrašanās vieta" and starts loading at once; Nominatim reverse-geocoding resolves the city name in the background
 - **Live autocomplete** - suggestions appear as you type (300ms debounce, min 2 chars, single active request via AbortController)
 - Browser **geolocation** button also available in the search bar
-- **Saved locations** - a star next to the city name pins the current location; pinned places sit above the recent list in the search dropdown (with an unpin ✕) and are always available (localStorage, `fav_cities`)
+- **Saved locations** - a star next to the city name pins the current location; pinned places appear as a row of buttons under the city name (one tap to switch) and above the recent list in the search dropdown (with an unpin ✕). Stored in localStorage (`fav_cities`), no extra requests
 - **Recent search history** - last 5 cities shown when search is focused and empty (localStorage)
 - Shareable URLs - location encoded in query params (`?lat=&lon=&city=&country=`); shared links skip auto-geolocation
 
@@ -94,7 +94,10 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ### UI / Theme / Language
 - Light and dark theme (saved to localStorage, applied before page render to avoid flash)
 - **Latvian / English** toggle in the header. Language comes from `?lang=` > localStorage > `lv`; switching updates the URL and re-renders the whole UI live (no reload). Dates, weekdays and the compass follow the locale (Z/A/D/R ↔ N/E/S/W)
-- Fully **mobile responsive** - adapted header and layout for small screens
+- **Five sections** instead of ten tabs: Šodien (overview, table), Grafiki (temperature, precipitation, wind, clouds, UV), Radars, Vide, Vairāk (climate, model accuracy and site info). Sections with several views get a second row of tabs; arrow keys move along both rows
+- The open view is kept in the address (`#radar`, `#temp` ...) and in localStorage for the next visit; old `#tab-radar` links from the station pages still open the radar
+- Fully **mobile responsive**; on phones the five sections sit in a bar at the bottom of the screen (with safe-area padding for phones without a home button)
+- External scripts load with `defer`, so the page is drawn before Chart.js and Leaflet arrive
 - Installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
 
 ---

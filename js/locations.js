@@ -183,7 +183,31 @@ function toggleFav(g){
   renderFavBtn();
   if(document.activeElement===$('cityInput'))showRecent();
 }
+// Saved places as one row of buttons under the city name; the open place is marked.
+// No requests: tapping one goes through selectCity like the search does.
+function renderPlaceChips(){
+  const row=$('placeChips'); if(!row)return;
+  const favs=getFavs(), here={lat:S.lat,lon:S.lon};
+  row.replaceChildren();
+  row.hidden=!favs.length;
+  if(!favs.length)return;
+  row.setAttribute('aria-label',t('places.aria'));
+  const list=favs.some(f=>_sameLoc(f,here))?favs:[{name:S.city,country:S.country,lat:S.lat,lon:S.lon,unsaved:true},...favs];
+  for(const c of list){
+    const on=_sameLoc(c,here);
+    const b=document.createElement('button');
+    b.type='button'; b.className='place'+(c.unsaved?' is-unsaved':'');
+    if(on)b.setAttribute('aria-current','true');
+    if(!c.unsaved)b.insertAdjacentHTML('beforeend','<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>');
+    b.append(document.createTextNode(c.name));
+    b.title=[c.admin1,c.country].filter(Boolean).join(', ')||c.name;
+    b.onclick=()=>{ if(!on)selectCity({latitude:c.lat,longitude:c.lon,name:c.name,country:c.country,admin1:c.admin1,timezone:c.timezone}); };
+    row.append(b);
+  }
+}
+
 function renderFavBtn(){
+  renderPlaceChips();
   const b=$('favBtn'); if(!b)return;
   const on=isFav(S.geo);
   b.setAttribute('aria-pressed',on?'true':'false');
