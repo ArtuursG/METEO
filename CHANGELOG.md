@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-08 - Today view, new radar and shared map timeline
+
+- Add a Today tab and a compact current-conditions block: a short summary computed from all models, a model agreement dot, the nearest LVĢMC reading, the next 24 hours and up to 10 days with model spread.
+- Rebuild the radar: observed frames only (RainViewer's free tier no longer has a nowcast), automatic refresh every 5 minutes, preloaded frames for smooth playback, controls and timeline on the map, a precipitation legend and a settings button for base map and opacity.
+- Station labels no longer overlap; stations without a label show as coloured dots.
+- Replace the two station tables with one table: search, network filter, nearest stations first, temperature pills, wind arrows, precipitation bars, road condition tags and 24 h ranges. Phones get a card list.
+- The cloud map uses the same timeline as the radar.
+- Numbers in the new views use the Latvian decimal comma.
+
 ## 2026-09-21 - Marine timeline label layout
 
 - Split marine timeline labels into separate date and time rows so adjacent labels no longer merge visually.

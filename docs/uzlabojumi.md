@@ -13,44 +13,44 @@ Vadlīnijas visam sarakstam:
 
 ## 1. Radars: labojumi
 
-- [ ] Radara kadri atjaunojas ik 5 minūtes, kamēr cilne atvērta. Pie kartes redzams,
+- [x] Radara kadri atjaunojas ik 5 minūtes, kamēr cilne atvērta. Pie kartes redzams,
       cik sen bija jaunākais kadrs.
-- [ ] Visi kadri ielādējas iepriekš, tāpēc animācija nemirgo.
-- [ ] Noņemta nowcast loģika un etiķete "Prognoze". RainViewer bezmaksas versijā kopš
+- [x] Visi kadri ielādējas iepriekš, tāpēc animācija nemirgo.
+- [x] Noņemta nowcast loģika un etiķete "Prognoze". RainViewer bezmaksas versijā kopš
       2026. gada 1. janvāra nowcast vairs nav (arī maksimālais tuvinājums 7).
-- [ ] Staciju etiķetes vairs nepārklājas: tuvākās un ekstrēmās paliek, pārējās kļūst par
+- [x] Staciju etiķetes vairs nepārklājas: tuvākās un ekstrēmās paliek, pārējās kļūst par
       krāsainiem punktiem līdz tuvināšanai.
 
 ## 2. Radars: izkārtojums
 
-- [ ] Laika skala atrodas uz kartes apakšā (arī pilnekrānā).
-- [ ] Viena pogu josla uz kartes: Nokrišņi, LVC, LVĢMC un "uz kartes: T° / ceļš / vējš /
+- [x] Laika skala atrodas uz kartes apakšā (arī pilnekrānā).
+- [x] Viena pogu josla uz kartes: Nokrišņi, LVC, LVĢMC un "uz kartes: T° / ceļš / vējš /
       nokrišņi". Leaflet slāņu izvēlne un atsevišķā rīkjosla virs kartes noņemtas.
-- [ ] Pamatkarte seko tēmai, caurspīdīgums vienā pogā.
-- [ ] Nokrišņu krāsu leģenda.
+- [x] Pamatkarte seko tēmai, caurspīdīgums vienā pogā.
+- [x] Nokrišņu krāsu leģenda.
 
 ## 3. Staciju tabula
 
-- [ ] Viena tabula ar filtru Visas / LVC / LVĢMC cilņu vietā.
-- [ ] Sākumā 10 tuvākās stacijas, poga "Rādīt visas", meklēšana pēc nosaukuma,
+- [x] Viena tabula ar filtru Visas / LVC / LVĢMC cilņu vietā.
+- [x] Sākumā 10 tuvākās stacijas, poga "Rādīt visas", meklēšana pēc nosaukuma,
       filtrs "tikai kartē redzamās".
-- [ ] Klikšķis uz rindas iezīmē staciju kartē. Uz detaļu lapu ved stacijas nosaukums.
-- [ ] Temperatūra krāsainā laukumā, nokrišņiem josla, ceļa stāvoklis kā birka,
+- [x] Klikšķis uz rindas iezīmē staciju kartē. Uz detaļu lapu ved stacijas nosaukums.
+- [x] Temperatūra krāsainā laukumā, nokrišņiem josla, ceļa stāvoklis kā birka,
       vējam virziena bultiņa, 24 h min/max vienā joslā.
-- [ ] Kolonnas "Laiks" vietā laiks virsrakstā, atzīmētas tikai novecojušās stacijas.
-- [ ] Kārtošana ar bultiņām, lietojama ar tastatūru.
-- [ ] Telefonā saraksts ar kartītēm, nevis plata tabula.
+- [x] Kolonnas "Laiks" vietā laiks virsrakstā, atzīmētas tikai novecojušās stacijas.
+- [x] Kārtošana ar bultiņām, lietojama ar tastatūru.
+- [x] Telefonā saraksts ar kartītēm, nevis plata tabula.
 
 ## 4. Sākums ("Šodien")
 
-- [ ] Viena teikuma kopsavilkums: kad līs, cik silts, rīt siltāks vai vēsāks.
+- [x] Viena teikuma kopsavilkums: kad līs, cik silts, rīt siltāks vai vēsāks.
       Rēķina pēc noteikumiem no visu modeļu datiem (mediāna un cik modeļu piekrīt).
-- [ ] Cik modeļi vienisprātis, blakus kopsavilkumam.
-- [ ] Tuvākās LVĢMC stacijas mērījums (ja stacija ir tuvāk par ~25 km).
-- [ ] Stundu josla nākamajām stundām: laiks, ikona, temperatūra, lietus varbūtība.
-- [ ] Dienu saraksts ar min/max joslām. Gaišākā josla rāda modeļu izkliedi.
+- [x] Cik modeļi vienisprātis, blakus kopsavilkumam.
+- [x] Tuvākās LVĢMC stacijas mērījums (ja stacija ir tuvāk par ~25 km).
+- [x] Stundu josla nākamajām stundām: laiks, ikona, temperatūra, lietus varbūtība.
+- [x] Dienu saraksts ar min/max joslām. Gaišākā josla rāda modeļu izkliedi.
 - [ ] Saglabātās vietas kā pogas zem meklēšanas.
-- [ ] Sešu rādītāju kartīšu vietā viens kompakts bloks. Kartīte "Modeļi: 14" noņemta.
+- [x] Sešu rādītāju kartīšu vietā viens kompakts bloks. Kartīte "Modeļi: 14" noņemta.
 - [ ] Brīdinājumu kļūdas stāvoklis aizņem vienu pelēku rindu.
 
 ## 5. Grafiki
@@ -73,9 +73,9 @@ Vadlīnijas visam sarakstam:
 
 ## 8. Kods
 
-- [ ] Viena laika skalas komponente radaram un mākoņu kartei.
-- [ ] Radara funkcijas vairs netiek pārrakstītas vairākos failos.
-- [ ] `.timeline` stili vienā vietā.
+- [x] Viena laika skalas komponente radaram un mākoņu kartei.
+- [x] Radara funkcijas vairs netiek pārrakstītas vairākos failos.
+- [x] `.timeline` stili vienā vietā.
 - [ ] Jaunie teksti `i18n.js`, nevis iekļauti kodā.
 
 ## Vēlāk

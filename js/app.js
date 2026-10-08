@@ -85,7 +85,6 @@ function relangUI(){
   if(_lvcStations.length)renderLvcRows();
   if(_lvgmcStations.length)renderLvgmcRows();
   relabelRadarControl();
-  if(typeof refreshControlLabels==='function')refreshControlLabels();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

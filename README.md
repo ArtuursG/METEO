@@ -24,13 +24,13 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Day-by-day summary: max/min temperature, precipitation, precipitation probability, max wind, cloud cover, humidity
 - Switchable between ECMWF IFS, ICON-EU and MET Norway
 
-### Current conditions (metrics row)
-- Temperature, feels like (apparent temperature), today's max/min
-- Wind speed with **rotating direction arrow** and 16-point compass label (Latvian: Z/A/D/R = N/E/S/W), plus wind gusts
-- Humidity and current precipitation (with snowfall in cm when it is snowing)
-- Sunrise and sunset times with **moon phase icon** (monochrome SVG, pure math - no API call)
-- All metrics sourced from ECMWF IFS (falls back to first available model)
-- "Dati atjaunoti pirms N min" reflects the actual fetch time (or cache write time when served from cache), not the page render time
+### Today (Šodien tab and the block above the tabs)
+- Current conditions in one block: temperature, weather, feels like, wind with direction and gusts, today's min..max, today's precipitation and humidity, with the source model and data age
+- A one or two sentence summary computed from all models (median and how many models agree): when precipitation starts or stops, rain or snow, the day and night temperatures and whether tomorrow is warmer or cooler. Wording hedges ("iespējams lietus") when models disagree
+- A status dot for model agreement (temperature spread and how many models show precipitation)
+- The nearest LVĢMC station reading when one is within 25 km and less than 90 minutes old
+- Hourly strip for the next 24 hours (median temperature, icon from cloud cover and precipitation with a moon at night, chance of precipitation, precipitation bars) and a daily list for up to 10 days with the median min..max on a shared scale and the full model spread behind it
+- Sunrise, sunset and the moon phase under the city name
 
 ### Climate (Klimats tab)
 - **Today's temperature anomaly** vs the 1991-2020 normal for this calendar date (day-of-year climatology, ±7-day smoothed)
@@ -39,21 +39,21 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - Source: **ERA5 reanalysis** via the [Open-Meteo Archive API](https://open-meteo.com/en/docs/historical-weather-api) (free, no key). Lazy-loaded on first tab open; the ~85 years of daily means are reduced client-side to a small structure and cached in localStorage for a week
 
 ### Precipitation radar
-- Touch-friendly timeline with previous/next frame, playback speed, latest observation, and observed/forecast timestamps
-- Visible station-layer buttons, radar opacity control, Latvia/city shortcuts, and preserved map position between tabs
-- Playback stops when leaving the radar tab or hiding the page
-
-- Interactive **RainViewer** radar map with past observations and short-range nowcast
-- Scrubber slider through frames, or play as animation
-- 5 selectable base maps (light, dark, OpenStreetMap, topographic, satellite) plus toggleable overlay layers, all via a Leaflet layer control
-- Lazy-initialised - Leaflet only loads when the Radar tab is opened
+- **RainViewer** observed radar frames (the past ~2 hours at 10-minute steps). The free RainViewer tier has had no nowcast since 1 January 2026, so the timeline shows observations only
+- The frame list refreshes every 5 minutes while the radar is on screen; the view stays on the newest frame, or on the same time if you had moved back
+- Every frame is loaded up front as its own hidden tile layer, so playback switches instantly without blank frames; the status line counts frames until all are loaded
+- Shared timeline over the bottom of the map (also in full screen): play/pause, previous/next, a slider with one tick per frame, "Jaunākais", 0,5×/1×/2× speed and the age of the latest frame. Works from the keyboard
+- One bar on the map toggles precipitation and the two station networks and chooses what station labels show: air temperature, road temperature, wind or precipitation. A settings button holds the base map (follows the site theme by default, or OSM, relief, satellite) and radar opacity. Choices are remembered
+- Word-only precipitation legend (light, moderate, heavy)
+- Playback stops when leaving the radar tab or hiding the page; Leaflet maps are created only when a map view is opened
 
 ### Weather stations (Radar tab)
-- **LVC road weather stations** (68 stations, [transportdata.gov.lv](https://www.transportdata.gov.lv), CC0) - air/road-surface temperature, humidity, precipitation, wind, friction, snow/ice depth, road condition
-- **LVĢMC meteorological stations** (26-34 stations depending on sensor coverage, [data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi), CC0) - air/apparent temperature, wind, humidity, pressure, precipitation, visibility, UV index, lightning strikes
-- Each network is an independent toggleable map layer; markers are small labelled temperature badges that auto-declutter (hide when they'd overlap) as you zoom
-- A sortable table below the map mirrors whichever layer(s) are active; both active at once switches to tabs instead of stacking
-- Clicking a station opens a dedicated page with 24h/48h temperature, hourly min/max, and wind history charts plus a locator map
+- **LVC road weather stations** ([transportdata.gov.lv](https://www.transportdata.gov.lv), CC0) - air/road-surface temperature, humidity, precipitation, wind, road condition
+- **LVĢMC meteorological stations** ([data.gov.lv](https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi), CC0) - air/apparent temperature, wind, humidity, pressure, precipitation, visibility, UV index
+- Station labels never overlap: the selected station, the one nearest the chosen place and the current extremes keep a label, the rest become small temperature-coloured dots until you zoom in
+- One table for both networks: search by name, Visas / LVC / LVĢMC filter, "only stations visible on the map", the 10 nearest by default with "Rādīt visas". Columns: temperature pill, road temperature, wind arrow, precipitation bar, humidity, road condition tag and a 24 h min..max bar. Stale stations are marked
+- Clicking a row highlights the station on the map and opens its popup; the station name links to the detail page with 24h/48h charts. LVĢMC popups include a 24 h temperature sparkline
+- On phones the table becomes a card list
 
 ### Model accuracy (Modeļi tab)
 - Select individual models directly in the comparison table; station observations remain visible
@@ -157,7 +157,11 @@ js/                                   - all application logic, plain sequential 
   climate.js    - Climate tab (ERA5 anomaly + warming stripes) and model verification
   data.js       - current-conditions metrics, combined multi-model fetch, load pipeline
   locations.js  - city search, theme, saved/recent places, share, geolocation
-  radar.js      - RainViewer radar map, LVC + LVĢMC station networks, marker declutter
+  forecast-summary.js - model consensus for the Today view (pure, tested)
+  today.js      - Today view: summary sentence, agreement, nearest station, hourly strip, daily list
+  radar.js      - RainViewer radar map, LVC + LVĢMC station networks, station table
+  timeline.js   - shared map timeline (radar and cloud map)
+  map-utils.js  - map helpers: full screen control, tick positions, badge declutter
   app.js        - tab switching, language re-render (relangUI), init
   stacija.js / stacija-lvgmc.js - the two standalone station detail pages (own scripts)
 
@@ -182,7 +186,7 @@ cloudflare-worker/
 - **Single combined request** - all 14 models are fetched in one Open-Meteo call (`models=` comma-separated). Each variable comes back suffixed per model; a model outside its geographic coverage is simply absent from the response and skipped. No per-model fallback cascade is needed.
 - **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped - a plain array existence check is insufficient.
 - **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) -> dark slate (overcast).
-- **Cloud map** (`js/cloud-map.js`) - lazy: pressing "Show cloud map" fetches the DWD ICON grid metadata (`.../data_spatial/dwd_icon/latest.json`, gives the `valid_times` forecast frame list) in parallel with the SRI-pinned `@openmeteo/weather-map-layer` CDN script. The combined timeline is `[...satellite frames, ...model frames]`, one array of `{time, kind}` walked by a single slider - same shape as the RainViewer radar's past+nowcast frames.
+- **Cloud map** (`js/cloud-map.js`) - lazy: pressing "Show cloud map" fetches the DWD ICON grid metadata (`.../data_spatial/dwd_icon/latest.json`, gives the `valid_times` forecast frame list) in parallel with the SRI-pinned `@openmeteo/weather-map-layer` CDN script. The combined timeline is `[...satellite frames, ...model frames]`, one array of `{time, kind}` walked by a single slider - same shape as the radar frames, and played by the same timeline component.
   - **Satellite (past)** - [EUMETSAT EUMETView WMS](https://view.eumetsat.int/geoserver/wms), layer `msg_fes:vis006` (visible-light channel), no API key. 8 frames at its native 15-minute step (~2 h), computed client-side (`Date.now()` floored to the grid, one step of safety margin) rather than queried - the server's `nearestValue=1` WMS time dimension snaps to the closest actual scene regardless. `L.tileLayer.wms(...,{crs:L.CRS.EPSG4326,time})`: the layer only serves EPSG:4326, Leaflet reprojects per tile automatically.
   - **Model (future)** - `om://.../latest.json?time_step=valid_times_N&variable=cloud_cover`, one tile layer per forecast hour.
   - Every frame is a **freshly built tile layer swapped in** (`layer.addTo(map)` then remove the previous one) rather than mutated in place - neither the WMS layer nor the om adapter's tile layer exposes a `setUrl`-equivalent, same constraint the radar frame-swap already works around.
@@ -192,14 +196,14 @@ cloudflare-worker/
 - **Wind units** - API requested with `wind_speed_unit=ms`; conversion to km/h done client-side when selected. Preference saved in localStorage.
 - **Live autocomplete** - 300ms debounce on input + `AbortController` ensures max 1 active geocoding request regardless of typing speed.
 - **Crosshair plugin** - custom Chart.js plugin registered globally via `Chart.register()`; draws a vertical dashed line at the hovered x position using `chartArea` bounds.
-- **Radar** - Leaflet map lazy-initialised on first tab open. RainViewer frames fetched from their public JSON API; each frame is a tile layer added/removed on step. Radar tiles capped at `maxNativeZoom: 6` (Leaflet upscales for closer views); rendered in a dedicated Leaflet pane with a fixed z-index so it stays above whichever base map is selected. Map zoom capped at 13. Light/dark base maps use Esri Gray Canvas (keyless); the Esri "Base" and "Reference" (labels) services are combined in a single `L.layerGroup` so each behaves as one labelled base layer.
+- **Radar** (`js/radar.js`, `js/timeline.js`, `js/map-utils.js`) - Leaflet map created on first tab open. One RainViewer tile layer per frame lives in a dedicated pane above the base map; frames are switched by opacity. Radar tiles are capped at `maxNativeZoom: 6` (Leaflet upscales closer views). The shared timeline component in `js/timeline.js` drives both the radar and the cloud map; its pure helpers (tick positions, speed steps, keeping the position on refresh) are unit tested. Badge decluttering is a pure function in `js/map-utils.js` (tested in `test/declutter.test.js`).
 - **LVC weather stations** - the live DATEX II feed only exposes ~30 min of history, so a Cloudflare Worker on a 15-min Cron Trigger parses it and accumulates readings in D1; the site reads the accumulated 24h window from D1 instead of hitting the feed directly. The API key is a Cloudflare Secret, never present in any committed file or client-side code.
 - **LVĢMC weather stations** - the public CSV already carries a 48h rolling window, so no database is needed; a Worker fetches/parses it and serves it through Cloudflare's Cache API (10 min TTL) purely to add CORS headers, since the source doesn't send them. Precipitation-only gauge stations (no temperature sensor) are filtered out of the table/map, matching how other public displays of this data handle them.
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
 - **Accessibility** - the tab bar is a proper ARIA `tablist` with roving tabindex and Left/Right/Home/End keyboard navigation; panels are `tabpanel`s. Model toggle buttons expose `aria-pressed`. A skip link jumps to `<main>`. `prefers-reduced-motion` zeroes chart animations and CSS transitions (the loading spinner is kept). Chart `<canvas>` elements carry `role="img"` + `aria-label`.
-- **i18n** - static text uses `data-i18n*` attributes resolved by `applyStaticI18n()`; dynamic strings go through `t(key, vars)`. `setLang()` swaps `LANG`/`LOCALE`, updates the URL and calls `relangUI()`, which re-renders every JS-built piece (metrics, charts, tables, model list, lazy tabs, station rows). The two station detail pages load `js/i18n.js` and honour the same stored language (they have no toggle of their own). The Leaflet layer control is rebuilt with new labels on a language switch (`relabelRadarControl`).
+- **i18n** - static text uses `data-i18n*` attributes resolved by `applyStaticI18n()`; dynamic strings go through `t(key, vars)`. `setLang()` swaps `LANG`/`LOCALE`, updates the URL and calls `relangUI()`, which re-renders every JS-built piece (metrics, charts, tables, model list, lazy tabs, station rows). The two station detail pages load `js/i18n.js` and honour the same stored language (they have no toggle of their own). Radar and station controls are relabelled on a language switch by `relabelRadarControl()`.
 - **Failed reload** - a forecast fetch that fails mid-session keeps the previous location's data on screen, shows a toast and reverts the header, rather than blanking the page.
 
 ---
