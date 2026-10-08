@@ -28,7 +28,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ### Today (Šodien tab and the block above the tabs)
 - Current conditions in one block: temperature, weather, feels like, wind with direction and gusts, today's min..max, today's precipitation and humidity, with the source model and data age
 - A one or two sentence summary computed from all models (median and how many models agree): when precipitation starts or stops, rain or snow, the day and night temperatures and whether tomorrow is warmer or cooler. Wording hedges ("iespējams lietus") when models disagree
-- A status dot for model agreement (temperature spread and how many models show precipitation)
+- A status dot for model agreement (temperature spread and how many models show precipitation). The temperature chart's verdict uses the same temperature measure, so the two never contradict each other
 - The nearest LVĢMC station reading when one is within 25 km and less than 90 minutes old
 - Hourly strip for the next 24 hours (median temperature, icon from cloud cover and precipitation with a moon at night, chance of precipitation, precipitation bars) and a daily list for up to 10 days with the median min..max on a shared scale and the full model spread behind it
 - Sunrise, sunset and the moon phase under the city name
@@ -96,7 +96,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Latvian / English** toggle in the header. Language comes from `?lang=` > localStorage > `lv`; switching updates the URL and re-renders the whole UI live (no reload). Dates, weekdays and the compass follow the locale (Z/A/D/R ↔ N/E/S/W)
 - **Five sections** instead of ten tabs: Šodien (overview, table), Grafiki (temperature, precipitation, wind, clouds, UV), Radars, Vide, Vairāk (climate, model accuracy and site info). Sections with several views get a second row of tabs; arrow keys move along both rows
 - The open view is kept in the address (`#radar`, `#temp` ...) and in localStorage for the next visit; old `#tab-radar` links from the station pages still open the radar
-- Fully **mobile responsive**; on phones the five sections sit in a bar at the bottom of the screen (with safe-area padding for phones without a home button)
+- Fully **mobile responsive**; on phones the five sections sit in a bar at the bottom of the screen
 - External scripts load with `defer`, so the page is drawn before Chart.js and Leaflet arrive
 - Installable on iOS/Android via "Add to Home Screen"; runs fullscreen without browser chrome; app shell cached offline
 

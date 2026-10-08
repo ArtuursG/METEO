@@ -12,6 +12,7 @@
 - Saved places appear as buttons under the city name. A failed warning check is now one quiet line instead of a warning-sized box.
 - Scripts load with defer, so the page appears before the chart and map libraries arrive.
 - Numbers in the new views use the Latvian decimal comma.
+- All remaining inline Latvian/English strings moved into the string tables; unused translations removed.
 
 ## 2026-09-21 - Marine timeline label layout
 

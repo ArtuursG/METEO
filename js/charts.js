@@ -38,6 +38,15 @@ function buildModelPicker(key){
   const set=S[key],change=()=>{saveModelSet(key);PICKER_REBUILD[key]();};
   const hasData=Object.keys(S.data).length>0;
   const available=m=>!hasData||!!S.data[m.id];
+  const visible=()=>MODELS.filter(m=>set.has(m.id)&&available(m)).length;
+  // Precipitation and wind always keep one model that has data at this place
+  if(cfg.minOne&&hasData&&!visible()){
+    const fallback=cfg.def.map(id=>MODELS.find(m=>m.id===id)).find(m=>m&&available(m))||MODELS.find(available);
+    if(fallback){set.add(fallback.id);saveModelSet(key);}
+  }
+  // Rebuilding replaces the buttons: remember which one had focus and put it back after
+  const focusKey=wrap.contains(document.activeElement)?document.activeElement.dataset.k:null;
+  const order=[...wrap.querySelectorAll('[data-k]')].map(e=>e.dataset.k);
   wrap.replaceChildren();
   wrap.setAttribute('role','group');
   wrap.setAttribute('aria-label',t('ch.picker_aria'));
@@ -48,19 +57,18 @@ function buildModelPicker(key){
       ['showMedian','show_median','ch.median','ch.median_title','mp-sw-median'],
       ['showSpread','show_spread','ch.spread','ch.spread_title','mp-sw-band'],
     ]){
-      const b=pickerNode('button','mp-chip mp-toggle');b.type='button';
+      const b=pickerNode('button','mp-chip mp-toggle');b.type='button';b.dataset.k='toggle:'+prop;
       b.setAttribute('aria-pressed',String(!!S[prop]));b.title=t(title);
       b.append(pickerNode('i',sw),pickerNode('span',null,t(label)));
-      b.onclick=()=>{S[prop]=!S[prop];try{localStorage.setItem(store,S[prop]?'1':'0');}catch{}buildModelPicker(key);rebuildTempChart();};
+      b.onclick=()=>{S[prop]=!S[prop];try{localStorage.setItem(store,S[prop]?'1':'0');}catch{}rebuildTempChart();buildModelPicker(key);};
       wrap.append(b);
     }
     wrap.append(pickerNode('span','mp-sep'));
   }
 
-  const chosen=MODELS.filter(m=>set.has(m.id)&&available(m));
-  for(const m of chosen){
-    const last=cfg.minOne&&set.size<=1;
-    const b=pickerNode('button','mp-chip');b.type='button';
+  const last=cfg.minOne&&visible()<=1;
+  for(const m of MODELS.filter(m=>set.has(m.id)&&available(m))){
+    const b=pickerNode('button','mp-chip');b.type='button';b.dataset.k='chip:'+m.id;
     const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
     b.append(dot,pickerNode('span',null,m.name));
     if(!last)b.append(pickerNode('span','mp-x','×'));
@@ -72,42 +80,55 @@ function buildModelPicker(key){
   }
 
   const rest=MODELS.filter(m=>available(m)&&!set.has(m.id)).length;
-  const more=pickerNode('button','mp-more',rest?moreLabel(rest):t('ch.choose'));more.type='button';
+  const more=pickerNode('button','mp-more',rest?moreLabel(rest):t('ch.choose'));more.type='button';more.dataset.k='more';
   const panelId=cfg.id+'Panel';
   more.setAttribute('aria-expanded',String(!!_pickerOpen[key]));
   more.setAttribute('aria-controls',panelId);
   more.onclick=()=>{_pickerOpen[key]=!_pickerOpen[key];buildModelPicker(key);if(_pickerOpen[key])$(panelId)?.querySelector('input:not(:disabled)')?.focus();};
   wrap.append(more);
 
-  if(!_pickerOpen[key])return;
-  const panel=pickerNode('div','mp-panel');panel.id=panelId;
-  const list=pickerNode('div','mp-list');
-  for(const m of MODELS){
-    const ok=available(m);
-    const row=pickerNode('label','mp-item'+(ok?'':' is-off'));
-    const box=document.createElement('input');box.type='checkbox';box.checked=set.has(m.id)&&ok;box.disabled=!ok;
-    box.onchange=()=>{
-      if(box.checked)set.add(m.id);
-      else{if(cfg.minOne&&set.size<=1){box.checked=true;return;}set.delete(m.id);}
-      change();buildModelPicker(key);$(panelId)?.querySelectorAll('input')[MODELS.indexOf(m)]?.focus();
-    };
-    const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
-    const text=pickerNode('span');
-    text.append(document.createTextNode(m.name),pickerNode('small',null,ok?`${m.org} · ${m.res.replace(/(\d)km$/,'$1 km')} · ${m.days} ${t('unit.days')}`:t('ch.no_data')));
-    row.append(box,dot,text);
-    list.append(row);
+  if(_pickerOpen[key]){
+    const panel=pickerNode('div','mp-panel');panel.id=panelId;
+    const list=pickerNode('div','mp-list');
+    for(const m of MODELS){
+      const ok=available(m);
+      const row=pickerNode('label','mp-item'+(ok?'':' is-off'));
+      const box=document.createElement('input');box.type='checkbox';box.dataset.k='box:'+m.id;
+      box.checked=set.has(m.id)&&ok;box.disabled=!ok;
+      box.onchange=()=>{
+        if(box.checked)set.add(m.id);
+        else{if(cfg.minOne&&visible()<=1){box.checked=true;return;}set.delete(m.id);}
+        change();buildModelPicker(key);
+      };
+      const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
+      const text=pickerNode('span');
+      text.append(document.createTextNode(m.name),pickerNode('small',null,ok?`${m.org} · ${m.res.replace(/(\d)km$/,'$1 km')} · ${m.days} ${t('unit.days')}`:t('ch.no_data')));
+      row.append(box,dot,text);
+      list.append(row);
+    }
+    const actions=pickerNode('div','mp-actions');
+    const act=(label,fn)=>{const b=pickerNode('button',null,t(label));b.type='button';b.dataset.k='act:'+label;b.onclick=()=>{fn();change();buildModelPicker(key);};actions.append(b);};
+    act('ch.all',()=>MODELS.filter(available).forEach(m=>set.add(m.id)));
+    if(!cfg.minOne)act('ch.none',()=>set.clear());
+    act('ch.default',()=>{set.clear();cfg.def.forEach(id=>set.add(id));});
+    const close=pickerNode('button','mp-close',t('ch.close'));close.type='button';
+    close.onclick=()=>{_pickerOpen[key]=false;buildModelPicker(key);wrap.querySelector('.mp-more')?.focus();};
+    actions.append(close);
+    panel.append(list,actions);
+    panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close.click();}});
+    wrap.append(panel);
   }
-  const actions=pickerNode('div','mp-actions');
-  const act=(label,fn)=>{const b=pickerNode('button',null,t(label));b.type='button';b.onclick=()=>{fn();change();buildModelPicker(key);};actions.append(b);};
-  act('ch.all',()=>MODELS.filter(available).forEach(m=>set.add(m.id)));
-  if(!cfg.minOne)act('ch.none',()=>set.clear());
-  act('ch.default',()=>{set.clear();cfg.def.forEach(id=>set.add(id));});
-  const close=pickerNode('button','mp-close',t('ch.close'));close.type='button';
-  close.onclick=()=>{_pickerOpen[key]=false;buildModelPicker(key);wrap.querySelector('.mp-more')?.focus();};
-  actions.append(close);
-  panel.append(list,actions);
-  panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close.click();}});
-  wrap.append(panel);
+
+  if(focusKey){
+    let el=wrap.querySelector(`[data-k="${focusKey}"]`);
+    // A removed chip: move to the button that took its place, or to "+N"
+    if(!el){
+      const keys=[...wrap.querySelectorAll('[data-k]')].map(e=>e.dataset.k);
+      const after=order.slice(order.indexOf(focusKey)+1).find(k=>keys.includes(k));
+      el=after?wrap.querySelector(`[data-k="${after}"]`):more;
+    }
+    if(el&&!el.disabled)el.focus();else more.focus();
+  }
 }
 
 // Kept for callers that rebuild the temperature picker (city change, language switch)
@@ -207,16 +228,6 @@ function tempSpread(models){
   return {min,max};
 }
 
-// How far the models disagree, averaged over the next ~48 h: {level,text} or null
-function spreadVerdict(min,max){
-  const gaps=[];
-  for(let i=0;i<Math.min(48,min.length);i++) if(min[i]!=null) gaps.push(max[i]-min[i]);
-  if(!gaps.length)return null;
-  const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
-  const level=avg<1.5?'high':avg<4?'medium':'low';
-  return {level,text:t('ch.agree_'+level,{n:fmtNum(avg/2,1)})};
-}
-
 function rebuildTempChart(){
   const first=Object.values(S.data)[0];
   if(!first?.hourly?.time)return;
@@ -233,19 +244,21 @@ function rebuildTempChart(){
     pointRadius:0,
     tension:0.3,
     fill:false,
+    order:1,
   }));
 
   // Band from the coldest to the warmest model and the median line use every model with
-  // data, whatever is picked; the band is drawn first so it sits behind the lines.
+  // data, whatever is picked. `order` sets the stacking: Chart.js draws higher numbers
+  // first, so the band sits at the back and the median on top.
   const sp=withData.length>=2?tempSpread(withData):null;
   const band=S.showSpread&&sp?[
-    {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true},
-    {label:t('chart.model_range'),data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
+    {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true,order:2},
+    {label:t('chart.model_range'),data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true,order:2},
   ]:[];
   const med=S.showMedian&&withData.length>=2?[{
     label:t('ch.median'),
     data:first.hourly.time.map((_,i)=>{const v=median(withData.map(m=>S.data[m.id].hourly.temperature_2m[i]));return v==null?null:round(v,1);}),
-    borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3,fill:false,
+    borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3,fill:false,order:0,
   }]:[];
 
   showChart('loadT','cT');
@@ -275,15 +288,14 @@ function rebuildTempChart(){
     }
   });
 
+  // Same measure as the agreement dot on the Today view, so the two never disagree
+  let v=null;
+  try{
+    const a=forecastSummary(S.data).agreement;
+    if(a&&a.tempSpread!=null)v={level:a.tempLevel,text:t('ch.agree_'+a.tempLevel,{n:fmtNum(a.tempSpread/2,1)})};
+  }catch{}
   const info=$('spreadInfo');
-  const v=sp?spreadVerdict(sp.min,sp.max):null;
   if(info){info.hidden=!v;info.textContent=v?v.text:'';if(v)info.dataset.level=v.level;}
-}
-
-function toggleSpread(on){
-  S.showSpread=on;
-  try{localStorage.setItem('show_spread',on?'1':'0');}catch{}
-  rebuildTempChart();
 }
 
 // ─── PRECIPITATION CHART ─────────────────────────────────────────────────────

@@ -38,31 +38,17 @@ const STR = {
     'ui.share_wa': 'Dalīties WhatsApp',
     'ui.share_tg': 'Dalīties Telegram',
 
-    'metric.current': 'Pašreizējā',
-    'metric.feels': 'Sajūta',
-    'metric.today_max': 'Šodienas max',
-    'metric.min': 'Min',
     'metric.wind': 'Vējš',
     'metric.humidity': 'Mitrums',
-    'metric.models': 'Modeļi',
-    'metric.active_models': 'aktīvi modeļi',
+
     'metric.loading': 'Ielādē...',
-    'metric.precip': 'Nokrišņi',
-    'metric.direction': 'Virziens',
+
     'metric.gust': 'brāzmas',
-    'metric.snow': 'sniegs',
-    'metric.source': 'Pašreizējie dati',
-    'metric.updated': 'atjaunoti',
+
     'metric.updated_prefix': 'Dati atjaunoti',
     'unit.days': 'dienas',
     'models.resolution': 'Izšķirtspēja',
     'models.forecast': 'Prognoze',
-    'a11y.tabs': 'Datu skati',
-    'radar.now': 'Tagad',
-
-    'feels.warmer': 'Siltāk nekā ir',
-    'feels.colder': 'Aukstāk nekā ir',
-    'feels.matches': 'Atbilst temperatūrai',
 
     'tab.temp': 'Temperatūra',
     'tab.precip': 'Nokrišņi',
@@ -74,9 +60,6 @@ const STR = {
     'tab.radar': 'Radars',
     'tab.models': 'Modeļi',
 
-    'card.temp_title': 'Temperatūra 2m - modeļu salīdzinājums (16 dienas)',
-    'card.model_hint': 'Izvēlies kurus modeļus rādīt grafikā - klikšķini uz modeļa nosaukuma',
-    'card.show_spread': 'Rādīt modeļu izkliedi',
     'card.precip_prob': 'Nokrišņu varbūtība (%)',
     'card.precip_prob_sub': 'tie paši modeļi, kas izvēlēti augšpusē',
     'card.uv_title': 'UV indekss',
@@ -100,25 +83,15 @@ const STR = {
     'chart.cloud_cover': 'Mākoņu sega (%)',
     'chart.forecast_daily': 'Prognoze pa dienām',
     'chart.model_range': 'Modeļu diapazons',
-    'chart.measured': 'mērīts',
+
     'chart.no_precip_prob': 'Nokrišņu varbūtības dati nav pieejami izvēlētajiem modeļiem.',
 
-    'sel.all': 'Visi',
-    'sel.none': 'Neviens',
-    'sel.model_show': '{name} - rādīt grafikā',
-
-    'spread.agree': 'modeļi lielā mērā vienojas (±{n}°C nākamajās 48 h)',
-    'spread.medium': 'vidēja modeļu izkliede (±{n}°C nākamajās 48 h)',
-    'spread.high': 'liela nenoteiktība - modeļi būtiski atšķiras (±{n}°C nākamajās 48 h)',
     'spread.tooltip_range': 'Diapazons: {min}-{max}°C (Δ {d}°)',
 
-    'th.date': 'Datums', 'th.time': 'Laiks', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
+    'th.date': 'Datums', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
     'th.precip': 'Nokrišņi', 'th.precip_pct': 'Nokrišņi %', 'th.wind_max': 'Vējš max',
     'th.cloud': 'Mākoņi', 'th.humidity': 'Mitrums',
-    'th.station': 'Stacija', 'th.dist': 'Attālums', 'th.air_t': 'Gaisa t.',
-    'th.road_t': 'Ceļa t.', 'th.feels_t': 'Sajūtu t.', 'th.wind': 'Vējš',
-    'th.precip_h': 'Nokrišņi (h)', 'th.road_cond': 'Ceļa stāvoklis',
-    'th.min_t': 'min t°', 'th.max_t': 'max t°',
+
     'th.model': 'Modelis', 'th.mae': 'Vidējā kļūda (MAE)', 'th.bias': 'Novirze', 'th.points': 'Punkti',
 
     'wx.clear': 'Skaidrs', 'wx.partly': 'Mākoņains', 'wx.cloud': 'Apmācies',
@@ -141,7 +114,7 @@ const STR = {
     'reltime.just_now': 'tikko',
     'reltime.min_ago': 'pirms {n} min',
 
-    'err.load_failed': 'Neizdevās ielādēt datus. Pārbaudiet interneta savienojumu.',
+    'err.load_failed': 'Neizdevās ielādēt datus. Pārbaudi interneta savienojumu.',
     'toast.reload_failed': 'Neizdevās ielādēt jaunos datus. Rādīti iepriekšējie.',
     'search.searching': 'Meklē...',
     'search.not_found': 'Pilsēta netika atrasta',
@@ -153,21 +126,10 @@ const STR = {
     'favs.recent': 'Nesenie meklējumi',
     'favs.remove': 'Noņemt {name} no saglabātajām',
 
-    'radar.loading': 'Ielādē...',
-    'radar.load_failed': 'Neizdevās ielādēt radara datus.',
-    'radar.lvc_tab': 'Ceļa meteostacijas (LVC)',
-    'radar.lvgmc_tab': 'LVĢMC meteostacijas',
-    'radar.lvc_src': 'Dati: transportdata.gov.lv (LVC)',
-    'radar.lvgmc_src': 'Dati: data.gov.lv (LVĢMC)',
     'radar.lvc_failed': 'Neizdevās ielādēt ceļa meteostaciju datus.',
     'radar.lvgmc_failed': 'Neizdevās ielādēt LVĢMC staciju datus.',
-    'radar.stations_count': '{n} stacijas',
-    'radar.overlay_lvc': 'Ceļa meteostacijas (LVC)',
-    'radar.overlay_lvgmc': 'LVĢMC meteostacijas',
-    'radar.attr': 'Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Meteostacijas: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
-    'basemap.light': 'Gaišā', 'basemap.dark': 'Tumšā', 'basemap.osm': 'OpenStreetMap',
-    'basemap.relief': 'Reljefs', 'basemap.satellite': 'Satelīts',
+    'radar.attr': 'Radars: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Meteostacijas: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
     'station.dist_away': '{n} km attālumā',
     'station.history_24h': 'Skatīt 24h vēsturi',
@@ -184,7 +146,6 @@ const STR = {
     'station.dew_point': 'Rasas punkts',
     'station.pressure': 'Spiediens',
     'station.uv': 'UV indekss',
-    'station.minmax_24h': '24h min / max',
 
     'clim.anom_lbl': 'salīdzinājumā ar 1991-2020 normu šai datumai',
     'clim.loading': 'Ielādē vēsturiskos datus...',
@@ -264,11 +225,9 @@ const STR = {
     'stp.ds_max': 'Maksimālā T°',
     'stp.ds_wind_speed': 'Vēja ātrums m/s',
     'stp.ds_gust': 'Brāzmas m/s',
-    'stp.aria_temp_hist': '{h}h temperatūras vēsture',
-    'stp.aria_minmax': '{h}h min/max temperatūra',
-    'stp.aria_wind_hist': '{h}h vēja vēsture',
+
     // Šodien
-    'tab.today': 'Šodien',
+
     'wx.night': 'Skaidrs', 'wx.night_partly': 'Mākoņains',
     'today.today_range': 'Šodien',
     'today.precip_today': 'Nokrišņi šodien',
@@ -297,6 +256,9 @@ const STR = {
     'today.expected': '{day} ap {hours} gaidāms {kind}.',
     'today.expected_mm': '{day} ap {hours} gaidāms {kind}, kopā ap {mm} mm.',
     'today.possible': '{day} ap {hours} iespējams {kind}.',
+    'today.long': '{day} {at} sāksies {kind}, kas ilgs apmēram {h} h.',
+    'today.long_mm': '{day} {at} sāksies {kind}, kas ilgs apmēram {h} h, kopā ap {mm} mm.',
+    'today.long_possible': '{day} {at} iespējams {kind}, apmēram {h} h.',
     'today.dry': 'Tuvākajās 36 stundās nokrišņi nav gaidāmi.',
     'today.clears': 'Pēc tam skaidrosies.',
     'today.day_temp': 'Dienā līdz {max}, naktī ap {min}.',
@@ -446,9 +408,9 @@ const STR = {
     'ch.no_data': 'šai vietai datu nav',
     'ch.picker_aria': 'Modeļi grafikā',
     'ch.wind_unit': 'Vēja mērvienība',
-    'ch.agree_high': 'Modeļi vienisprātis, ±{n}° nākamajās 48 h',
-    'ch.agree_medium': 'Modeļi daļēji atšķiras, ±{n}° nākamajās 48 h',
-    'ch.agree_low': 'Liela nenoteiktība, ±{n}° nākamajās 48 h',
+    'ch.agree_high': 'Temperatūrā modeļi vienisprātis, ±{n}° nākamajās 48 h',
+    'ch.agree_medium': 'Temperatūrā modeļi daļēji atšķiras, ±{n}° nākamajās 48 h',
+    'ch.agree_low': 'Temperatūrā liela nenoteiktība, ±{n}° nākamajās 48 h',
     'ch.period': 'Periods',
     'ch.p48': '48 h', 'ch.p7': '7 dienas', 'ch.p14': '14 dienas+',
     'ch.period_hint': 'no pašreizējās stundas',
@@ -533,31 +495,17 @@ const STR = {
     'ui.share_wa': 'Share on WhatsApp',
     'ui.share_tg': 'Share on Telegram',
 
-    'metric.current': 'Now',
-    'metric.feels': 'Feels like',
-    'metric.today_max': 'Today max',
-    'metric.min': 'Min',
     'metric.wind': 'Wind',
     'metric.humidity': 'Humidity',
-    'metric.models': 'Models',
-    'metric.active_models': 'active models',
+
     'metric.loading': 'Loading...',
-    'metric.precip': 'Precip.',
-    'metric.direction': 'Direction',
+
     'metric.gust': 'gusts',
-    'metric.snow': 'snow',
-    'metric.source': 'Current data',
-    'metric.updated': 'updated',
+
     'metric.updated_prefix': 'Data updated',
     'unit.days': 'days',
     'models.resolution': 'Resolution',
     'models.forecast': 'Forecast',
-    'a11y.tabs': 'Data views',
-    'radar.now': 'Now',
-
-    'feels.warmer': 'Warmer than actual',
-    'feels.colder': 'Colder than actual',
-    'feels.matches': 'Matches the temperature',
 
     'tab.temp': 'Temperature',
     'tab.precip': 'Precipitation',
@@ -569,9 +517,6 @@ const STR = {
     'tab.radar': 'Radar',
     'tab.models': 'Models',
 
-    'card.temp_title': 'Temperature 2m - model comparison (16 days)',
-    'card.model_hint': 'Choose which models to show on the chart - click a model name',
-    'card.show_spread': 'Show model spread',
     'card.precip_prob': 'Precipitation probability (%)',
     'card.precip_prob_sub': 'same models as selected above',
     'card.uv_title': 'UV index',
@@ -595,25 +540,15 @@ const STR = {
     'chart.cloud_cover': 'Cloud cover (%)',
     'chart.forecast_daily': 'Daily forecast',
     'chart.model_range': 'Model range',
-    'chart.measured': 'measured',
+
     'chart.no_precip_prob': 'Precipitation probability is not available for the selected models.',
 
-    'sel.all': 'All',
-    'sel.none': 'None',
-    'sel.model_show': '{name} - show on chart',
-
-    'spread.agree': 'models largely agree (±{n}°C over the next 48 h)',
-    'spread.medium': 'moderate model spread (±{n}°C over the next 48 h)',
-    'spread.high': 'high uncertainty - models differ substantially (±{n}°C over the next 48 h)',
     'spread.tooltip_range': 'Range: {min}-{max}°C (Δ {d}°)',
 
-    'th.date': 'Date', 'th.time': 'Time', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
+    'th.date': 'Date', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
     'th.precip': 'Precip.', 'th.precip_pct': 'Precip. %', 'th.wind_max': 'Wind max',
     'th.cloud': 'Clouds', 'th.humidity': 'Humidity',
-    'th.station': 'Station', 'th.dist': 'Distance', 'th.air_t': 'Air t.',
-    'th.road_t': 'Road t.', 'th.feels_t': 'Feels t.', 'th.wind': 'Wind',
-    'th.precip_h': 'Precip. (h)', 'th.road_cond': 'Road condition',
-    'th.min_t': 'min t°', 'th.max_t': 'max t°',
+
     'th.model': 'Model', 'th.mae': 'Mean error (MAE)', 'th.bias': 'Bias', 'th.points': 'Points',
 
     'wx.clear': 'Clear', 'wx.partly': 'Partly cloudy', 'wx.cloud': 'Overcast',
@@ -648,21 +583,10 @@ const STR = {
     'favs.recent': 'Recent searches',
     'favs.remove': 'Remove {name} from saved',
 
-    'radar.loading': 'Loading...',
-    'radar.load_failed': 'Could not load radar data.',
-    'radar.lvc_tab': 'Road weather stations (LVC)',
-    'radar.lvgmc_tab': 'LVĢMC weather stations',
-    'radar.lvc_src': 'Data: transportdata.gov.lv (LVC)',
-    'radar.lvgmc_src': 'Data: data.gov.lv (LVĢMC)',
     'radar.lvc_failed': 'Could not load road weather station data.',
     'radar.lvgmc_failed': 'Could not load LVĢMC station data.',
-    'radar.stations_count': '{n} stations',
-    'radar.overlay_lvc': 'Road weather stations (LVC)',
-    'radar.overlay_lvgmc': 'LVĢMC weather stations',
-    'radar.attr': 'Radar: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Stations: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
-    'basemap.light': 'Light', 'basemap.dark': 'Dark', 'basemap.osm': 'OpenStreetMap',
-    'basemap.relief': 'Relief', 'basemap.satellite': 'Satellite',
+    'radar.attr': 'Radar: <a href="https://www.rainviewer.com" target="_blank">RainViewer</a> · Stations: <a href="https://www.transportdata.gov.lv" target="_blank">LVC</a> / <a href="https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi" target="_blank">LVĢMC</a>',
 
     'station.dist_away': '{n} km away',
     'station.history_24h': 'View 24h history',
@@ -679,7 +603,6 @@ const STR = {
     'station.dew_point': 'Dew point',
     'station.pressure': 'Pressure',
     'station.uv': 'UV index',
-    'station.minmax_24h': '24h min / max',
 
     'clim.anom_lbl': 'compared with the 1991-2020 normal for this date',
     'clim.loading': 'Loading historical data...',
@@ -759,11 +682,9 @@ const STR = {
     'stp.ds_max': 'Maximum T°',
     'stp.ds_wind_speed': 'Wind speed m/s',
     'stp.ds_gust': 'Gusts m/s',
-    'stp.aria_temp_hist': '{h}h temperature history',
-    'stp.aria_minmax': '{h}h min/max temperature',
-    'stp.aria_wind_hist': '{h}h wind history',
+
     // Today
-    'tab.today': 'Today',
+
     'wx.night': 'Clear', 'wx.night_partly': 'Partly cloudy',
     'today.today_range': 'Today',
     'today.precip_today': 'Precip. today',
@@ -792,6 +713,9 @@ const STR = {
     'today.expected': '{kind} expected {day} around {hours}.',
     'today.expected_mm': '{kind} expected {day} around {hours}, about {mm} mm in total.',
     'today.possible': '{kind} possible {day} around {hours}.',
+    'today.long': '{kind} from {at} {day}, lasting about {h} h.',
+    'today.long_mm': '{kind} from {at} {day}, lasting about {h} h, about {mm} mm in total.',
+    'today.long_possible': '{kind} possible from {at} {day}, for about {h} h.',
     'today.dry': 'No precipitation expected in the next 36 hours.',
     'today.clears': 'Clearing afterwards.',
     'today.day_temp': 'Up to {max} today, around {min} tonight.',
@@ -941,9 +865,9 @@ const STR = {
     'ch.no_data': 'no data for this place',
     'ch.picker_aria': 'Models on the chart',
     'ch.wind_unit': 'Wind unit',
-    'ch.agree_high': 'Models agree, ±{n}° over the next 48 h',
-    'ch.agree_medium': 'Models partly differ, ±{n}° over the next 48 h',
-    'ch.agree_low': 'High uncertainty, ±{n}° over the next 48 h',
+    'ch.agree_high': 'Models agree on temperature, ±{n}° over the next 48 h',
+    'ch.agree_medium': 'Models partly differ on temperature, ±{n}° over the next 48 h',
+    'ch.agree_low': 'High temperature uncertainty, ±{n}° over the next 48 h',
     'ch.period': 'Period',
     'ch.p48': '48 h', 'ch.p7': '7 days', 'ch.p14': '14 days+',
     'ch.period_hint': 'from the current hour',

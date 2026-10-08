@@ -265,33 +265,23 @@ function forecastSummary(data,{nowMs=Date.now(),current=null,horizon=36}={}){
   const name=['high','medium','low'];
   const tempLevel=tempSpread==null?0:tempSpread<2?0:tempSpread<4?1:2;
   const rainLevel=rainShare==null?0:rainShare<=0.2||rainShare>=0.8?0:rainShare<=0.35||rainShare>=0.65?1:2;
-  const rainInPlay=rainModels>0&&(rainShare<0.8||windows.some(w=>w.start<24));
   const agreement=hc.models<2?null:{level:name[Math.max(tempLevel,rainLevel)],tempLevel:name[tempLevel],
-    rainLevel:name[rainLevel],tempSpread,rainModels,rainOf,rainInPlay,models:hc.models};
+    rainLevel:name[rainLevel],tempSpread,rainModels,rainOf,models:hc.models};
 
   return {ok:true,models:hc.models,todayKey,now,windows,first,next,maxShare,clears,
     today,tomorrow,deltaMax,trend,phase:dayAhead?'day':'night',restMax:restToday.length?Math.max(...restToday):null,nightMin,
     agreement};
 }
 
-// LVĢMC times are local wall-clock strings without a zone (Europe/Riga); strings
-// with Z or an offset are taken as they are.
+// Station times go through the site's one parser (map-utils.js: Riga wall-clock time when
+// there is no offset). Node tests load it directly; in the browser it is already global.
 function stationTimeMs(s){
-  if(typeof s!=='string'||!s)return NaN;
-  if(/(?:[zZ]|[+-]\d\d:?\d\d)$/.test(s))return Date.parse(s);
-  const asUtc=Date.parse((s.length===16?s+':00':s.slice(0,19))+'Z');
-  if(!Number.isFinite(asUtc))return NaN;
-  let off=2*3600e3;
-  try{
-    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Riga',hourCycle:'h23',
-      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(new Date(asUtc)).map(p=>[p.type,p.value]));
-    off=Date.parse(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:00Z`)-asUtc;
-  }catch{}
-  return asUtc-off;
+  const parse=typeof parseStationTime==='function'?parseStationTime:require('./map-utils.js').parseStationTime;
+  return parse(s);
 }
 
-// Nearest station that measures air temperature; null when it is too far away or
-// its latest temperature reading is too old.
+// Nearest station whose latest temperature reading is fresh enough and that lies within
+// maxKm; a stale station nearby never hides a fresh one a little further away.
 function nearestStationReading(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAgeMin=90}={}){
   let best=null;
   for(const s of stations||[]){
@@ -299,14 +289,13 @@ function nearestStationReading(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAg
     let h=null;
     for(let i=s.history.length-1;i>=0;i--){if(fsNum(s.history[i]?.airTemp)!=null&&s.history[i].time){h=s.history[i];break;}}
     if(!h)continue;
+    const age=(nowMs-stationTimeMs(h.time))/60000;
+    if(!Number.isFinite(age)||age>maxAgeMin||age<-15)continue;
     const dist=fsHaversine(lat,lon,+s.lat,+s.lon);
-    if(!best||dist<best.dist)best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time};
+    if(dist>maxKm||(best&&dist>=best.dist))continue;
+    best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time,ageMin:Math.max(0,Math.round(age))};
   }
-  if(!best||best.dist>maxKm)return null;
-  const ms=stationTimeMs(best.time);
-  const age=(nowMs-ms)/60000;
-  if(!Number.isFinite(age)||age>maxAgeMin||age<-15)return null;
-  return {...best,ageMin:Math.max(0,Math.round(age))};
+  return best;
 }
 
 if(typeof module!=='undefined'&&module.exports){
