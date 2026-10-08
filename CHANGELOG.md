@@ -8,6 +8,7 @@
 - Temperature trend arrows in the station table, popups and station pages. The LVC worker returns the reading about an hour before the latest one (redeploy the worker to get LVC trends).
 - Station pages get the language switch, a calm back link and a link to the forecast for the station's place.
 - No more scheduled deployments: warnings, hydrology, Kp and marine snapshots are built by the LVC worker's cron (warnings every 15 minutes, Kp and hydrology every 30, marine every 4 hours) and read from it; GitHub Pages only publishes code changes. The worker also stores the ready station list, so a list request reads one row instead of scanning all readings. Redeploy the LVC worker before merging.
+- Radar playback within RainViewer's free limit (100 requests a minute from one address): every tile request goes through a queue that keeps to 90 a minute, the frame on screen first, so all frames load instead of most being refused. Tiles come from the host named in the API answer, and a frame whose tiles failed is loaded again a minute later.
 - Fresh data while the page stays open: the forecast reloads every 30 minutes while the page is visible and at once when it is shown again after 15 minutes, the data age label updates every minute, and the station pages reload their readings every 10 minutes. A saved forecast is reused for 10 minutes instead of an hour; an older copy only stands in when the network fails.
 
 ## 2026-10-08 - Today view, new radar and shared map timeline
