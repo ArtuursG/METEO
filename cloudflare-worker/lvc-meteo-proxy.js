@@ -13,6 +13,8 @@
  *   ierakstus, kas vecāki par RETENTION_HOURS.
  *   Pārlūks -> fetch() -> lasa TIKAI no D1 (nevis katru reizi no LVC -
  *   tas ļauj rādīt 24h vēsturi un netērē LVC pieprasījumu limitu).
+ *   Staciju sarakstā katrai stacijai ir arī rādījums ~1 h agrāk (prevTime,
+ *   prevAirTemp, prevSurfaceTemp) temperatūras tendencei; ja tāda nav - null.
  *
  * ATSLĒGU UN D1 UZSTĀDĪŠANA - dari TIKAI Cloudflare panelī, NEKAD
  * neieraksti atslēgas šajā failā. Skat. schema.sql šai pašā mapē un
@@ -169,6 +171,69 @@ async function syncData(env) {
   await env.DB.prepare("DELETE FROM readings WHERE time < ?").bind(cutoff).run();
 }
 
+// Temperatūras tendencei: katrai stacijai rādījums ~60 min pirms tās jaunākā (40-90 min
+// robežās). Laiks glabājas kā ISO teksts, var būt ar laika joslas nobīdi, tāpēc SQL tikai
+// aptuveni atlasa pēdējās stundas, bet precīzo izvēli dara JS ar Date.parse.
+const TREND_LOOKBACK_HOURS = 3;
+const TREND_MIN = 40, TREND_TARGET = 60, TREND_MAX = 90;
+
+// Tikai rādījumi, kuros ir vērtība `key`: ja gaisa sensors uz brīdi neko nedeva,
+// ņemam blakus rādījumu tajā pašā logā, nevis atdodam null.
+function pickPrevious(latestTime, rows, key) {
+  const latest = Date.parse(latestTime);
+  if (!Number.isFinite(latest) || !rows) return null;
+  let best = null, bestGap = Infinity, bestAge = Infinity;
+  for (const r of rows) {
+    if (r[key] == null) continue;
+    const age = (latest - Date.parse(r.time)) / 60000;
+    if (!(age >= TREND_MIN && age <= TREND_MAX)) continue;
+    const gap = Math.abs(age - TREND_TARGET);
+    // Vienādā attālumā priekšroka jaunākajam rādījumam
+    if (gap < bestGap || (gap === bestGap && age < bestAge)) {
+      best = r;
+      bestGap = gap;
+      bestAge = age;
+    }
+  }
+  return best;
+}
+
+// Pēdējo stundu rādījumi ar temperatūru. Kļūdas gadījumā tukšs saraksts: stacijas
+// tad tiek atdotas kā agrāk, tikai ar null tendences laukiem.
+async function recentReadings(env) {
+  try {
+    const cutoff = new Date(Date.now() - TREND_LOOKBACK_HOURS * 3600 * 1000).toISOString();
+    const { results } = await env.DB.prepare(
+      `SELECT station_id AS id, time, air_temp AS airTemp, surface_temp AS surfaceTemp
+       FROM readings WHERE time >= ? AND (air_temp IS NOT NULL OR surface_temp IS NOT NULL)`
+    ).bind(cutoff).all();
+    return results || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Katrai stacijai pievieno prevTime, prevAirTemp, prevSurfaceTemp (null, ja nav derīga rādījuma).
+ * Gaisa un virsmas temperatūru meklē atsevišķi. prevTime ir gaisa temperatūras rādījuma
+ * laiks (ja tādas nav, tad virsmas).
+ */
+function withPrevious(stations, recent) {
+  const byStation = {};
+  for (const r of recent) (byStation[r.id] = byStation[r.id] || []).push(r);
+  return stations.map((s) => {
+    const rows = byStation[s.id];
+    const pa = pickPrevious(s.time, rows, "airTemp");
+    const ps = pickPrevious(s.time, rows, "surfaceTemp");
+    return {
+      ...s,
+      prevTime: (pa || ps) ? (pa || ps).time : null,
+      prevAirTemp: pa ? pa.airTemp : null,
+      prevSurfaceTemp: ps ? ps.surfaceTemp : null,
+    };
+  });
+}
+
 const READING_COLUMNS = `
   r.time AS time, r.air_temp AS airTemp, r.dew_point AS dewPoint, r.surface_temp AS surfaceTemp,
   r.max_temp AS maxTemp, r.min_temp AS minTemp, r.humidity AS humidity, r.visibility_m AS visibilityM,
@@ -198,14 +263,17 @@ export default {
         return json({ station: stationId, history: results });
       }
 
-      const { results } = await env.DB.prepare(
-        `SELECT s.id AS id, s.name AS name, s.lat AS lat, s.lon AS lon, ${READING_COLUMNS}
-         FROM stations s
-         JOIN readings r ON r.station_id = s.id
-         JOIN (SELECT station_id, MAX(time) AS maxt FROM readings GROUP BY station_id) latest
-           ON latest.station_id = r.station_id AND latest.maxt = r.time`
-      ).all();
-      return json({ updated: new Date().toISOString(), stations: results });
+      const [{ results }, recent] = await Promise.all([
+        env.DB.prepare(
+          `SELECT s.id AS id, s.name AS name, s.lat AS lat, s.lon AS lon, ${READING_COLUMNS}
+           FROM stations s
+           JOIN readings r ON r.station_id = s.id
+           JOIN (SELECT station_id, MAX(time) AS maxt FROM readings GROUP BY station_id) latest
+             ON latest.station_id = r.station_id AND latest.maxt = r.time`
+        ).all(),
+        recentReadings(env),
+      ]);
+      return json({ updated: new Date().toISOString(), stations: withPrevious(results || [], recent) });
     } catch (e) {
       return json({ error: String(e) }, 502);
     }

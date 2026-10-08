@@ -3,11 +3,12 @@
 // ─── MODEL PICKER ────────────────────────────────────────────────────────────
 // One compact picker for the temperature, precipitation and wind charts: chips for the
 // models on the chart (they double as the legend) and a "+N" panel with every model.
-// Choices are remembered per chart.
+// Choices are remembered per chart; the defaults are the recommended models.
+const REC_IDS=RECOMMENDED_MODELS.map(m=>m.id);
 const PICKER={
-  active:       {store:'temp_models',  def:['ecmwf_ifs025','icon_eu'],                   minOne:false, id:'tempPicker'},
-  precipModels: {store:'precip_models',def:['ecmwf_ifs025','icon_eu','metno_seamless'],  minOne:true,  id:'precipPicker'},
-  windModels:   {store:'wind_models',  def:['ecmwf_ifs025','icon_eu','metno_seamless'],  minOne:true,  id:'windPicker'},
+  active:       {store:'temp_models',  def:REC_IDS, minOne:false, id:'tempPicker'},
+  precipModels: {store:'precip_models',def:REC_IDS, minOne:true,  id:'precipPicker'},
+  windModels:   {store:'wind_models',  def:REC_IDS, minOne:true,  id:'windPicker'},
 };
 const _pickerOpen={};
 
@@ -24,9 +25,17 @@ function loadModelSet(key){
 }
 function saveModelSet(key){try{localStorage.setItem(PICKER[key].store,JSON.stringify([...S[key]]));}catch{}}
 for(const key of Object.keys(PICKER))S[key]=loadModelSet(key);
+// Single-model choices (cloud chart, daily table)
+const SINGLE_STORE={cloudModel:'cloud_model',tableModel:'table_model'};
+for(const [key,store] of Object.entries(SINGLE_STORE)){
+  try{const v=localStorage.getItem(store);if(MODELS.some(m=>m.id===v))S[key]=v;}catch{}
+}
 S.showMedian=(()=>{try{return localStorage.getItem('show_median')!=='0';}catch{return true;}})();
 
 const PICKER_REBUILD={active:()=>rebuildTempChart(),precipModels:()=>buildPrecipCharts(),windModels:()=>buildWindChart()};
+
+// Grid size as read here: '1.5km' becomes '1,5 km' in Latvian
+const fmtRes=res=>{const v=parseFloat(res);return Number.isFinite(v)?fmtNum(v,v%1?1:0)+' km':res;};
 
 function moreLabel(n){return t(n%10===1&&n%100!==11?'ch.more_one':'ch.more',{n});}
 
@@ -89,8 +98,11 @@ function buildModelPicker(key){
 
   if(_pickerOpen[key]){
     const panel=pickerNode('div','mp-panel');panel.id=panelId;
-    const list=pickerNode('div','mp-list');
-    for(const m of MODELS){
+    // Temperature only: recent error near this place (model-skill.js), information only
+    const skill=key==='active'&&typeof skillNow==='function'?skillNow():null;
+    const err=new Map(skill?skill.rows.map(r=>[r.id,r.mae]):[]);
+    const top=new Set(skill?skillBest(skill.rows).map(r=>r.id):[]);
+    const item=m=>{
       const ok=available(m);
       const row=pickerNode('label','mp-item'+(ok?'':' is-off'));
       const box=document.createElement('input');box.type='checkbox';box.dataset.k='box:'+m.id;
@@ -102,10 +114,27 @@ function buildModelPicker(key){
       };
       const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
       const text=pickerNode('span');
-      text.append(document.createTextNode(m.name),pickerNode('small',null,ok?`${m.org} · ${m.res.replace(/(\d)km$/,'$1 km')} · ${m.days} ${t('unit.days')}`:t('ch.no_data')));
+      const small=pickerNode('small',null,ok?`${m.org} · ${fmtRes(m.res)} · ${m.days} ${t('unit.days')}`:t('ch.no_data'));
+      if(ok&&err.has(m.id))small.append(' · ',pickerNode('span','mp-err',t('ch.skill_err',{n:fmtTemp(err.get(m.id),1)})));
+      text.append(document.createTextNode(m.name));
+      if(top.has(m.id)){
+        const tag=pickerNode('span','mp-best',t('ch.skill_best'));
+        tag.title=t('ch.skill_best_title',{station:skill.station.name});
+        text.append(' ',tag);
+      }
+      text.append(small);
       row.append(box,dot,text);
-      list.append(row);
-    }
+      return row;
+    };
+    // The recommended models first, then the rest
+    const rec=REC_IDS.map(id=>MODELS.find(m=>m.id===id)).filter(Boolean);
+    [['ch.recommended',rec],['ch.others',MODELS.filter(m=>!rec.includes(m))]].forEach(([label,models],i)=>{
+      const head=pickerNode('p','mp-group',t(label));head.id=panelId+'G'+i;
+      const list=pickerNode('div','mp-list');
+      list.setAttribute('role','group');list.setAttribute('aria-labelledby',head.id);
+      models.forEach(m=>list.append(item(m)));
+      panel.append(head,list);
+    });
     const actions=pickerNode('div','mp-actions');
     const act=(label,fn)=>{const b=pickerNode('button',null,t(label));b.type='button';b.dataset.k='act:'+label;b.onclick=()=>{fn();change();buildModelPicker(key);};actions.append(b);};
     act('ch.all',()=>MODELS.filter(available).forEach(m=>set.add(m.id)));
@@ -114,7 +143,7 @@ function buildModelPicker(key){
     const close=pickerNode('button','mp-close',t('ch.close'));close.type='button';
     close.onclick=()=>{_pickerOpen[key]=false;buildModelPicker(key);wrap.querySelector('.mp-more')?.focus();};
     actions.append(close);
-    panel.append(list,actions);
+    panel.append(actions);
     panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close.click();}});
     wrap.append(panel);
   }
@@ -146,7 +175,7 @@ function buildModelInfo(){
       <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${m.name}</div>
-        <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${m.res} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}</div>
+        <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${fmtRes(m.res)} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}</div>
       </div>`;
     wrap.appendChild(div);
   });
@@ -296,25 +325,54 @@ function rebuildTempChart(){
   }catch{}
   const info=$('spreadInfo');
   if(info){info.hidden=!v;info.textContent=v?v.text:'';if(v)info.dataset.level=v.level;}
+  if(typeof renderSkillLine==='function')renderSkillLine();
+}
+
+// ─── SINGLE-MODEL CHOICE ─────────────────────────────────────────────────────
+// Card header for the cloud chart and the daily table: the recommended models as buttons,
+// every other model with data here in a "Citi" list. has(src) says whether a model's data
+// is enough for that view. A saved model without data here is kept but not shown
+// (ECMWF IFS is). Returns the id of the model to draw.
+function mkModelSelector(containerId,stateKey,title,onSelect,has){
+  const hd=$(containerId);
+  const usable=m=>!!m&&!!S.data[m.id]&&has(S.data[m.id]);
+  const shown=[S[stateKey],...REC_IDS,...MODELS.map(m=>m.id)].map(id=>MODELS.find(m=>m.id===id)).find(usable);
+  const focusKey=hd.contains(document.activeElement)?document.activeElement.dataset.k:null;
+  const pick=id=>{S[stateKey]=id;try{localStorage.setItem(SINGLE_STORE[stateKey],id);}catch{}onSelect();};
+  hd.replaceChildren(pickerNode('span','card-title',title));
+  const wrap=pickerNode('div','ch-seg ch-models');
+  wrap.setAttribute('role','group');
+  wrap.setAttribute('aria-label',title);
+  RECOMMENDED_MODELS.forEach(tm=>{
+    const ok=usable(MODELS.find(m=>m.id===tm.id));
+    const b=pickerNode('button',null,tm.name);b.type='button';b.dataset.k='seg:'+tm.id;
+    b.setAttribute('aria-pressed',String(shown?.id===tm.id));
+    b.disabled=!ok;if(!ok)b.title=t('ch.no_data');
+    b.onclick=()=>pick(tm.id);
+    wrap.append(b);
+  });
+  // A native select under a label-sized face: keyboard, touch, Escape and outside
+  // click work as everywhere else on the device
+  const others=MODELS.filter(m=>!REC_IDS.includes(m.id)&&usable(m));
+  if(others.length){
+    const on=others.includes(shown);
+    const box=pickerNode('span','ch-other'+(on?' is-on':''));
+    const face=pickerNode('span','ch-other-face',on?shown.name:t('ch.other'));face.setAttribute('aria-hidden','true');
+    const sel=document.createElement('select');sel.dataset.k='other';
+    sel.setAttribute('aria-label',t('ch.others'));
+    const none=new Option(t('ch.other'),'',false,!on);none.disabled=true;none.hidden=true;
+    sel.append(none,...others.map(m=>new Option(m.name,m.id,false,on&&m===shown)));
+    sel.onchange=()=>{if(sel.value)pick(sel.value);};
+    box.append(face,sel);
+    wrap.append(box);
+  }
+  hd.append(wrap);
+  if(focusKey)hd.querySelector(`[data-k="${focusKey}"]`)?.focus();
+  return shown?.id||null;
 }
 
 // ─── PRECIPITATION CHART ─────────────────────────────────────────────────────
 // Single-model mode renders a bar chart; multi-model renders overlaid line charts
-function mkModelSelector(containerId,stateKey,title,onSelect){
-  const hd=$(containerId);
-  hd.replaceChildren(pickerNode('span','card-title',title));
-  const wrap=pickerNode('div','ch-seg');
-  wrap.setAttribute('role','group');
-  wrap.setAttribute('aria-label',title);
-  TABLE_MODELS.forEach(tm=>{
-    const b=pickerNode('button',null,tm.name);b.type='button';
-    b.setAttribute('aria-pressed',S[stateKey]===tm.id?'true':'false');
-    b.onclick=()=>{S[stateKey]=tm.id;onSelect();};
-    wrap.appendChild(b);
-  });
-  hd.appendChild(wrap);
-}
-
 // Card header with a title and optional nodes on the right
 function chartHeader(containerId,title,...right){
   const hd=$(containerId);
@@ -450,8 +508,8 @@ const cloudColor=v=>(CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).color;
 const cloudLabel=v=>t((CLOUD_LEVELS.find(l=>v<=l.max)||CLOUD_LEVELS[3]).key);
 
 function buildCloudChart(){
-  mkModelSelector('cloudCardHd','cloudModel',t('chart.cloud_cover'),buildCloudChart);
-  const src=S.data[S.cloudModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  const id=mkModelSelector('cloudCardHd','cloudModel',t('chart.cloud_cover'),buildCloudChart,d=>!!d.hourly?.cloud_cover?.some(v=>v!=null));
+  const src=S.data[id];
   if(!src?.hourly?.time)return;
   const cd=CD();
   const cap=src.hourly.time.length;
@@ -550,9 +608,8 @@ function buildUVChart(){
 
 // ─── FORECAST TABLE ───────────────────────────────────────────────────────────
 function buildTable(){
-  mkModelSelector('tableCardHd','tableModel',t('chart.forecast_daily'),buildTable);
-
-  const src=S.data[S.tableModel]||S.data['ecmwf_ifs025']||Object.values(S.data)[0];
+  const id=mkModelSelector('tableCardHd','tableModel',t('chart.forecast_daily'),buildTable,d=>!!d.daily?.temperature_2m_max?.some(v=>v!=null));
+  const src=S.data[id];
   if(!src?.daily?.time)return;
   const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
          precipitation_probability_max:ppm,wind_speed_10m_max:wmax,
@@ -567,7 +624,10 @@ function buildTable(){
     const sp=document.createElement('span');sp.className='ft-pill';sp.textContent=fmtTemp(v);sp.style.background=tempColor(v);
     c.append(sp);return c;
   };
-  time.forEach((iso,i)=>{
+  // Short-range models end early: no rows of dashes after their last day
+  let last=time.length-1;
+  while(last>0&&tmax?.[last]==null)last--;
+  time.slice(0,last+1).forEach((iso,i)=>{
     const tr=document.createElement('tr');
     const day=td('ft-day');day.innerHTML=fmtDate(iso);
     const wx=td('wcell wi wi-'+(wKey(wc?.[i])||'none'));wx.innerHTML=wIcon(wc?.[i]);wx.title=wText(wc?.[i]);

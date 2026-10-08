@@ -78,13 +78,15 @@ function saveRadarPrefs(){
 function lvcRow(s){
   const lat=radarNum(s?.lat),lon=radarNum(s?.lon);
   if(lat==null||lon==null)return null;
-  const air=radarNum(s.airTemp);
+  const air=radarNum(s.airTemp),time=parseStationTime(s.time);
   const lows=[radarNum(s.minTemp),air].filter(v=>v!=null),highs=[radarNum(s.maxTemp),air].filter(v=>v!=null);
   return {key:'lvc:'+s.id,net:'lvc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
-    time:parseStationTime(s.time),airTemp:air,surfaceTemp:radarNum(s.surfaceTemp),dewPoint:radarNum(s.dewPoint),
+    time,airTemp:air,surfaceTemp:radarNum(s.surfaceTemp),dewPoint:radarNum(s.dewPoint),
     windSpeed:radarNum(s.windSpeed),windGust:radarNum(s.windGust),windDir:radarNum(s.windDir),
     precip:radarNum(s.precipMmH),humidity:radarNum(s.humidity),visibility:radarNum(s.visibilityM),
     cond:s.roadCondition||null,
+    // prevTime/prevAirTemp come from the worker; older worker versions do not send them
+    trend:tempTrend(air,time,s.prevAirTemp,s.prevTime),
     min24:lows.length?Math.min(...lows):null,max24:highs.length?Math.max(...highs):null,dist:null};
 }
 function lvgmcRow(s){
@@ -100,11 +102,13 @@ function lvgmcRow(s){
   const lows=day.flatMap(h=>[radarNum(h.airTemp),radarNum(h.minTemp)]).filter(v=>v!=null);
   const highs=day.flatMap(h=>[radarNum(h.airTemp),radarNum(h.maxTemp)]).filter(v=>v!=null);
   const spark=day.map(h=>({t:parseStationTime(h.time),v:radarNum(h.airTemp)})).filter(p=>Number.isFinite(p.t)&&p.v!=null);
+  const prev=prevReading(hist,time);
   return {key:'lvgmc:'+s.id,net:'lvgmc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
     time,airTemp:radarNum(reading.airTemp),feelsLike:radarNum(reading.feelsLike),surfaceTemp:null,
     windSpeed:radarNum(reading.windSpeed),windGust:radarNum(reading.windGust),windDir:radarNum(reading.windDir),
     precip:radarNum(reading.precipHour),humidity:radarNum(reading.humidity),pressure:radarNum(reading.pressure),
     visibility:radarNum(reading.visibility),uv:radarNum(reading.uv),cond:null,
+    trend:prev?tempTrend(reading.airTemp,time,prev.airTemp,prev.time):null,
     min24:lows.length?Math.min(...lows):null,max24:highs.length?Math.max(...highs):null,spark,dist:null};
 }
 
@@ -612,9 +616,11 @@ function stationPopup(row){
   box.append(meta);
   const temp=v=>v==null?null:fmtTemp(v,1);
   const wind=r=>r.windSpeed==null?null:`${fmtNum(r.windSpeed,1)} m/s${r.windDir!=null?' '+COMPASS[LANG][compassIndex(r.windDir)]:''}`;
-  // Third item marks secondary readings, hidden on phones to keep the popup short
+  // Third item marks secondary readings, hidden on phones to keep the popup short.
+  // The last-hour change sits in the air temperature row, so the popup keeps its height.
+  const air=row.airTemp==null?null:[temp(row.airTemp),stationTrendMark(row.trend,true)];
   const rows=row.net==='lvc'?[
-    ['station.air_t',temp(row.airTemp)],
+    ['station.air_t',air],
     ['station.road_surface_t',temp(row.surfaceTemp)],
     ['station.road_cond',row.cond?roadCondLabel(row.cond):null],
     ['station.dew_point',temp(row.dewPoint),true],
@@ -624,7 +630,7 @@ function stationPopup(row){
     ['station.precip',row.precip==null?null:fmtNum(row.precip,1)+' mm/h'],
     ['station.visibility',row.visibility==null?null:fmtNum(row.visibility/1000,1)+' km',true],
   ]:[
-    ['station.air_t',temp(row.airTemp)],
+    ['station.air_t',air],
     ['station.feels_t',temp(row.feelsLike)],
     ['station.wind',wind(row)],
     ['station.gust',row.windGust==null?null:fmtNum(row.windGust,1)+' m/s',true],
@@ -638,7 +644,9 @@ function stationPopup(row){
   for(const [key,val,minor] of rows){
     if(val==null)continue;
     const tr=radarNode('tr',minor?'is-minor':null);
-    tr.append(radarNode('th',null,t(key)),radarNode('td',null,val));
+    const td=radarNode('td');
+    td.append(...[].concat(val).filter(Boolean));
+    tr.append(radarNode('th',null,t(key)),td);
     tbl.append(tr);
   }
   if(tbl.rows.length)box.append(tbl);
@@ -832,6 +840,28 @@ function tempPill(v){
   if(v==null)s.classList.add('is-empty');else s.style.background=tempColor(v);
   return s;
 }
+// Change over the last hour: "+0,8°"
+const stationTrendText=tr=>(tr.delta>0?'+':'')+fmtTemp(tr.delta,1);
+const STATION_TREND_ARROW='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 8.6V1.6M1.9 4.6 5 1.5l3.1 3.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Small arrow when the air temperature moved at least 0.3° in the last hour, else null.
+// The exact change is in the title and aria-label; withValue also shows it ("↑ 0,7°").
+function stationTrendMark(tr,withValue){
+  if(!tr||Math.abs(tr.delta)<.3)return null;
+  const a=radarNode('span','st-trend '+(tr.delta>0?'is-up':'is-down'));
+  const label=t('rad.trend_title',{v:stationTrendText(tr)});
+  a.title=label;a.setAttribute('role','img');a.setAttribute('aria-label',label);
+  a.innerHTML=STATION_TREND_ARROW;
+  if(withValue)a.append(fmtTemp(Math.abs(tr.delta),1));
+  return a;
+}
+// Temperature pill plus the trend arrow
+function stationTempCell(r){
+  const box=radarNode('span','st-temp');
+  box.append(tempPill(r.airTemp));
+  const mark=stationTrendMark(r.trend);
+  if(mark)box.append(mark);
+  return box;
+}
 function stationNameCell(r){
   const wrap=radarNode('div','st-namebox');
   const a=radarNode('a','st-name',r.name);a.href=stationHref(r);
@@ -863,7 +893,7 @@ function stationTableRow(r,scale,maxPrecip){
   tr.append(
     td('st-c-name',stationNameCell(r)),
     td('st-c-num',r.dist==null?'-':fmtNum(r.dist,r.dist<100?1:0)+' km'),
-    td('st-c-air',tempPill(r.airTemp)),
+    td('st-c-air',stationTempCell(r)),
     td('st-c-num',r.surfaceTemp==null?muted('-'):fmtTemp(r.surfaceTemp,1)),
     td('st-c-wind',wind),
     td('st-c-precip',precip),
@@ -909,7 +939,7 @@ function stationListItem(r){
   if(stationIsStale(r)){const s=radarNode('span','st-stale',Number.isFinite(r.time)?fmtAge(r.time):t('st.no_time'));s.title=t('st.stale_title');parts.push(s);}
   parts.forEach((p,i)=>{if(i)meta.append(' · ');meta.append(p);});
   main.append(a,meta);
-  li.append(main,tempPill(r.airTemp));
+  li.append(main,stationTempCell(r));
   return li;
 }
 

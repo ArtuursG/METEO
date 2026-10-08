@@ -91,75 +91,50 @@ function renderClimate(d){
 }
 
 // ─── MODEL VERIFICATION (recent model analysis vs nearest LVĢMC station) ──────
+// The data comes from loadModelSkill() (model-skill.js), shared with the temperature chart
 let _verifKey=null;
 
 async function initVerification(){
   const key=`${S.lat.toFixed(2)}_${S.lon.toFixed(2)}`;
   if(_verifKey===key)return;
+  _verifKey=null; // set again only when this place is drawn
   $('loadVerif').style.display='flex';
   $('verifContent').hidden=true;
   $('verifErr').hidden=true;
 
-  try{
-    await ensureLvgmcStations();
-    const cand=(_lvgmcStations||[])
-      .filter(s=>Array.isArray(s.history)&&s.history.some(h=>h.airTemp!=null&&h.time))
-      .map(s=>({s,d:haversineKm(S.lat,S.lon,s.lat,s.lon)}))
-      .sort((a,b)=>a.d-b.d)[0];
-    if(!cand)throw new Error('no nearby station with history');
-    const st=cand.s;
-
-    // observed hourly air temperature, keyed by the "YYYY-MM-DDTHH" hour bucket
-    const obs={};
-    for(const h of st.history){
-      if(h.airTemp==null||!h.time)continue;
-      obs[h.time.slice(0,13)]=h.airTemp;
-    }
-    if(Object.keys(obs).length<6)throw new Error('too little station history');
-
-    const models=MODELS.map(m=>m.id).join(',');
-    const url=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}`
-      +`&models=${models}&hourly=temperature_2m&past_days=2&forecast_days=1&timezone=auto`;
-    const r=await fetch(url);
-    if(!r.ok)throw new Error('forecast '+r.status);
-    const j=await r.json();
-    const times=j.hourly?.time;
-    if(!times)throw new Error('no forecast times');
-
-    const rows=[];
-    for(const m of MODELS){
-      const arr=j.hourly[`temperature_2m_${m.id}`];
-      if(!arr)continue;
-      let sum=0,abs=0,n=0;
-      for(let i=0;i<times.length;i++){
-        const o=obs[times[i].slice(0,13)];
-        if(o==null||arr[i]==null)continue;
-        const e=arr[i]-o; sum+=e; abs+=Math.abs(e); n++;
-      }
-      if(n>=6)rows.push({name:m.name,color:m.color,id:m.id,mae:abs/n,bias:sum/n,n});
-    }
-    if(!rows.length)throw new Error('no obs/forecast overlap');
-    rows.sort((a,b)=>a.mae-b.mae);
-
-    renderVerification(st,cand.d,rows,{times,hourly:j.hourly,obs});
-    _verifKey=key;
-    $('loadVerif').style.display='none';
-    $('verifContent').hidden=false;
-  }catch(e){
-    console.warn('[verif]',e);
-    $('loadVerif').style.display='none';
-    $('verifErr').hidden=false;
+  const res=await loadModelSkill();
+  // The place changed meanwhile: start over for the new one
+  if(!res){if($('tab-about')?.classList.contains('on'))initVerification();return;}
+  $('loadVerif').style.display='none';
+  const msg=$('verifErr').firstElementChild;
+  if(res.status==='ok'){
+    try{
+      renderVerification(res);
+      _verifKey=key;
+      $('verifContent').hidden=false;
+      return;
+    }catch(e){console.warn('[verif]',e);}
   }
+  // data-i18n keeps the reason when the language changes; no station nearby is not an error
+  const quiet={none:'ch.skill_none',few:'ch.skill_few'}[res.status];
+  msg.dataset.i18n=quiet||'verif.err';
+  msg.textContent=t(msg.dataset.i18n);
+  msg.className=quiet?'clim-note':'err';
+  $('verifMeta').textContent='';
+  $('verifErr').hidden=false;
 }
 
 // Models picked for the chart; null until the first render (then the 3 most accurate)
 let _verifChosen=null;
 
-function renderVerification(st,dist,rows,series){
-  $('verifMeta').textContent=t('verif.station',{name:st.name,dist:round(dist)});
-  const best=rows[0];
-  $('verifIntro').textContent=t('verif.intro',
-    {station:st.name,best:best.name,mae:best.mae.toFixed(1),count:rows.length});
+function renderVerification(res){
+  const st=res.station,dist=res.dist;
+  const rows=res.rows.map(r=>({...MODELS.find(m=>m.id===r.id),...r})).filter(r=>r.name);
+  const times=res.resp.hourly.time,off=res.resp.utc_offset_seconds;
+  $('verifMeta').textContent=t('verif.station',{name:st.name,dist:fmtNum(dist,dist<10?1:0)});
+  // Models that tie on the rounded error share the top spot
+  const top=new Set(skillBest(rows).map(r=>r.id));
+  $('verifIntro').textContent=t('verif.intro',{best:skillNames(rows.filter(r=>top.has(r.id))),mae:fmtNum(rows[0].mae,1)});
 
   const available=new Set(rows.map(r=>r.id));
   _verifChosen=_verifChosen===null?new Set(rows.slice(0,3).map(r=>r.id)):new Set([..._verifChosen].filter(id=>available.has(id)));
@@ -167,11 +142,11 @@ function renderVerification(st,dist,rows,series){
   if(!hint){hint=document.createElement('p');hint.id='modelCompareHint';hint.className='compare-hint';$('verifTable').before(hint);}
   hint.textContent=t('st.verif_hint');
 
-  const fmtBias=v=>{const x=+v.toFixed(1); return x===0?'±0.0°C':`${x>0?'+':'−'}${Math.abs(x).toFixed(1)}°C`;};
+  const fmtBias=v=>{const x=round(v,1); return x===0?`±${fmtNum(0,1)}°C`:`${x>0?'+':'−'}${fmtNum(Math.abs(x),1)}°C`;};
   const tb=$('verifBody'); tb.textContent='';
-  rows.forEach((rw,i)=>{
+  rows.forEach(rw=>{
     const tr=document.createElement('tr');
-    if(i===0)tr.className='verif-best';
+    if(top.has(rw.id))tr.className='verif-best';
     const td1=document.createElement('td');
     const label=document.createElement('label');
     const check=document.createElement('input');
@@ -181,7 +156,7 @@ function renderVerification(st,dist,rows,series){
     const dot=document.createElement('span'); dot.className='mt-dot'; dot.style.background=rw.color;
     label.append(check,dot,document.createTextNode(rw.name));
     td1.appendChild(label);
-    const td2=document.createElement('td'); td2.textContent=`${rw.mae.toFixed(1)}°C`;
+    const td2=document.createElement('td'); td2.textContent=`${fmtNum(rw.mae,1)}°C`;
     const td3=document.createElement('td'); td3.textContent=fmtBias(rw.bias);
     const td4=document.createElement('td'); td4.textContent=rw.n;
     tr.append(td1,td2,td3,td4);
@@ -189,11 +164,12 @@ function renderVerification(st,dist,rows,series){
   });
 
   const cd=CD();
-  const labels=series.times.map(fmtHour);
-  const obsData=series.times.map(iso=>series.obs[iso.slice(0,13)]??null);
+  const labels=times.map(fmtHour);
+  // Same hour alignment as the scores (Riga wall clock on both sides)
+  const obsData=times.map(iso=>res.obs[skillHourKey(iso,off)]??null);
   const measured={label:`${st.name} (${t('verif.measured')})`,data:obsData,borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3};
   const datasets=()=>[measured,...rows.filter(rw=>_verifChosen.has(rw.id)).map(rw=>({
-    label:rw.name,data:series.hourly[`temperature_2m_${rw.id}`],
+    label:rw.name,data:res.resp.hourly[`temperature_2m_${rw.id}`],
     borderColor:rw.color,borderWidth:1.5,pointRadius:0,tension:0.3,borderDash:[4,3]
   }))];
   function drawVerifChart(){
@@ -212,8 +188,8 @@ function renderVerification(st,dist,rows,series){
       plugins:{...cd.plugins,
         legend:{display:true,position:'bottom',labels:{color:cssVar('--t3'),boxWidth:10,font:{size:11}}},
         tooltip:{...cd.plugins.tooltip,callbacks:{
-          title:items=>fmtTooltipTitle(series.times,items[0].dataIndex),
-          label:c=>` ${c.dataset.label}: ${round(c.parsed.y,1)}°C`
+          title:items=>fmtTooltipTitle(times,items[0].dataIndex),
+          label:c=>` ${c.dataset.label}: ${fmtNum(c.parsed.y,1)}°C`
         }}}
     }
   });
