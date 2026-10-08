@@ -32,7 +32,7 @@ const TABLE_MODELS=[
 const S = {
   lat:56.946, lon:24.106,       // default: Riga, Latvia
   city:'Rīga', country:'Latvija',
-  active: new Set(MODELS.map(m=>m.id)), // which models are shown on the temp chart
+  active: new Set(['ecmwf_ifs025','icon_eu']), // models drawn on the temp chart (charts.js restores the saved choice)
   tableModel:   'ecmwf_ifs025',
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),

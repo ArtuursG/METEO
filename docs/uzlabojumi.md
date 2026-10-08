@@ -55,10 +55,10 @@ Vadlīnijas visam sarakstam:
 
 ## 5. Grafiki
 
-- [ ] Pēc noklusējuma: modeļu mediāna, izkliedes josla un divi modeļi.
+- [x] Pēc noklusējuma: modeļu mediāna, izkliedes josla un divi modeļi.
       Pārējie zem "+N modeļi". Izvēle saglabājas pārlūkā.
-- [ ] Noņemta leģenda, kas atkārto modeļu pogas.
-- [ ] Prognozes perioda izvēle kompaktāka.
+- [x] Noņemta leģenda, kas atkārto modeļu pogas.
+- [x] Prognozes perioda izvēle kompaktāka.
 
 ## 6. Navigācija
 
