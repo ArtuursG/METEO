@@ -375,6 +375,7 @@ footer a:hover{text-decoration:underline}
 .local-warnings[data-severity=Severe]{border-left-color:#df8137}
 .local-warnings[data-severity=Extreme]{border-left-color:#d94949}
 .local-warnings p{margin:5px 0}
+.local-warnings p.is-later{color:var(--t2)}
 
 #environmentMap{isolation:isolate}
 

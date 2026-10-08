@@ -637,7 +637,7 @@ function buildTable(){
       const bar=document.createElement('i');bar.style.width=Math.max(ps[i]>0?3:0,Math.round(ps[i]/pMax*46))+'px';
       pr.append(bar,document.createTextNode((ps[i]>0?fmtNum(ps[i],1):'0')+' mm'));
     }else pr.textContent='-';
-    tr.append(day,wx,pill(tmax?.[i]),pill(tmin?.[i]),pr,
+    tr.append(day,wx,pill(tmin?.[i]),pill(tmax?.[i]),pr,
       td('ft-num',ppm?.[i]!=null?r0(ppm[i])+'%':'-'),
       td('ft-num',wmax?.[i]!=null?fmtNum(windConv(wmax[i]),S.windUnit==='m/s'?1:0)+' '+S.windUnit:'-'),
       td('ft-num',cc?.[i]!=null?r0(cc[i])+'%':'-'),
