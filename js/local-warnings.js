@@ -26,7 +26,14 @@ async function refreshHomeWarnings(){
   const alerts=warningsAtPlace(data.alerts,lat,lon);if(!alerts.length)return;
   box.hidden=false;box.dataset.severity=alerts[0].severity;
   box.append(envNode('strong',t('lw.title',{city:S.city})));
-  for(const a of alerts){box.append(envNode('p',a.event+' · '+chartTimeTitle(a.onset,LOCALE)+' – '+chartTimeTitle(a.expires,LOCALE)));}
+  // In force now, or starting later (MeteoAlarm's own map shows only the current ones under "Now")
+  const now=Date.now();
+  for(const a of alerts){
+   const on=Date.parse(a.onset),off=Date.parse(a.expires),later=on>now;
+   const line=envNode('p',a.event+' · '+(later?t('lw.starts',{from:envWhen(on),to:envWhen(off)}):t('lw.active_until',{time:envWhen(off)})),later?'is-later':null);
+   line.title=chartTimeTitle(a.onset,LOCALE)+' – '+chartTimeTitle(a.expires,LOCALE);
+   box.append(line);
+  }
   const stale=Date.now()-Date.parse(data.fetchedAt)>45*60000||!Number.isFinite(Date.parse(data.fetchedAt));
   box.append(envNode('p',t(stale?'lw.stale':'lw.matched'),'env-note'));
   box.append(envSource('MeteoAlarm · '+t('lw.official'),'https://meteoalarm.org/en/live/'));

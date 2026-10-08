@@ -515,6 +515,7 @@ const STR = {
     'lw.matched': 'Teritorija noteikta pēc brīdinājuma kartes. Avota teksts oriģinālvalodā.',
     'lw.official': 'Oficiālais brīdinājums',
     'lw.unchecked': 'Brīdinājumus pašlaik nevar pārbaudīt.',
+    'lw.active_until': 'spēkā līdz {time}', 'lw.starts': 'sākas {from}, līdz {to}',
   },
 
   en: {
@@ -1008,6 +1009,7 @@ const STR = {
     'lw.matched': 'Matched against the warning area. Original source wording.',
     'lw.official': 'Official warning',
     'lw.unchecked': 'Warnings cannot be checked right now.',
+    'lw.active_until': 'in force until {time}', 'lw.starts': 'starts {from}, until {to}',
   },
 };
 
