@@ -1,17 +1,16 @@
 let environmentKind='air',environmentRequest=0,environmentMap=null,environmentRenderedKey=null;
 let environmentStorage;try{environmentStorage=localStorage;}catch{}
 const environmentalData=createDataCache({storage:environmentStorage});
-const envText=(lv,en)=>LANG==='en'?en:lv;
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
- $('tb-environment').textContent=envText('Vide','Environment');
- const labels={air:['Gaiss un putekšņi','Air & pollen'],warnings:['Brīdinājumi','Warnings'],hydro:['Ūdeņi','Water'],marine:['Jūra','Sea'],aurora:['Ziemeļblāzma','Aurora']};
- document.querySelectorAll('[data-env]').forEach(b=>{b.textContent=envText(...labels[b.dataset.env]);b.setAttribute('aria-pressed',String(b.dataset.env===environmentKind));});
+ $('tb-environment').textContent=t('nav.env');
+ $('environmentNav')?.setAttribute('aria-label',t('env.nav_aria'));
+ document.querySelectorAll('[data-env]').forEach(b=>{b.textContent=t('env.k_'+b.dataset.env);b.setAttribute('aria-pressed',String(b.dataset.env===environmentKind));});
 }
 function environmentFreshness(data,maxAge){
  const age=Date.now()-Date.parse(data.fetchedAt);
- const p=envNode('p',envText('Dati lejupielādēti: ','Data downloaded: ')+new Date(data.fetchedAt).toLocaleString(LOCALE), 'env-note env-freshness');
- if(!Number.isFinite(age)||age>maxAge){p.classList.add('env-warning');p.append(document.createTextNode(envText(' - dati var būt novecojuši.',' - data may be outdated.')));}
+ const p=envNode('p',t('env.downloaded',{time:new Date(data.fetchedAt).toLocaleString(LOCALE)}),'env-note env-freshness');
+ if(!Number.isFinite(age)||age>maxAge){p.classList.add('env-warning');p.append(document.createTextNode(' '+t('env.outdated')));}
  return p;
 }
 function envSource(text,url){const p=envNode('p',null,'env-note');const a=envNode('a',text);a.href=url;a.target='_blank';a.rel='noopener';p.append(a);return p;}
@@ -31,7 +30,7 @@ async function initEnvironment(){
  environmentRenderedKey=null;
  if(environmentMap){environmentMap.remove();environmentMap=null;}
  if(S.charts.environment){S.charts.environment.destroy();delete S.charts.environment;}
- const content=$('environmentContent');content.replaceChildren(envNode('p',envText('Ielādē datus...','Loading data...'),'env-note'));
+ const content=$('environmentContent');content.replaceChildren(envNode('p',t('env.loading'),'env-note'));
  try{
   let data;
   if(kind==='air'){
@@ -51,31 +50,31 @@ async function initEnvironment(){
   environmentRenderedKey={key:renderKey,time:Date.now()};
  }catch{
   if(id!==environmentRequest)return;
-  content.replaceChildren(envNode('p',envText('Dati pašlaik nav pieejami. Tas nenozīmē, ka riska nav. Mēģini vēlāk.','Data is currently unavailable. This does not mean there is no risk. Try again later.'),'env-warning'));
-  const retry=envNode('button',envText('Mēģināt vēlreiz','Try again'),'mt');retry.onclick=initEnvironment;content.append(retry);
+  content.replaceChildren(envNode('p',t('env.unavailable'),'env-warning'));
+  const retry=envNode('button',t('env.retry'),'mt');retry.onclick=initEnvironment;content.append(retry);
  }
 }
 function renderAir(data){
  const c=$('environmentContent'),h=data.hourly;if(!h?.time?.length)throw new Error('No data');
  const now=Math.floor(Date.now()/3600000)*3600;let start=h.time.findIndex(t=>t>=now);if(start<0)throw new Error('Expired forecast');
- c.append(envNode('h2',envText('Gaiss un ziedputekšņi','Air quality and pollen')),
+  c.append(envNode('h2',t('env.air_title')),
  envNode('p',S.city,'env-location'),
- envNode('p',envText('Modelēta prognoze, nevis vietējās stacijas mērījums.','Model forecast, not a local station measurement.'),'env-note'));
+ envNode('p',t('env.air_model'),'env-note'));
  const grid=envNode('div',null,'env-grid');
- for(const [key,label,unit] of [['european_aqi',envText('Eiropas AQI','European AQI'),'AQI'],['pm2_5','PM₂.₅','µg/m³'],['pm10','PM₁₀','µg/m³'],['ozone',envText('Ozons','Ozone'),'µg/m³']])grid.append(envMetric(label,h[key]?.[start],unit));c.append(grid);
- c.append(envNode('p',envText('Prognozes stunda: ','Forecast hour: ')+new Date(h.time[start]*1000).toLocaleString(LOCALE),'env-note'));
- const pollen=envNode('div',null,'env-grid');for(const [key,lv,en] of [['birch_pollen','Bērzs','Birch'],['alder_pollen','Alksnis','Alder'],['grass_pollen','Graudzāles','Grass'],['mugwort_pollen','Vībotne','Mugwort']])pollen.append(envMetric(envText(lv,en),h[key]?.[start],envText('graudi/m³','grains/m³')));c.append(pollen);
- c.append(envNode('p',envText('Putekšņu dati ir sezonāli. Svītra nozīmē, ka datu nav; tā nenozīmē nulli.','Pollen data is seasonal. A dash means unavailable, not zero.'),'env-note'));
+ for(const [key,label,unit] of [['european_aqi',t('env.aqi'),'AQI'],['pm2_5','PM₂.₅','µg/m³'],['pm10','PM₁₀','µg/m³'],['ozone',t('env.ozone'),'µg/m³']])grid.append(envMetric(label,h[key]?.[start],unit));c.append(grid);
+ c.append(envNode('p',t('env.forecast_hour',{time:new Date(h.time[start]*1000).toLocaleString(LOCALE)}),'env-note'));
+ const pollen=envNode('div',null,'env-grid');for(const key of ['birch','alder','grass','mugwort'])pollen.append(envMetric(t('env.pollen_'+key),h[key+'_pollen']?.[start],t('env.grains')));c.append(pollen);
+ c.append(envNode('p',t('env.pollen_note'),'env-note'));
  envChart('airChart',h.time.slice(start).map(t=>new Date(t*1000).toISOString()),[{label:'European AQI',data:h.european_aqi.slice(start),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],'European AQI');
  c.append(envSource('Open-Meteo / CAMS · CC BY 4.0','https://open-meteo.com/en/docs/air-quality-api'));
 }
 function renderWarnings(data){
- const c=$('environmentContent');c.append(envNode('h2',envText('Brīdinājumi Latvijā','Warnings in Latvia')),environmentFreshness(data,45*60000));
- c.append(envNode('p',envText('Visas Latvijas reģioni. Pārbaudi brīdinājumā norādīto teritoriju un derīguma laiku. Avota teksts saglabāts oriģinālvalodā.','All Latvian regions. Check the affected area and validity period. Source wording is preserved.'),'env-note'));
+ const c=$('environmentContent');c.append(envNode('h2',t('env.warn_title')),environmentFreshness(data,45*60000));
+ c.append(envNode('p',t('env.warn_note'),'env-note'));
  const alerts=data.alerts.filter(a=>Date.parse(a.expires)>Date.now());
- if(!alerts.length)c.append(envNode('p',envText('Šajā datu kopijā nav aktuālu brīdinājumu. Pārbaudi arī oficiālo avotu.','No current warnings in this snapshot. Also check the official source.')));
- for(const a of alerts){const card=envNode('article',null,'env-alert');card.dataset.severity=a.severity;card.append(envNode('h3',a.event),envNode('p',a.areaDesc),envNode('p',new Date(a.onset).toLocaleString(LOCALE)+' - '+new Date(a.expires).toLocaleString(LOCALE),'env-note'));c.append(card);}
- c.append(envSource('MeteoAlarm / EUMETNET · CC BY 4.0 · '+envText('Oficiālie brīdinājumi','Official warnings'),'https://meteoalarm.org/en/live/'));
+ if(!alerts.length)c.append(envNode('p',t('env.warn_none')));
+ for(const a of alerts){const card=envNode('article',null,'env-alert');card.dataset.severity=a.severity;card.append(envNode('h3',a.event),envNode('p',a.areaDesc),envNode('p',new Date(a.onset).toLocaleString(LOCALE)+' – '+new Date(a.expires).toLocaleString(LOCALE),'env-note'));c.append(card);}
+ c.append(envSource('MeteoAlarm / EUMETNET · CC BY 4.0 · '+t('env.warn_official'),'https://meteoalarm.org/en/live/'));
 }
 const themedMapLayers=new Set();
 function themedMapUrl(part){return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light')+'_Gray_'+part+'/MapServer/tile/{z}/{y}/{x}';}
@@ -86,20 +85,19 @@ function addThemedMapLayer(map,part,options={}){
 function environmentBaseMap(map){addThemedMapLayer(map,'Base');addThemedMapLayer(map,'Reference');}
 new MutationObserver(()=>{
  themedMapLayers.forEach(({layer,part})=>layer.setUrl(themedMapUrl(part)));
- if(_rMap&&_rBaseLayers){Object.values(_rBaseLayers).forEach(layer=>{if(_rMap.hasLayer(layer))_rMap.removeLayer(layer);});_rBaseLayers[document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'].addTo(_rMap);}
 }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 function hydroIcon(selected=false){return L.divIcon({className:'hydro-pin'+(selected?' is-selected':''),iconSize:[36,40],iconAnchor:[18,36],tooltipAnchor:[0,-30],html:'<svg viewBox="0 0 36 40" aria-hidden="true"><path d="M18 2C12 10 5 17 5 24a13 13 0 0026 0C31 17 24 10 18 2Z" fill="currentColor" stroke="white" stroke-width="2"/><path d="M10 24q4-4 8 0t8 0M12 29q3-3 6 0t6 0" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round"/></svg>'});}
 function renderHydro(data,lat,lon){
- const c=$('environmentContent');c.append(envNode('h2',envText('Ūdens līmenis un temperatūra','Water level and temperature')),environmentFreshness(data,2*3600000));
- c.append(envNode('p',envText('Līmenis ir avota stacijas atskaites sistēmā, nevis upes dziļums. Piedibens temperatūra nav peldvietas virsmas temperatūra. Laiki: Europe/Riga.','Levels use each station’s reference, not river depth. Near-bottom temperature is not bathing-water surface temperature. Times: Europe/Riga.'),'env-note'));
+ const c=$('environmentContent');c.append(envNode('h2',t('env.hydro_title')),environmentFreshness(data,2*3600000));
+ c.append(envNode('p',t('env.hydro_note'),'env-note'));
  const stations=[...data.stations].sort((a,b)=>haversineKm(lat,lon,a.lat,a.lon)-haversineKm(lat,lon,b.lat,b.lon));
- const pick=envNode('select');pick.setAttribute('aria-label',envText('Hidroloģiskā stacija','Hydrological station'));for(const st of stations){const o=envNode('option',st.name+' · '+Math.round(haversineKm(lat,lon,st.lat,st.lon))+' km');o.value=st.id;pick.append(o);}c.append(pick);
+ const pick=envNode('select');pick.setAttribute('aria-label',t('env.hydro_station'));for(const st of stations){const o=envNode('option',st.name+' · '+Math.round(haversineKm(lat,lon,st.lat,st.lon))+' km');o.value=st.id;pick.append(o);}c.append(pick);
  const shell=envNode('div',null,'map-stage'),map=envNode('div');map.id='environmentMap';shell.append(map);c.append(shell);environmentMap=L.map(map,{scrollWheelZoom:false}).setView([lat,lon],7);environmentBaseMap(environmentMap);addMapFullscreen(environmentMap,shell);
  const detail=envNode('div',null,'hydro-detail');c.append(detail);const markers=new Map();
  const show=()=>{
   const st=stations.find(s=>s.id===pick.value);detail.replaceChildren();if(!st)return;
   markers.forEach((marker,id)=>{marker.setIcon(hydroIcon(id===st.id));marker.setZIndexOffset(id===st.id?1000:0);});detail.append(envNode('h3',st.name));
-  const parameter=envNode('select');parameter.setAttribute('aria-label',envText('Mērījums','Measurement'));for(const k of Object.keys(st.series)){const o=envNode('option',data.parameters[k][LANG]||k);o.value=k;parameter.append(o);}detail.append(parameter);
+  const parameter=envNode('select');parameter.setAttribute('aria-label',t('env.hydro_measure'));for(const k of Object.keys(st.series)){const o=envNode('option',data.parameters[k][LANG]||k);o.value=k;parameter.append(o);}detail.append(parameter);
   const latest=envNode('p',null,'hydro-latest');detail.append(latest);
   const draw=()=>{const k=parameter.value,series=st.series[k],last=series.at(-1);latest.textContent=last[0].replace('T',' ')+' · '+last[1]+' '+data.parameters[k].unit;
    document.getElementById('hydroChart')?.parentElement.remove();envChart('hydroChart',series.map(p=>p[0]),[{label:st.name+' · '+data.parameters[k].unit,data:series.map(p=>p[1]),borderColor:cssVar('--acc'),pointRadius:0,borderWidth:2}],data.parameters[k].unit);
@@ -109,10 +107,10 @@ function renderHydro(data,lat,lon){
  c.append(envSource('LVĢMC / data.gov.lv · CC0','https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi'));
 }
 function renderAurora(data){
- const c=$('environmentContent'),last=data.readings.at(-1);c.append(envNode('h2',envText('Ziemeļblāzmas apstākļi','Aurora conditions')),environmentFreshness(data,60*60000));
- const grid=envNode('div',null,'env-grid');grid.append(envMetric(envText('Planetārais Kp','Planetary Kp'),last.kp,'0-9'));c.append(grid);
- c.append(envNode('p',envText('Kp novērojuma laiks: ','Kp observation time: ')+new Date(last.time).toLocaleString(LOCALE),'env-note'));
- c.append(envNode('p',envText('Kp raksturo globālo ģeomagnētisko aktivitāti. Tas nav ziemeļblāzmas redzamības procents vai garantija izvēlētajā pilsētā. Vajadzīgas tumšas debesis un maz mākoņu.','Kp describes global geomagnetic activity. It is not a local visibility percentage or guarantee. Dark, clear skies are needed.'),'env-note'));
+ const c=$('environmentContent'),last=data.readings.at(-1);c.append(envNode('h2',t('env.aurora_title')),environmentFreshness(data,60*60000));
+ const grid=envNode('div',null,'env-grid');grid.append(envMetric(t('env.kp'),last.kp,'0–9'));c.append(grid);
+ c.append(envNode('p',t('env.kp_time',{time:new Date(last.time).toLocaleString(LOCALE)}),'env-note'));
+ c.append(envNode('p',t('env.kp_note'),'env-note'));
  envChart('auroraChart',data.readings.map(r=>r.time),[{label:'Kp',data:data.readings.map(r=>r.kp),borderColor:cssVar('--acc'),pointRadius:2,borderWidth:2}],'Kp');
  c.append(envSource('NOAA SWPC','https://www.swpc.noaa.gov/products/aurora-30-minute-forecast'));
 }

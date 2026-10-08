@@ -13,7 +13,7 @@ function closeWindMap(){
 function openWindMap(){
  windMapFrame?.remove();
  const frame=document.createElement('iframe');
- frame.title=envText('Interaktīva vēja karte','Interactive wind map')+' · '+(windMapProvider==='windy'?'Windy':'Ventusky');
+ frame.title=t('wm.frame',{provider:windMapProvider==='windy'?'Windy':'Ventusky'});
  frame.referrerPolicy='strict-origin-when-cross-origin';frame.allowFullscreen=true;
  windMapFrame=frame;const container=$('windMapEmbed');container.hidden=false;container.replaceChildren(frame);
  frame.src=windMapURL(windMapProvider,S.lat,S.lon);refreshWindMap();
@@ -23,15 +23,15 @@ function refreshWindMap(){
  const key=S.lat.toFixed(2)+','+S.lon.toFixed(2);
  if(key!==windMapPlace){windMapFrame?.remove();windMapFrame=null;windMapPlace=key;}
  const open=!!windMapFrame;
- $('windMapTitle').textContent=envText('Vēja karte','Wind map')+' · '+S.city;
- $('windMapInfo').textContent=envText('Animācija rāda vēja plūsmu, krāsas - ātrumu. Kartes laiks un modelis ir neatkarīgi no augšējā grafika.','Animation shows wind flow; colours show speed. The map time and model are independent of the chart above.');
- $('windMapSources').setAttribute('aria-label',envText('Kartes avots','Map source'));
+ $('windMapTitle').textContent=t('wm.title',{city:S.city});
+ $('windMapInfo').textContent=t('wm.info');
+ $('windMapSources').setAttribute('aria-label',t('wm.source'));
  card.querySelectorAll('[data-wind-map]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.windMap===windMapProvider)));
- const action=$('windMapToggle');action.textContent=open?envText('Aizvērt karti','Close map'):envText('Ielādēt vēja karti','Load wind map');action.setAttribute('aria-expanded',String(open));
+ const action=$('windMapToggle');action.textContent=t(open?'wm.close':'wm.load');action.setAttribute('aria-expanded',String(open));
  $('windMapEmbed').hidden=!open;
- $('windMapHint').textContent=open?envText('Laiku un skatu maini kartē. Ventusky mērvienības un valoda pielāgojas pārlūkam. Ja karte nerādās, atver to atsevišķi.','Change time and view inside the map. Ventusky units and language follow your browser. If the map does not appear, open it separately.'):envText('Karte ielādēsies tikai pēc nospiešanas. Aizverot karti vai atstājot vēja sadaļu, tās darbība tiks apturēta.','The map loads only after you press the button. Closing it or leaving the Wind tab stops it.');
- const link=$('windMapExternal');link.textContent=envText('Atvērt atsevišķi','Open separately')+' · '+(windMapProvider==='windy'?'Windy':'Ventusky');link.href=windMapProvider==='ventusky'?windMapURL('ventusky',S.lat,S.lon).replace('embed.ventusky.com','www.ventusky.com'):'https://www.windy.com/?'+S.lat.toFixed(2)+','+S.lon.toFixed(2)+',6';
- if(windMapFrame)windMapFrame.title=envText('Interaktīva vēja karte','Interactive wind map')+' · '+(windMapProvider==='windy'?'Windy':'Ventusky');
+ $('windMapHint').textContent=t(open?'wm.hint_open':'wm.hint_closed');
+ const link=$('windMapExternal');link.textContent=t('wm.external',{provider:windMapProvider==='windy'?'Windy':'Ventusky'});link.href=windMapProvider==='ventusky'?windMapURL('ventusky',S.lat,S.lon).replace('embed.ventusky.com','www.ventusky.com'):'https://www.windy.com/?'+S.lat.toFixed(2)+','+S.lon.toFixed(2)+',6';
+ if(windMapFrame)windMapFrame.title=t('wm.frame',{provider:windMapProvider==='windy'?'Windy':'Ventusky'});
 }
 if(typeof document!=='undefined'){
  document.querySelectorAll('[data-wind-map]').forEach(b=>b.onclick=()=>{

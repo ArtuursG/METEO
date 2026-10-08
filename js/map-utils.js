@@ -3,9 +3,6 @@
 // The helpers above the browser section have no DOM or Leaflet dependency and are
 // require()-able from Node (test/declutter.test.js, test/timeline.test.js).
 
-// Older inline lv/en pairs (environment code) still go through this; new UI uses t().
-function uiText(lv,en){return typeof LANG!=='undefined'&&LANG==='en'?en:lv;}
-
 // Indexes for the time labels under a frame slider: evenly spread, both ends included.
 function timelineTickIndexes(length,count=5){
   if(!(length>1))return [0];
@@ -163,5 +160,5 @@ function addMapFullscreen(map,target){
 function relabelMapFullscreen(){_fullscreenButtons.forEach(fn=>fn());}
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={timelineTickIndexes,declutterBadges,badgePriorities,parseStationTime,rigaOffsetMs,foldText,uiText};
+  module.exports={timelineTickIndexes,declutterBadges,badgePriorities,parseStationTime,rigaOffsetMs,foldText};
 }
