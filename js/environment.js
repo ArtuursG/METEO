@@ -119,35 +119,39 @@ function renderAir(data){
  c.append(envSource('Open-Meteo / CAMS · CC BY 4.0','https://open-meteo.com/en/docs/air-quality-api'));
 }
 
-const WARN_RANK={Minor:0,Moderate:1,Severe:2,Extreme:3};
 function renderWarnings(data){
  const c=$('environmentContent');
  envHead(t('env.warn_title'),null,data,45*60000);
- const now=Date.now(),alerts=data.alerts.filter(a=>Date.parse(a.expires)>now)
-  .sort((a,b)=>(WARN_RANK[b.severity]||0)-(WARN_RANK[a.severity]||0)||Date.parse(a.onset)-Date.parse(b.onset));
- const here=warningsAtPlace(alerts,S.lat,S.lon,now);
- const n=alerts.length,sum=envNode('p',n?t(n%10===1&&n%100!==11?'env.warn_count_one':'env.warn_count',{n}):t('env.warn_none'),'env-summary');
+ const now=Date.now(),groups=groupWarnings(data.alerts,now);
+ const here=warningsAtPlace(data.alerts,S.lat,S.lon,now);
+ const n=groups.length,sum=envNode('p',n?t(n%10===1&&n%100!==11?'env.warn_count_one':'env.warn_count',{n}):t('env.warn_none'),'env-summary');
  if(here.length)sum.append(envNode('span',t('env.warn_here'),'env-here'));
  c.append(sum);
- if(alerts.some(a=>a.polygons?.length)){
+ if(groups.some(g=>g.polygons.length)){
   const shell=envNode('div',null,'map-stage warn-map'),map=envNode('div');map.id='environmentMap';shell.append(map);c.append(shell);
   environmentMap=L.map(map,{scrollWheelZoom:false,zoomSnap:.5}).setView([56.9,24.6],6.5);environmentBaseMap(environmentMap);addMapFullscreen(environmentMap,shell);
-  const bounds=[];
   // Most severe drawn last, on top
-  for(const a of alerts.slice().reverse())for(const ring of a.polygons||[]){
-   const color=cssVar('--sev-'+(a.severity||'Moderate'))||cssVar('--warn');
-   L.polygon(ring,{color,weight:1.5,fillColor:color,fillOpacity:.28}).bindTooltip(a.event,{sticky:true}).addTo(environmentMap);bounds.push(...ring);
+  for(const g of groups.slice().reverse())for(const ring of g.polygons){
+   const color=cssVar('--sev-'+(g.severity in WARN_SEVERITY?g.severity:'Moderate'));
+   L.polygon(ring,{color,weight:1,fillColor:color,fillOpacity:.3}).bindTooltip(warningTitle(g.event,LANG),{sticky:true}).addTo(environmentMap);
   }
   L.circleMarker([S.lat,S.lon],{radius:6,color:'#fff',weight:2,fillColor:cssVar('--acc'),fillOpacity:1}).bindTooltip(S.city).addTo(environmentMap);
-  if(bounds.length)environmentMap.fitBounds(L.latLngBounds(bounds).extend([S.lat,S.lon]),{padding:[20,20],maxZoom:8});
+  environmentMap.fitBounds([[55.6,20.9],[58.1,28.3]]);
  }
- for(const a of alerts){
-  const onset=Date.parse(a.onset),card=envNode('article',null,'env-alert');card.dataset.severity=a.severity;
+ for(const g of groups){
+  const onset=Date.parse(g.onset),card=envNode('article',null,'env-alert');card.dataset.severity=g.severity;
   const top=envNode('div',null,'env-alert-top');
-  top.append(envNode('span',t('env.sev_'+(a.severity in WARN_RANK?a.severity:'Moderate')),'env-level'),
+  top.append(envNode('span',t('env.sev_'+(g.severity in WARN_SEVERITY?g.severity:'Moderate')),'env-level'),
    envNode('span',onset>now?t('env.warn_starts',{time:envIn(onset-now)}):t('env.warn_active'),'env-when'));
-  card.append(top,envNode('h3',a.event),envNode('p',a.areaDesc,'env-area'),
-   envNode('p',(Number.isFinite(onset)?envWhen(onset)+' – ':'')+envWhen(Date.parse(a.expires)),'env-time'));
+  const title=envNode('h3',warningTitle(g.event,LANG));title.title=g.event;
+  card.append(top,title,envNode('p',(Number.isFinite(onset)?envWhen(onset)+' – ':'')+envWhen(Date.parse(g.expires)),'env-time'));
+  // Areas: the first few in the card, all of them behind "visas teritorijas"
+  const areas=g.areas.map(a=>warningArea(a,LANG)),SHOW=6;
+  card.append(envNode('p',areas.slice(0,SHOW).join(', ')+(areas.length>SHOW?' '+t('env.warn_more',{n:areas.length-SHOW}):''),'env-area'));
+  if(areas.length>SHOW){
+   const more=envNode('details',null,'env-areas'),summary=envNode('summary',t('env.warn_all',{n:areas.length}));
+   more.append(summary,envNode('p',areas.join(', ')));card.append(more);
+  }
   c.append(card);
  }
  c.append(envNode('p',t('env.warn_note'),'env-note'));

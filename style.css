@@ -437,6 +437,10 @@ footer a:hover{text-decoration:underline}
 .env-alert h3{font-size:15px !important;font-weight:600 !important;color:var(--t) !important;text-transform:none !important;letter-spacing:0 !important;margin:10px 0 4px !important}
 .env-area{margin:0;font-size:13px;color:var(--t2)}
 .env-time{margin:6px 0 0;font:13px 'IBM Plex Mono',ui-monospace,monospace;color:var(--t)}
+.env-alert .env-area{margin-top:6px}
+.env-areas{margin-top:6px;font-size:13px;color:var(--t2)}
+.env-areas summary{cursor:pointer;color:var(--acc);width:max-content}
+.env-areas p{margin:6px 0 0;line-height:1.6}
 .hydro-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;align-items:start}
 .hydro-layout #environmentMap{margin:0;height:360px}
 .hydro-detail{padding:14px 16px;background:var(--s2);border:1px solid var(--b2);border-radius:12px}
