@@ -970,7 +970,6 @@ footer a:hover{text-decoration:underline}
 .local-warnings.is-quiet p{margin:0}
 .local-warnings.is-quiet a{color:var(--t2)}
 
-header{padding-top:env(safe-area-inset-top)}
 @media(max-width:600px){
  .nav{margin-bottom:1rem}
  .nav-primary{position:fixed;left:0;right:0;bottom:0;z-index:900;gap:0;padding:2px 2px env(safe-area-inset-bottom);background:var(--bg);border-top:1px solid var(--b2);border-bottom:0}

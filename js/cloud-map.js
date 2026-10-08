@@ -10,7 +10,7 @@ const CLOUD_OM_META_URL='https://openmeteo.s3.amazonaws.com/data_spatial/dwd_ico
 const SAT_WMS_URL='https://view.eumetsat.int/geoserver/wms';
 const SAT_LAYER='msg_fes:ir108',SAT_STEP_MIN=15,SAT_PAST_COUNT=8;
 
-let _cloudOpen=false,_cloudMap=null,_cloudAdapter=null,_cloudFrames=[],_cloudIdx=0,_cloudTileLayer=null,
+let _cloudOpen=false,_cloudMap=null,_cloudAdapter=null,_cloudFrames=[],_cloudTileLayer=null,
   _cloudPlace='',_cloudMode='sat',_cloudRequest=0,_cloudTimeline=null,_cloudFailed=false,_cloudShowTimer=null;
 const cloudCache={},cloudScripts=new Map();
 
@@ -69,7 +69,6 @@ function cloudLayer(frame){
 // The previous image stays until the new one has loaded, so scrubbing does not blank the map
 function showCloudFrame(index){
   if(!_cloudMap||!_cloudFrames[index])return;
-  _cloudIdx=index;
   let layer;
   try{layer=cloudLayer(_cloudFrames[index]);}catch(e){console.warn('[cloud]',e);return;}
   const old=_cloudTileLayer;

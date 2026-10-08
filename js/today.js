@@ -5,6 +5,8 @@
 function openTab(name){switchTab(name);document.getElementById('navSub')?.scrollIntoView?.({block:'nearest'});}
 
 const hhmm=key=>key.slice(11,16);
+// A window that runs past midnight (or for a day or more) is told by its start and length
+const crossesMidnight=w=>new Date(Date.parse(w.to+'Z')-60000).toISOString().slice(0,10)!==w.from.slice(0,10);
 const hourRange=(a,b)=>`${+a.slice(11,13)}–${+b.slice(11,13)===0?24:+b.slice(11,13)}`;
 
 function dayWord(day){return t('today.day_'+day);}
@@ -22,10 +24,10 @@ function summaryText(s){
       parts.push(t(s.now.stop.sure?'today.stops':'today.may_stop',{what,when}));
     }else parts.push(t('today.continues',{what}));
   }else if(s.first){
-    const w=s.first;
-    const vars={day:dayWord(w.day),hours:hourRange(w.from,w.to),kind:kind(w),mm:fmtNum(w.mm,w.mm<10?1:0)};
-    const key=(w.likely?'today.expected':'today.possible')+(w.mm>=0.5&&w.likely?'_mm':'');
-    parts.push(t(key,vars));
+    const w=s.first,withMm=w.mm>=0.5&&w.likely?'_mm':'';
+    const vars={day:dayWord(w.day),kind:kind(w),mm:fmtNum(w.mm,w.mm<10?1:0)};
+    if(crossesMidnight(w))parts.push(t((w.likely?'today.long':'today.long_possible')+withMm,{...vars,at:t('today.at',{time:hhmm(w.from)}),h:w.hours}));
+    else parts.push(t((w.likely?'today.expected':'today.possible')+withMm,{...vars,hours:hourRange(w.from,w.to)}));
   }else parts.push(t('today.dry'));
   if(s.clears&&!s.now.continues)parts.push(t('today.clears'));
 
@@ -142,6 +144,20 @@ function renderDays(){
   }
   const meta=$('todayDaysMeta');
   if(meta)meta.textContent=t('today.days_meta',{n:days.length});
+}
+
+// The first load failed: say so where people look first (Today is the default view)
+function renderTodayError(){
+  const msg=t('err.load_failed');
+  if($('curDesc'))$('curDesc').textContent=msg;
+  const box=(withRetry)=>{
+    const p=document.createElement('div');p.className='err';p.textContent=msg;
+    if(!withRetry)return [p];
+    const b=document.createElement('button');b.type='button';b.className='mt';b.textContent=t('env.retry');b.onclick=()=>loadAll();
+    return [p,b];
+  };
+  $('todayHours')?.replaceChildren(...box(false));
+  $('todayDays')?.replaceChildren(...box(true));
 }
 
 function renderToday(){

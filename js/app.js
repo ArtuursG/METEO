@@ -13,7 +13,7 @@ const NAV_GROUPS={
 const NAV_PANELS=Object.values(NAV_GROUPS).flatMap(g=>g.panels);
 const navGroupOf=panel=>Object.keys(NAV_GROUPS).find(k=>NAV_GROUPS[k].panels.includes(panel));
 const _navLast={};   // last panel opened in each section
-let _navCurrent='';
+let _navCurrent='', _navSubKey='';
 
 // Opens a panel by name; the second argument (an old tab button) is accepted and ignored
 function switchTab(tab){
@@ -65,9 +65,6 @@ function renderNav(){
   });
   const sub=$('navSub'),cfg=NAV_GROUPS[group];
   if(!sub)return;
-  sub.replaceChildren();
-  const single=cfg.panels.length<2;
-  sub.hidden=single;
   for(const name of NAV_PANELS){
     const panel=$('tab-'+name);
     if(!panel)continue;
@@ -76,6 +73,16 @@ function renderNav(){
     const g=navGroupOf(name);
     panel.setAttribute('aria-labelledby',NAV_GROUPS[g].panels.length<2?navButtonId(g):'ns-'+name);
   }
+  const single=cfg.panels.length<2;
+  sub.hidden=single;
+  // Same section and language: only move the selection, so keyboard focus stays put
+  const key=group+'|'+LANG;
+  if(key===_navSubKey){
+    sub.querySelectorAll('.ns').forEach(b=>{const on=b.id==='ns-'+_navCurrent;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
+    return;
+  }
+  _navSubKey=key;
+  sub.replaceChildren();
   if(single)return;
   sub.setAttribute('aria-label',t('nav.sub_aria',{name:t('nav.'+group)}));
   cfg.panels.forEach((name,i)=>{

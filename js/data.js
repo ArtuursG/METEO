@@ -37,9 +37,12 @@ function updateMetrics(){
   const c=ecmwf.current;
   if(c){
     $('curTemp').textContent=fmtTemp(c.temperature_2m);
-    $('curIcon').innerHTML=wIcon(c.weather_code);
-    $('curIcon').className='now-icon wi wi-'+(wKey(c.weather_code)||'none');
-    $('curDesc').textContent=wText(c.weather_code);
+    // Same sun/moon choice as the hourly strip below it
+    const night=typeof sunTimes==='function'&&!!c.time&&isNightAt(c.time,sunTimes(S.data));
+    const sky=nightKey(wKey(c.weather_code),night);
+    $('curIcon').innerHTML=sky?WICONS[sky]:'';
+    $('curIcon').className='now-icon wi wi-'+(sky||'none');
+    $('curDesc').textContent=sky?t('wx.'+sky):'-';
     const fl=c.apparent_temperature;
     $('feelsLike').textContent=fl!=null?t('today.feels',{n:fmtTemp(fl)}):'';
     const w=v=>fmtNum(windConv(v),S.windUnit==='m/s'?1:0);
@@ -49,10 +52,7 @@ function updateMetrics(){
   }
   const d=ecmwf.daily;
   if(d?.temperature_2m_max?.[0]!=null)$('todayMax').textContent=`${fmtTemp(d.temperature_2m_min?.[0])} … ${fmtTemp(d.temperature_2m_max[0])}`;
-  if(d?.precipitation_sum?.[0]!=null){
-    const snow=c?.snowfall>0?`, ${t('metric.snow')} ${fmtNum(c.snowfall,1)} cm`:'';
-    $('precipNow').textContent=`${fmtNum(d.precipitation_sum[0],1)} mm${snow}`;
-  }
+  if(d?.precipitation_sum?.[0]!=null)$('precipNow').textContent=`${fmtNum(d.precipitation_sum[0],1)} mm`;
   const srcModel=S.data['ecmwf_ifs025']?'ECMWF IFS':(MODELS.find(m=>S.data[m.id]===ecmwf)?.name||'?');
   const srcEl=$('metricsSrc');
   if(srcEl)srcEl.textContent=t('today.src',{model:srcModel,ago:relTime(S.dataTs)});
@@ -152,6 +152,7 @@ async function loadAll(){
     ['loadT','loadP','loadPP','loadW','loadCl','loadUV','loadTbl'].forEach(id=>{
       $(id).innerHTML=`<div class="err">${t('err.load_failed')}</div>`;
     });
+    if(typeof renderTodayError==='function')renderTodayError();
     return false;
   }
 

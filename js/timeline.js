@@ -126,7 +126,9 @@ function createTimeline(opts={}){
   status.append(statusMain,statusSide);
   root.append(row,status);
 
-  let times=[],idx=-1,timer=null,speed=1,disabled=true;
+  // `playing` is the state; `timer` only holds the next step. Keeping them apart lets an
+  // onChange handler call pause() (or ask isPlaying()) while a step is being shown.
+  let times=[],idx=-1,timer=null,playing=false,speed=1,disabled=true;
 
   const latestIdx=()=>o.latestIndex?o.latestIndex(times):times.length-1;
   const pct=i=>times.length>1?100*i/(times.length-1):0;
@@ -141,8 +143,8 @@ function createTimeline(opts={}){
     fill.style.width=(has?pct(idx):0)+'%';
     clock.textContent=has?fmt(times[idx]):'-';
     range.setAttribute('aria-valuetext',has?(o.formatValue||fmt)(times[idx]):'-');
-    play.innerHTML=timer?TIMELINE_ICONS.pause:TIMELINE_ICONS.play;
-    play.setAttribute('aria-pressed',String(!!timer));
+    play.innerHTML=playing?TIMELINE_ICONS.pause:TIMELINE_ICONS.play;
+    play.setAttribute('aria-pressed',String(playing));
     latest.setAttribute('aria-pressed',String(has&&idx===latestIdx()));
     speedBtn.textContent=(typeof fmtNum==='function'?fmtNum(speed,speed%1?1:0):String(speed))+'×';
     speedBtn.setAttribute('aria-label',t('rad.tl_speed',{v:speedBtn.textContent}));
@@ -177,30 +179,33 @@ function createTimeline(opts={}){
     const hold=idx>=times.length-1?o.holdLast:1;
     timer=setTimeout(()=>{
       timer=null;
-      if(times.length<2){render();return;}
+      if(!playing)return;
+      if(times.length<2){pause();return;}
       setIndex(idx>=times.length-1?0:idx+1);
-      schedule();
+      if(playing)schedule();
     },timelineDelay(o.baseDelay,speed)*hold);
     render();
   }
   function startPlay(){
-    if(timer||disabled||times.length<2)return;
+    if(playing||disabled||times.length<2)return;
+    playing=true;
     if(idx>=times.length-1)setIndex(0);
-    schedule();
+    if(playing)schedule();
   }
   function pause(){
+    playing=false;
     if(timer){clearTimeout(timer);timer=null;}
     render();
   }
 
-  play.addEventListener('click',()=>timer?pause():startPlay());
+  play.addEventListener('click',()=>playing?pause():startPlay());
   prev.addEventListener('click',()=>{pause();setIndex(idx-1);});
   next.addEventListener('click',()=>{pause();setIndex(idx+1);});
   latest.addEventListener('click',()=>{pause();setIndex(latestIdx());});
-  speedBtn.addEventListener('click',()=>{speed=nextTimelineSpeed(speed);if(timer)schedule();else render();});
+  speedBtn.addEventListener('click',()=>{speed=nextTimelineSpeed(speed);if(playing)schedule();else render();});
   range.addEventListener('input',()=>{pause();setIndex(Number(range.value));});
   // Space toggles playback when the slider has focus (arrow keys already step frames)
-  range.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();timer?pause():startPlay();}});
+  range.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();playing?pause():startPlay();}});
   // Leaflet must not turn clicks and drags on the overlay into map pans or zooms
   if(typeof L!=='undefined'&&L.DomEvent){L.DomEvent.disableClickPropagation(root);L.DomEvent.disableScrollPropagation(root);}
 
@@ -221,7 +226,7 @@ function createTimeline(opts={}){
     isLatest:()=>times.length>0&&idx===latestIdx(),
     play:startPlay,
     pause,
-    isPlaying:()=>!!timer,
+    isPlaying:()=>playing,
     setDisabled(v){disabled=!!v||!times.length;if(disabled)pause();render();},
     // Status line: text on the left with a tone dot ('ok' | 'warn' | 'bad' | ''),
     // and a short note or a DOM node on the right.

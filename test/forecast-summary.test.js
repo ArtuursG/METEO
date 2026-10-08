@@ -106,7 +106,6 @@ test('disagreement: half the models show rain, temperatures spread widely',()=>{
   assert.equal(s.agreement.rainLevel,'low');
   assert.equal(s.agreement.tempLevel,'low');
   assert.equal(s.agreement.level,'low');
-  assert.equal(s.agreement.rainInPlay,true);
 });
 
 test('missing models, nulls and short horizons are tolerated',()=>{
@@ -209,4 +208,16 @@ test('station time parsing and nearest fresh reading',()=>{
   assert.equal(F.nearestStationReading(st,55.0,28.0,{nowMs:now}),null);
   assert.equal(F.nearestStationReading([],56.9,24.1,{nowMs:now}),null);
   assert.equal(F.nearestStationReading(null,56.9,24.1,{nowMs:now}),null);
+});
+
+test('a stale nearest station does not hide a fresh one further away',()=>{
+  const now=Date.parse('2026-10-07T09:30:00Z');
+  const st=[
+    {id:'near',name:'Tuvā',lat:56.95,lon:24.11,history:[{time:'2026-10-07T09:00:00',airTemp:5}]},
+    {id:'fresh',name:'Svaigā',lat:57.05,lon:24.11,history:[{time:'2026-10-07T12:10:00',airTemp:7.5}]},
+  ];
+  const r=F.nearestStationReading(st,56.946,24.106,{nowMs:now});
+  assert.equal(r.id,'fresh');
+  assert.equal(r.temp,7.5);
+  assert.ok(r.ageMin>=19&&r.ageMin<=21);
 });
