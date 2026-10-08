@@ -9,10 +9,11 @@ Free meteorological forecast site displaying **14 leading global weather models*
 ## Features
 
 ### Forecast charts
-- Shared **48 h / 7 days / 14 days+** controls, defaulting to 7 days. Hourly views begin at the current forecast-local hour; extended views use the available model horizon.
+- Shared **48 h / 7 days / 14 days+** period switch above each chart, defaulting to 7 days. Hourly views begin at the current forecast-local hour; extended views use the available model horizon.
+- **Model picker** on the temperature, precipitation and wind charts: chips for the models on the chart (they double as the legend, × removes one) and a "+N modeļi" panel listing every model with its organisation, resolution and horizon, plus Visi / Neviens / Noklusējums. The choice is remembered per chart; models outside their coverage for the chosen place are shown greyed out.
 
-- **Temperature** - hourly 2m temperature for up to 16 days, all 14 models overlaid on one chart; toggle each model on/off
-- **Model spread band** - shaded range between the coldest and warmest model at each hour, drawn behind the lines; a one-line verdict ("modeļi lielā mērā vienojas" / "vidēja izkliede" / "liela nenoteiktība") averages the next 48 h. Toggleable, preference saved to localStorage
+- **Temperature** - by default the median of all models (thick line), the spread band and two models (ECMWF IFS, ICON-EU); any of the 14 models can be added
+- **Model spread band** - shaded range between the coldest and warmest of all models at each hour, drawn behind the lines; a verdict with a status dot next to the title ("Modeļi vienisprātis" / "daļēji atšķiras" / "Liela nenoteiktība", ± half the average spread over the next 48 h). Median and band are toggles in the picker, saved to localStorage
 - **Precipitation** - hourly precipitation in mm; switches between bar chart (single model) and line chart (multi-model)
 - **Precipitation probability** - hourly %; follows the same model selection as the precipitation (mm) chart, skipping models that do not provide it
 - **Wind speed** - 10m wind speed, multi-model comparison; toggle between **m/s and km/h** (default m/s)
@@ -21,7 +22,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - **Crosshair** - vertical dashed line follows the cursor across all charts for precise value reading
 
 ### Daily forecast table
-- Day-by-day summary: max/min temperature, precipitation, precipitation probability, max wind, cloud cover, humidity
+- Day-by-day summary: weather icon, max/min temperature as coloured pills, precipitation with a small bar, precipitation probability, max wind, cloud cover, humidity. On phones the date column stays in place while the table scrolls sideways
 - Switchable between ECMWF IFS, ICON-EU and MET Norway
 
 ### Today (Šodien tab and the block above the tabs)

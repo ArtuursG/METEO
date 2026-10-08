@@ -2,23 +2,23 @@
 let forecastHours=168;
 const rangeSections=['temp','precip','wind','table','cloud','uv'];
 function rangeCopy(){
- const en=LANG==='en';
  document.querySelectorAll('.range-bar').forEach(bar=>{
-  bar.querySelector('.range-label').textContent=en?'Forecast period':'Prognozes periods';
+  bar.querySelector('.range-label').textContent=t('ch.period');
+  const group=bar.querySelector('.range-buttons');
+  group.setAttribute('aria-label',t('ch.period'));
+  group.title=t('ch.period_note');
   bar.querySelectorAll('button').forEach((b,i)=>{
-   b.textContent=(en?['48 h','7 days','14 days+']:['48 h','7 dienas','14 dienas+'])[i];
+   b.textContent=t(['ch.p48','ch.p7','ch.p14'][i]);
    b.setAttribute('aria-pressed',String(Number(b.dataset.hours)===forecastHours));
   });
-  bar.querySelector('.range-note').textContent=en?'From the current hour. Model horizons vary; 14 days+ shows all available forecast data. Daily table shows whole days.':'No pašreizējās stundas. Modeļu termiņi atšķiras; 14 dienas+ rāda visu pieejamo prognozi. Tabulā - pilnas dienas.';
+  const note=bar.querySelector('.range-note');
+  note.textContent=t('ch.period_hint');note.title=t('ch.period_note');
  });
- const title=document.querySelector('#tab-temp .card-title');
- title.removeAttribute('data-i18n');
- title.textContent=en?'Temperature · model comparison':'Temperatūra · modeļu salīdzinājums';
 }
 rangeSections.forEach(key=>{
  const bar=document.createElement('div');bar.className='range-bar';
  const label=document.createElement('span');label.className='range-label';bar.append(label);
- const group=document.createElement('div');group.className='range-buttons';group.setAttribute('role','group');group.setAttribute('aria-label','Prognozes periods');
+ const group=document.createElement('div');group.className='range-buttons';group.setAttribute('role','group');
  [48,168,384].forEach(hours=>{
   const b=document.createElement('button');b.type='button';b.dataset.hours=hours;
   b.onclick=()=>{forecastHours=hours;rangeCopy();rebuildTempChart();buildPrecipCharts();buildWindChart();buildCloudChart();buildUVChart();buildTable();};

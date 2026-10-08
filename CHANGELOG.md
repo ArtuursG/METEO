@@ -7,6 +7,7 @@
 - Station labels no longer overlap; stations without a label show as coloured dots.
 - Replace the two station tables with one table: search, network filter, nearest stations first, temperature pills, wind arrows, precipitation bars, road condition tags and 24 h ranges. Phones get a card list.
 - The cloud map and the marine forecast map use the same timeline as the radar, drawn on the map. Marine point labels no longer overlap, and choosing a point in the list moves the map to it.
+- Simpler charts: the temperature chart shows the median of all models, the spread band and two models by default, with a compact model picker (also for precipitation and wind) that remembers the choice. The spread verdict sits next to the title, the period switch is compact and the daily table uses coloured temperatures and precipitation bars.
 - Numbers in the new views use the Latvian decimal comma.
 
 ## 2026-09-21 - Marine timeline label layout

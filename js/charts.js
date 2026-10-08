@@ -1,51 +1,117 @@
 // ─── CHARTS: model toggles, Chart.js defaults, all forecast charts, table ────
 
-// ─── MODEL TOGGLES ───────────────────────────────────────────────────────────
-// Renders the toggle buttons for the temperature chart model selector
-function buildToggles(){
-  const wrap=$('modelToggles');
-  wrap.innerHTML='';
+// ─── MODEL PICKER ────────────────────────────────────────────────────────────
+// One compact picker for the temperature, precipitation and wind charts: chips for the
+// models on the chart (they double as the legend) and a "+N" panel with every model.
+// Choices are remembered per chart.
+const PICKER={
+  active:       {store:'temp_models',  def:['ecmwf_ifs025','icon_eu'],                   minOne:false, id:'tempPicker'},
+  precipModels: {store:'precip_models',def:['ecmwf_ifs025','icon_eu','metno_seamless'],  minOne:true,  id:'precipPicker'},
+  windModels:   {store:'wind_models',  def:['ecmwf_ifs025','icon_eu','metno_seamless'],  minOne:true,  id:'windPicker'},
+};
+const _pickerOpen={};
 
-  const allOn=MODELS.every(m=>S.active.has(m.id));
-  const addCtrl=(label,active,fn)=>{
-    const b=document.createElement('button');
-    b.className='mt'+(active?' on':'');
-    b.textContent=label;
-    b.onclick=fn;
-    wrap.appendChild(b);
-  };
-  addCtrl(t('sel.all'),allOn,()=>{
-    MODELS.forEach(m=>S.active.add(m.id));
-    buildToggles();
-    rebuildTempChart();
-  });
-  addCtrl(t('sel.none'),S.active.size===0,()=>{
-    S.active.clear();
-    buildToggles();
-    rebuildTempChart();
-  });
-
-  const sep=document.createElement('div');
-  sep.style.cssText='width:0.5px;background:var(--b2);margin:2px 6px;align-self:stretch';
-  wrap.appendChild(sep);
-
-  MODELS.forEach(m=>{
-    const b=document.createElement('button');
-    b.className='mt'+(S.active.has(m.id)?' on':'');
-    b.setAttribute('aria-pressed',S.active.has(m.id)?'true':'false');
-    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.name}`;
-    b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
-    b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
-    b.onclick=()=>{
-      const on=!S.active.has(m.id);
-      on?S.active.add(m.id):S.active.delete(m.id);
-      b.classList.toggle('on',on);
-      b.setAttribute('aria-pressed',on?'true':'false');
-      rebuildTempChart();
-    };
-    wrap.appendChild(b);
-  });
+function loadModelSet(key){
+  const cfg=PICKER[key];
+  try{
+    const v=JSON.parse(localStorage.getItem(cfg.store)||'null');
+    if(Array.isArray(v)){
+      const ok=v.filter(id=>MODELS.some(m=>m.id===id));
+      if(ok.length||!cfg.minOne)return new Set(ok);
+    }
+  }catch{}
+  return new Set(cfg.def);
 }
+function saveModelSet(key){try{localStorage.setItem(PICKER[key].store,JSON.stringify([...S[key]]));}catch{}}
+for(const key of Object.keys(PICKER))S[key]=loadModelSet(key);
+S.showMedian=(()=>{try{return localStorage.getItem('show_median')!=='0';}catch{return true;}})();
+
+const PICKER_REBUILD={active:()=>rebuildTempChart(),precipModels:()=>buildPrecipCharts(),windModels:()=>buildWindChart()};
+
+function moreLabel(n){return t(n%10===1&&n%100!==11?'ch.more_one':'ch.more',{n});}
+
+function pickerNode(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+
+function buildModelPicker(key){
+  const cfg=PICKER[key],wrap=$(cfg.id);
+  if(!wrap)return;
+  const set=S[key],change=()=>{saveModelSet(key);PICKER_REBUILD[key]();};
+  const hasData=Object.keys(S.data).length>0;
+  const available=m=>!hasData||!!S.data[m.id];
+  wrap.replaceChildren();
+  wrap.setAttribute('role','group');
+  wrap.setAttribute('aria-label',t('ch.picker_aria'));
+
+  // Temperature: median line and spread band can be switched off
+  if(key==='active'){
+    for(const [prop,store,label,title,sw] of [
+      ['showMedian','show_median','ch.median','ch.median_title','mp-sw-median'],
+      ['showSpread','show_spread','ch.spread','ch.spread_title','mp-sw-band'],
+    ]){
+      const b=pickerNode('button','mp-chip mp-toggle');b.type='button';
+      b.setAttribute('aria-pressed',String(!!S[prop]));b.title=t(title);
+      b.append(pickerNode('i',sw),pickerNode('span',null,t(label)));
+      b.onclick=()=>{S[prop]=!S[prop];try{localStorage.setItem(store,S[prop]?'1':'0');}catch{}buildModelPicker(key);rebuildTempChart();};
+      wrap.append(b);
+    }
+    wrap.append(pickerNode('span','mp-sep'));
+  }
+
+  const chosen=MODELS.filter(m=>set.has(m.id)&&available(m));
+  for(const m of chosen){
+    const last=cfg.minOne&&set.size<=1;
+    const b=pickerNode('button','mp-chip');b.type='button';
+    const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
+    b.append(dot,pickerNode('span',null,m.name));
+    if(!last)b.append(pickerNode('span','mp-x','×'));
+    b.title=last?t('ch.last_one'):t('ch.remove',{name:m.name});
+    b.setAttribute('aria-label',b.title);
+    b.disabled=last;
+    b.onclick=()=>{if(last)return;set.delete(m.id);change();buildModelPicker(key);};
+    wrap.append(b);
+  }
+
+  const rest=MODELS.filter(m=>available(m)&&!set.has(m.id)).length;
+  const more=pickerNode('button','mp-more',rest?moreLabel(rest):t('ch.choose'));more.type='button';
+  const panelId=cfg.id+'Panel';
+  more.setAttribute('aria-expanded',String(!!_pickerOpen[key]));
+  more.setAttribute('aria-controls',panelId);
+  more.onclick=()=>{_pickerOpen[key]=!_pickerOpen[key];buildModelPicker(key);if(_pickerOpen[key])$(panelId)?.querySelector('input:not(:disabled)')?.focus();};
+  wrap.append(more);
+
+  if(!_pickerOpen[key])return;
+  const panel=pickerNode('div','mp-panel');panel.id=panelId;
+  const list=pickerNode('div','mp-list');
+  for(const m of MODELS){
+    const ok=available(m);
+    const row=pickerNode('label','mp-item'+(ok?'':' is-off'));
+    const box=document.createElement('input');box.type='checkbox';box.checked=set.has(m.id)&&ok;box.disabled=!ok;
+    box.onchange=()=>{
+      if(box.checked)set.add(m.id);
+      else{if(cfg.minOne&&set.size<=1){box.checked=true;return;}set.delete(m.id);}
+      change();buildModelPicker(key);$(panelId)?.querySelectorAll('input')[MODELS.indexOf(m)]?.focus();
+    };
+    const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
+    const text=pickerNode('span');
+    text.append(document.createTextNode(m.name),pickerNode('small',null,ok?`${m.org} · ${m.res.replace(/(\d)km$/,'$1 km')} · ${m.days} ${t('unit.days')}`:t('ch.no_data')));
+    row.append(box,dot,text);
+    list.append(row);
+  }
+  const actions=pickerNode('div','mp-actions');
+  const act=(label,fn)=>{const b=pickerNode('button',null,t(label));b.type='button';b.onclick=()=>{fn();change();buildModelPicker(key);};actions.append(b);};
+  act('ch.all',()=>MODELS.filter(available).forEach(m=>set.add(m.id)));
+  if(!cfg.minOne)act('ch.none',()=>set.clear());
+  act('ch.default',()=>{set.clear();cfg.def.forEach(id=>set.add(id));});
+  const close=pickerNode('button','mp-close',t('ch.close'));close.type='button';
+  close.onclick=()=>{_pickerOpen[key]=false;buildModelPicker(key);wrap.querySelector('.mp-more')?.focus();};
+  actions.append(close);
+  panel.append(list,actions);
+  panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close.click();}});
+  wrap.append(panel);
+}
+
+// Kept for callers that rebuild the temperature picker (city change, language switch)
+function buildToggles(){buildModelPicker('active');}
 
 // ─── MODEL INFO LIST ─────────────────────────────────────────────────────────
 // Builds the "Models" tab with colour dot, name, org, resolution and days
@@ -113,7 +179,7 @@ function CD(){
     }
   },
   scales:{
-    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true,
+    x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:window.innerWidth<=600?4:8,maxRotation:0,autoSkip:true,
         // Keep the date and time together; Chart.js handles label spacing.
         callback:function(val){return this.getLabelForValue(val);}},
       grid:{color:v('--chart-grid')}},
@@ -126,19 +192,6 @@ function CD(){
 function showChart(loadId,canvasId){
   $(loadId).style.display='none';
   $(canvasId).style.display='block';
-}
-
-// Renders coloured line swatches below a chart
-function buildLegend(legId,models){
-  const wrap=$(legId);
-  if(!wrap)return;
-  wrap.innerHTML='';
-  models.forEach(m=>{
-    const el=document.createElement('div');
-    el.className='li';
-    el.innerHTML=`<span class="ld" style="background:${m.color}"></span>${m.name}`;
-    wrap.appendChild(el);
-  });
 }
 
 // ─── TEMPERATURE CHART ───────────────────────────────────────────────────────
@@ -154,26 +207,25 @@ function tempSpread(models){
   return {min,max};
 }
 
-// Short verdict on how far the models disagree, averaged over the next ~48 h
+// How far the models disagree, averaged over the next ~48 h: {level,text} or null
 function spreadVerdict(min,max){
   const gaps=[];
   for(let i=0;i<Math.min(48,min.length);i++) if(min[i]!=null) gaps.push(max[i]-min[i]);
-  if(!gaps.length)return '';
+  if(!gaps.length)return null;
   const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
-  const a=round(avg,1);
-  if(avg<1.5)return t('spread.agree',{n:a});
-  if(avg<4)return t('spread.medium',{n:a});
-  return t('spread.high',{n:a});
+  const level=avg<1.5?'high':avg<4?'medium':'low';
+  return {level,text:t('ch.agree_'+level,{n:fmtNum(avg/2,1)})};
 }
 
 function rebuildTempChart(){
   const first=Object.values(S.data)[0];
   if(!first?.hourly?.time)return;
+  buildModelPicker('active');
   const chartDefaults=CD();
-  const spreadFill=getComputedStyle(document.body).getPropertyValue('--acc-soft').trim();
+  const spreadFill=cssVar('--acc-soft');
   const labels=first.hourly.time.map(fmtHour);
-  const active=MODELS.filter(m=>S.data[m.id]?.hourly?.temperature_2m&&S.active.has(m.id));
-  const lines=active.map(m=>({
+  const withData=MODELS.filter(m=>S.data[m.id]?.hourly?.temperature_2m);
+  const lines=withData.filter(m=>S.active.has(m.id)).map(m=>({
     label:m.name,
     data:S.data[m.id].hourly.temperature_2m,
     borderColor:m.color,
@@ -183,48 +235,49 @@ function rebuildTempChart(){
     fill:false,
   }));
 
-  // Shaded band between the coldest and warmest model at each hour. Drawn first
-  // so it sits behind every model line; _band flag keeps it out of the tooltip.
-  let band=[], sp=null;
-  if(S.showSpread&&active.length>=2){
-    sp=tempSpread(active);
-    band=[
-      {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true},
-      {label:t('chart.model_range'),data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
-    ];
-  }
+  // Band from the coldest to the warmest model and the median line use every model with
+  // data, whatever is picked; the band is drawn first so it sits behind the lines.
+  const sp=withData.length>=2?tempSpread(withData):null;
+  const band=S.showSpread&&sp?[
+    {label:'_spreadMin',data:sp.min,borderWidth:0,pointRadius:0,tension:0.3,fill:false,_band:true},
+    {label:t('chart.model_range'),data:sp.max,borderWidth:0,pointRadius:0,tension:0.3,fill:'-1',backgroundColor:spreadFill,_band:true},
+  ]:[];
+  const med=S.showMedian&&withData.length>=2?[{
+    label:t('ch.median'),
+    data:first.hourly.time.map((_,i)=>{const v=median(withData.map(m=>S.data[m.id].hourly.temperature_2m[i]));return v==null?null:round(v,1);}),
+    borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3,fill:false,
+  }]:[];
 
   showChart('loadT','cT');
   if(S.charts.temp)S.charts.temp.destroy();
   S.charts.temp=new Chart($('cT'),{
-    type:'line',data:{labels,datasets:[...band,...lines]},
+    type:'line',data:{labels,datasets:[...band,...lines,...med]},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
-        y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'°C'}}
+        y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'°'}}
       },
       plugins:{...chartDefaults.plugins,
         tooltip:{...chartDefaults.plugins.tooltip,
           filter:item=>!item.dataset._band,
+          itemSort:(a,b)=>(b.parsed.y??-99)-(a.parsed.y??-99),
           callbacks:{
             title:items=>fmtTooltipTitle(first.hourly.time,items[0].dataIndex),
-            label:c=>` ${c.dataset.label}: ${round(c.parsed.y)}°C`,
+            label:c=>` ${c.dataset.label}: ${fmtNum(c.parsed.y,1)}°C`,
             footer:items=>{
               if(!sp)return '';
               const i=items[0].dataIndex;
               if(sp.min[i]==null)return '';
-              return t('spread.tooltip_range',{min:round(sp.min[i]),max:round(sp.max[i]),d:round(sp.max[i]-sp.min[i],1)});
+              return t('spread.tooltip_range',{min:fmtNum(sp.min[i],1),max:fmtNum(sp.max[i],1),d:fmtNum(sp.max[i]-sp.min[i],1)});
             }
           }
         }
       }
     }
   });
-  buildLegend('legT',MODELS.filter(m=>S.data[m.id]&&S.active.has(m.id)));
 
   const info=$('spreadInfo');
-  if(info)info.textContent=sp?spreadVerdict(sp.min,sp.max):'';
-  const chk=$('spreadChk');
-  if(chk)chk.checked=S.showSpread;
+  const v=sp?spreadVerdict(sp.min,sp.max):null;
+  if(info){info.hidden=!v;info.textContent=v?v.text:'';if(v)info.dataset.level=v.level;}
 }
 
 function toggleSpread(on){
@@ -237,15 +290,12 @@ function toggleSpread(on){
 // Single-model mode renders a bar chart; multi-model renders overlaid line charts
 function mkModelSelector(containerId,stateKey,title,onSelect){
   const hd=$(containerId);
-  hd.innerHTML=`<span class="card-title">${title}</span>`;
-  const wrap=document.createElement('div');
-  wrap.style.cssText='display:flex;gap:4px';
+  hd.replaceChildren(pickerNode('span','card-title',title));
+  const wrap=pickerNode('div','ch-seg');
   wrap.setAttribute('role','group');
   wrap.setAttribute('aria-label',title);
   TABLE_MODELS.forEach(tm=>{
-    const b=document.createElement('button');
-    b.className='mt'+(S[stateKey]===tm.id?' on':'');
-    b.textContent=tm.name;
+    const b=pickerNode('button',null,tm.name);b.type='button';
     b.setAttribute('aria-pressed',S[stateKey]===tm.id?'true':'false');
     b.onclick=()=>{S[stateKey]=tm.id;onSelect();};
     wrap.appendChild(b);
@@ -253,45 +303,19 @@ function mkModelSelector(containerId,stateKey,title,onSelect){
   hd.appendChild(wrap);
 }
 
-function mkMultiSelector(containerId,stateKey,title,onSelect){
+// Card header with a title and optional nodes on the right
+function chartHeader(containerId,title,...right){
   const hd=$(containerId);
-  hd.innerHTML=`<span class="card-title">${title}</span>`;
-  const wrap=document.createElement('div');
-  wrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:.6rem';
-  const allOn=MODELS.every(m=>S[stateKey].has(m.id));
-  const addCtrl=(label,active,fn)=>{
-    const b=document.createElement('button');
-    b.className='mt'+(active?' on':'');
-    b.textContent=label;b.onclick=fn;wrap.appendChild(b);
-  };
-  addCtrl(t('sel.all'),allOn,()=>{MODELS.forEach(m=>S[stateKey].add(m.id));onSelect();});
-  addCtrl(t('sel.none'),S[stateKey].size===0,()=>{S[stateKey].clear();onSelect();});
-  const sep=document.createElement('div');
-  sep.style.cssText='width:0.5px;background:var(--b2);margin:2px 6px;align-self:stretch';
-  wrap.appendChild(sep);
-  MODELS.forEach(m=>{
-    const b=document.createElement('button');
-    b.className='mt'+(S[stateKey].has(m.id)?' on':'');
-    b.setAttribute('aria-pressed',S[stateKey].has(m.id)?'true':'false');
-    b.innerHTML=`<span class="mt-dot" style="background:${m.color}"></span>${m.name}`;
-    b.title=`${m.org} · ${m.res} · ${m.days} ${t('unit.days')}`;
-    b.setAttribute('aria-label',t('sel.model_show',{name:m.name}));
-    b.onclick=()=>{
-      // Prevent deselecting the last active model
-      if(S[stateKey].has(m.id)){if(S[stateKey].size<=1)return;S[stateKey].delete(m.id);}
-      else S[stateKey].add(m.id);
-      onSelect();
-    };
-    wrap.appendChild(b);
-  });
-  hd.appendChild(wrap);
+  if(!hd)return;
+  hd.replaceChildren(pickerNode('span','card-title',title),...right);
 }
 
 // Formats a full readable timestamp for chart tooltips
 function fmtTooltipTitle(timeArr,idx){return chartTimeTitle(timeArr[idx],LOCALE);}
 
 function buildPrecipCharts(){
-  mkMultiSelector('precipCardHd','precipModels',t('chart.precip_mm'),buildPrecipCharts);
+  chartHeader('precipCardHd',t('chart.precip_mm'));
+  buildModelPicker('precipModels');
 
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
@@ -314,12 +338,11 @@ function buildPrecipCharts(){
     data:{labels,datasets},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
-        x:{...chartDefaults.scales.x,ticks:{...chartDefaults.scales.x.ticks,maxTicksLimit:8}},
-        y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' mm'}}
+                y:{...chartDefaults.scales.y,min:0,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+' mm'}}
       },
       plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
         title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
-        label:c=>` ${c.dataset.label}: ${round(c.parsed.y,1)} mm`
+        label:c=>` ${c.dataset.label}: ${fmtNum(c.parsed.y,1)} mm`
       }}}
     }
   });
@@ -356,19 +379,17 @@ function buildPrecipCharts(){
 
 // ─── WIND CHART ──────────────────────────────────────────────────────────────
 function buildWindChart(){
-  mkMultiSelector('windCardHd','windModels',`${t('chart.wind_speed')} (${S.windUnit})`,buildWindChart);
-
-  // Unit toggle - inserted between the title and the model selector
-  const unitDiv=document.createElement('div');
-  unitDiv.style.cssText='display:flex;gap:4px;margin-left:auto';
+  // Unit switch on the right of the header
+  const units=pickerNode('div','ch-seg');
+  units.setAttribute('role','group');units.setAttribute('aria-label',t('ch.wind_unit'));
   ['m/s','km/h'].forEach(u=>{
-    const b=document.createElement('button');
-    b.className='mt'+(S.windUnit===u?' on':'');
-    b.textContent=u;
+    const b=pickerNode('button',null,u);b.type='button';
+    b.setAttribute('aria-pressed',String(S.windUnit===u));
     b.onclick=()=>setWindUnit(u);
-    unitDiv.appendChild(b);
+    units.appendChild(b);
   });
-  $('windCardHd').insertBefore(unitDiv,$('windCardHd').children[1]);
+  chartHeader('windCardHd',`${t('chart.wind_speed')} (${S.windUnit})`,units);
+  buildModelPicker('windModels');
 
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
@@ -391,11 +412,10 @@ function buildWindChart(){
       },
       plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
         title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
-        label:c=>` ${c.dataset.label}: ${c.parsed.y} ${S.windUnit}`
+        label:c=>` ${c.dataset.label}: ${fmtNum(c.parsed.y,S.windUnit==='m/s'?1:0)} ${S.windUnit}`
       }}}
     }
   });
-  buildLegend('legW',MODELS.filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.wind_speed_10m));
 }
 
 // Persists the selected unit and rebuilds all wind displays (metrics, chart, table)
@@ -440,7 +460,6 @@ function buildCloudChart(){
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:8}},
         y:{...cd.scales.y,min:0,max:100,ticks:{...cd.scales.y.ticks,callback:v=>v+'%'}}
       },
       plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{
@@ -501,7 +520,6 @@ function buildUVChart(){
     }]},
     options:{...cd,
       scales:{...cd.scales,
-        x:{...cd.scales.x,ticks:{...cd.scales.x.ticks,maxTicksLimit:8}},
         y:{...cd.scales.y,min:0,suggestedMax:8,
            ticks:{...cd.scales.y.ticks,stepSize:1,callback:v=>v>0?v:''}}
       },
@@ -528,25 +546,32 @@ function buildTable(){
          precipitation_probability_max:ppm,wind_speed_10m_max:wmax,
          relative_humidity_2m_mean:rh,weather_code:wc,cloud_cover_mean:cc}=src.daily;
   const tbody=$('tBody');
-  tbody.innerHTML='';
+  tbody.replaceChildren();
+  const pMax=Math.max(10,...(ps||[]).filter(v=>v!=null));
+  const td=(cls,text)=>{const c=document.createElement('td');if(cls)c.className=cls;if(text!=null)c.textContent=text;return c;};
+  const pill=v=>{
+    const c=td('ft-t');
+    if(v==null){c.textContent='-';return c;}
+    const sp=document.createElement('span');sp.className='ft-pill';sp.textContent=fmtTemp(v);sp.style.background=tempColor(v);
+    c.append(sp);return c;
+  };
   time.forEach((iso,i)=>{
-    const mx=r0(tmax?.[i]),mn=r0(tmin?.[i]);
-    const icon=wIcon(wc?.[i]);
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${fmtDate(iso)}</td>
-      <td class="wcell" title="${wText(wc?.[i])}">${icon}</td>
-      <td class="${tempCls(mx)}">${mx!=null?mx+'°':'-'}</td>
-      <td class="${tempCls(mn)}">${mn!=null?mn+'°':'-'}</td>
-      <td>${ps?.[i]!=null?round(ps[i],1)+' mm':'-'}</td>
-      <td>${ppm?.[i]!=null?r0(ppm[i])+'%':'-'}</td>
-      <td>${wmax?.[i]!=null?windConv(wmax[i])+' '+S.windUnit:'-'}</td>
-      <td>${cc?.[i]!=null?r0(cc[i])+'%':'-'}</td>
-      <td>${rh?.[i]!=null?r0(rh[i])+'%':'-'}</td>
-    `;
+    const day=td('ft-day');day.innerHTML=fmtDate(iso);
+    const wx=td('wcell wi wi-'+(wKey(wc?.[i])||'none'));wx.innerHTML=wIcon(wc?.[i]);wx.title=wText(wc?.[i]);
+    const label=document.createElement('span');label.className='sr-only';label.textContent=wText(wc?.[i]);wx.append(label);
+    const pr=td('ft-num ft-precip');
+    if(ps?.[i]!=null){
+      const bar=document.createElement('i');bar.style.width=Math.max(ps[i]>0?3:0,Math.round(ps[i]/pMax*46))+'px';
+      pr.append(bar,document.createTextNode((ps[i]>0?fmtNum(ps[i],1):'0')+' mm'));
+    }else pr.textContent='-';
+    tr.append(day,wx,pill(tmax?.[i]),pill(tmin?.[i]),pr,
+      td('ft-num',ppm?.[i]!=null?r0(ppm[i])+'%':'-'),
+      td('ft-num',wmax?.[i]!=null?fmtNum(windConv(wmax[i]),S.windUnit==='m/s'?1:0)+' '+S.windUnit:'-'),
+      td('ft-num',cc?.[i]!=null?r0(cc[i])+'%':'-'),
+      td('ft-num',rh?.[i]!=null?r0(rh[i])+'%':'-'));
     tbody.appendChild(tr);
   });
   $('loadTbl').style.display='none';
   $('forecastTable').style.display='table';
 }
-
