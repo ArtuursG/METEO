@@ -5,14 +5,18 @@
 // tāpēc šeit vienkārši atlasām vienu staciju no tā paša endpoint.
 
 const $=id=>document.getElementById(id);
-const round=(v,d=1)=>v!=null?Math.round(v*(10**d))/(10**d):null;
+// Skaitļi ar decimālkomatu latviski (punktu angliski); '-', ja vērtības nav
+const fmtN=(v,d=1)=>v==null||!Number.isFinite(+v)?'-':(+v).toLocaleString(LOCALE,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtT=v=>v==null||!Number.isFinite(+v)?'-':fmtN(Math.abs(+v)<0.05?0:v,1)+'°';
+const _mapLayers=[];
+const mapTileUrl=part=>`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light'}_Gray_${part}/MapServer/tile/{z}/{y}/{x}`;
+
 const LVGMC_API='https://lvgmc-meteo-proxy.jkedainis.workers.dev/';
 
 applyStaticI18n();
 
 const windDirLv=deg=>deg==null?'':COMPASS[LANG][compassIndex(deg)];
 const noData=()=>t('stp.no_data');
-// tempCls comes from pure.js
 
 function fmtTime(iso){
   return chartTimeLabel(iso,LOCALE,'Europe/Riga');
@@ -31,6 +35,7 @@ function setTheme(th){
   try{localStorage.setItem('theme',th);}catch(e){}
   renderThemeIcon();
   if(_lastHist.length){renderChart(_lastHist);renderMinMaxChart(_lastHist);renderWindChart(_lastHist);}
+  _mapLayers.forEach(({layer,part})=>layer.setUrl(mapTileUrl(part)));
 }
 $('themeToggle').addEventListener('click',()=>{
   const cur=document.documentElement.getAttribute('data-theme');
@@ -51,7 +56,7 @@ function CD(){
         titleColor:v('--chart-tip-title'),bodyColor:v('--chart-tip-body'),padding:11,cornerRadius:7},
     },
     scales:{
-      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
+      x:{ticks:{color:v('--chart-tick'),font:{size:11},maxTicksLimit:window.innerWidth<=600?4:8,maxRotation:0,autoSkip:true},grid:{color:v('--chart-grid')}},
       y:{ticks:{color:v('--chart-tick'),font:{size:11}},grid:{color:v('--chart-grid')}},
     }
   };
@@ -110,7 +115,7 @@ function renderWindChart(hist){
     type:'line',
     data:{labels,datasets:[
       {label:t('stp.ds_wind_speed'),data:hist.map(h=>h.windSpeed),borderColor:'#7fb37a',borderWidth:1.5,pointRadius:0,tension:0.3},
-      {label:t('stp.ds_gust'),data:hist.map(h=>h.windGust),borderColor:'#4a8f44',borderWidth:1.5,pointRadius:0,tension:0.3},
+      {label:t('stp.ds_gust'),data:hist.map(h=>h.windGust),borderColor:'#7fb37a',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0.3},
     ]},
     options:CD(),
   });
@@ -119,11 +124,11 @@ function renderWindChart(hist){
 function renderMiniMap(lat,lon,name){
   if(lat==null||lon==null)return;
   _miniMap=L.map('stMiniMap',{zoomControl:false,attributionControl:true}).setView([lat,lon],11);
-  // Esri Gray Canvas (bez API atslēgas); base + nosaukumu slānis atsevišķi
-  const esriTile=svc=>L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,{
-    attribution:'Tiles © Esri',maxZoom:16});
-  esriTile('Canvas/World_Light_Gray_Base').addTo(_miniMap);
-  esriTile('Canvas/World_Light_Gray_Reference').addTo(_miniMap);
+  // Esri Gray Canvas lapas tēmā (bez API atslēgas); pamatne un nosaukumu slānis atsevišķi
+  for(const part of ['Base','Reference']){
+    const layer=L.tileLayer(mapTileUrl(part),{attribution:'Tiles © Esri',maxZoom:16}).addTo(_miniMap);
+    _mapLayers.push({layer,part});
+  }
   const marker=L.circleMarker([lat,lon],{radius:8,color:'#fff',weight:2,fillColor:'#e0796d',fillOpacity:0.95}).addTo(_miniMap);
   if(name)marker.bindTooltip(name,{permanent:false,direction:'top'});
 }
@@ -162,26 +167,29 @@ async function load(){
     const cur=hist[hist.length-1];
     document.title=`${nameHint||id} - prognoze.lv`;
 
-    $('stAirTemp').innerHTML=`${cur.airTemp!=null?round(cur.airTemp,1):'-'}<span>°C</span>`;
-    $('stAirTemp').className='mc-val '+tempCls(cur.airTemp);
+    $('stAirTemp').textContent=fmtT(cur.airTemp);
     $('stTime').textContent=fmtTime(cur.time).join(' ');
+    $('stFeels').textContent=fmtT(cur.feelsLike);
 
-    $('stFeels').innerHTML=`${cur.feelsLike!=null?round(cur.feelsLike,1):'-'}<span>°C</span>`;
-    $('stFeels').className='mc-val '+tempCls(cur.feelsLike);
+    // 24 h min/max no stundu vēstures: minTemp/maxTemp ir katras stundas galējības
+    // (HATMN/HATMX); ja to nav, ņem gaisa temperatūru
+    const day=hist.slice(-24);
+    const lows=day.map(h=>({v:h.minTemp??h.airTemp,time:h.time})).filter(x=>x.v!=null);
+    const highs=day.map(h=>({v:h.maxTemp??h.airTemp,time:h.time})).filter(x=>x.v!=null);
+    if(lows.length){const lo=lows.reduce((a,b)=>b.v<a.v?b:a);$('stMin').textContent=fmtT(lo.v);$('stMinTime').textContent=fmtTime(lo.time).join(' ');}
+    if(highs.length){const hi=highs.reduce((a,b)=>b.v>a.v?b:a);$('stMax').textContent=fmtT(hi.v);$('stMaxTime').textContent=fmtTime(hi.time).join(' ');}
 
-    if(cur.minTemp!=null){$('stMin').innerHTML=`${round(cur.minTemp,1)}<span>°C</span>`;$('stMinTime').textContent=fmtTime(cur.time).join(' ');}
-    if(cur.maxTemp!=null){$('stMax').innerHTML=`${round(cur.maxTemp,1)}<span>°C</span>`;$('stMaxTime').textContent=fmtTime(cur.time).join(' ');}
-
-    $('dWind').textContent=cur.windSpeed!=null?`${round(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
-    $('dGust').textContent=cur.windGust!=null?`${round(cur.windGust,1)} m/s`:noData();
-    $('dHum').textContent=cur.humidity!=null?`${round(cur.humidity,0)}%`:noData();
-    $('dPressure').textContent=cur.pressure!=null?`${round(cur.pressure,1)} hPa`:noData();
-    $('dPrecip').textContent=cur.precipHour!=null?`${round(cur.precipHour,1)} mm`:noData();
-    $('dVis').textContent=cur.visibility!=null?`${round(cur.visibility/1000,1)} km`:noData();
-    $('dSnow').textContent=cur.snowDepth!=null?`${round(cur.snowDepth,0)} cm`:noData();
-    $('dUv').textContent=cur.uv!=null?round(cur.uv,0):noData();
-    $('dCloud').textContent=cur.cloudCoverOktas!=null?t('stp.oktas',{n:round(cur.cloudCoverOktas,0)}):noData();
-    $('dLightning').textContent=cur.lightning!=null?`${round(cur.lightning,0)}`:noData();
+    $('dWind').textContent=cur.windSpeed!=null?`${fmtN(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
+    $('dGust').textContent=cur.windGust!=null?`${fmtN(cur.windGust,1)} m/s`:noData();
+    $('dHum').textContent=cur.humidity!=null?`${fmtN(cur.humidity,0)}%`:noData();
+    $('dPressure').textContent=cur.pressure!=null?`${fmtN(cur.pressure,1)} hPa`:noData();
+    $('dPrecip').textContent=cur.precipHour!=null?`${fmtN(cur.precipHour,1)} mm`:noData();
+    $('dVis').textContent=cur.visibility!=null?`${fmtN(cur.visibility/1000,1)} km`:noData();
+    $('dSnow').textContent=cur.snowDepth!=null?`${fmtN(cur.snowDepth,0)} cm`:noData();
+    $('dUv').textContent=cur.uv!=null?fmtN(cur.uv,0):noData();
+    // Mākoņainība oktās: 0-8; 9 nozīmē, ka debesis nav redzamas (migla, stiprs sniegs)
+    $('dCloud').textContent=cur.cloudCoverOktas==null?noData():cur.cloudCoverOktas>=9?t('stp.oktas_obscured'):t('stp.oktas',{n:fmtN(cur.cloudCoverOktas,0)});
+    $('dLightning').textContent=cur.lightning!=null?fmtN(cur.lightning,0):noData();
 
     $('stChartMeta').textContent=t('stp.measurements_hourly',{n:hist.length});
     renderChart(hist);

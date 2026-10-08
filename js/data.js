@@ -30,7 +30,7 @@ function moonPhaseInfo(){
   return {svg, name:t('moon.'+i)};
 }
 
-// Populates the metrics row and hero sunrise/sunset using ECMWF as primary source
+// Fills the "now" block and hero sunrise/sunset, with ECMWF as the main source
 function updateMetrics(){
   const ecmwf=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!ecmwf)return;
