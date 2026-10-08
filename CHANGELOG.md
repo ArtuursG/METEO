@@ -7,6 +7,7 @@
 - The now block reports icy road surfaces from nearby LVC road weather stations and what changed in the forecast since the previous visit. The short forecast sentence is removed: the numbers, hours and days say it more precisely.
 - Temperature trend arrows in the station table, popups and station pages. The LVC worker returns the reading about an hour before the latest one (redeploy the worker to get LVC trends).
 - Station pages get the language switch, a calm back link and a link to the forecast for the station's place.
+- Fresh data while the page stays open: the forecast reloads every 30 minutes while the page is visible and at once when it is shown again after 15 minutes, the data age label updates every minute, and the station pages reload their readings every 10 minutes. A saved forecast is reused for 10 minutes instead of an hour; an older copy only stands in when the network fails.
 
 ## 2026-10-08 - Today view, new radar and shared map timeline
 

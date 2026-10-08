@@ -253,7 +253,12 @@ async function load(){
   if(!P.id){P.status='no_id';renderPage();return;}
   renderPage();
   if(Number.isFinite(P.lat)&&Number.isFinite(P.lon))renderMiniMap(P.lat,P.lon,P.name);
+  await fetchHistory();
+}
 
+// Ielādē rādījumus; atkārtotā ielādē kļūdas gadījumā paliek iepriekšējie dati
+let _loadedAt=0;
+async function fetchHistory(){
   try{
     const r=await fetch(`${LVC_API}?station=${encodeURIComponent(P.id)}`);
     if(!r.ok)throw new Error(r.status);
@@ -261,9 +266,16 @@ async function load(){
     P.hist=Array.isArray(d.history)?d.history:[];
     P.status=P.hist.length?'ok':'empty';
   }catch(e){
-    P.status='error';
+    if(P.status!=='ok')P.status='error';
   }
+  _loadedAt=Date.now();
   renderPage();
 }
+
+// Kamēr lapa atvērta, dati atjaunojas ik 10 min, un uzreiz, kad lapa atkal redzama
+const REFRESH_MS=10*60*1000;
+const refreshIfOld=()=>{if(P.id&&!document.hidden&&Date.now()-_loadedAt>=REFRESH_MS)fetchHistory();};
+setInterval(refreshIfOld,60*1000);
+document.addEventListener('visibilitychange',refreshIfOld);
 
 load();
