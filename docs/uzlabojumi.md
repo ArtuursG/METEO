@@ -76,7 +76,7 @@ Vadlīnijas visam sarakstam:
 - [x] Viena laika skalas komponente radaram un mākoņu kartei.
 - [x] Radara funkcijas vairs netiek pārrakstītas vairākos failos.
 - [x] `.timeline` stili vienā vietā.
-- [ ] Jaunie teksti `i18n.js`, nevis iekļauti kodā. Jaunajās daļās izdarīts; Vides sadaļā (gaiss, brīdinājumi, ūdeņi, jūra) un mākoņu kartes aprakstos vēl ir teksti kodā.
+- [x] Jaunie teksti `i18n.js`, nevis iekļauti kodā.
 
 ## Vēlāk
 

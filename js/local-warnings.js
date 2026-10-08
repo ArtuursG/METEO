@@ -25,16 +25,16 @@ async function refreshHomeWarnings(){
   if(id!==homeWarningRequest||lat!==S.lat||lon!==S.lon)return;
   const alerts=warningsAtPlace(data.alerts,lat,lon);if(!alerts.length)return;
   box.hidden=false;box.dataset.severity=alerts[0].severity;
-  box.append(envNode('strong',envText('Brīdinājumi izvēlētajā vietā','Warnings for this location')+' · '+S.city));
-  for(const a of alerts){box.append(envNode('p',a.event+' · '+chartTimeTitle(a.onset,LOCALE)+' - '+chartTimeTitle(a.expires,LOCALE)));}
+  box.append(envNode('strong',t('lw.title',{city:S.city})));
+  for(const a of alerts){box.append(envNode('p',a.event+' · '+chartTimeTitle(a.onset,LOCALE)+' – '+chartTimeTitle(a.expires,LOCALE)));}
   const stale=Date.now()-Date.parse(data.fetchedAt)>45*60000||!Number.isFinite(Date.parse(data.fetchedAt));
-  box.append(envNode('p',envText(stale?'Datu kopija var būt novecojusi. Pārbaudi oficiālo avotu.':'Teritorija noteikta pēc brīdinājuma kartes. Avota teksts oriģinālvalodā.',stale?'This snapshot may be outdated. Check the official source.':'Matched against the warning area. Original source wording.'),'env-note'));
-  box.append(envSource('MeteoAlarm · '+envText('Oficiālais brīdinājums','Official warning'),'https://meteoalarm.org/en/live/'));
+  box.append(envNode('p',t(stale?'lw.stale':'lw.matched'),'env-note'));
+  box.append(envSource('MeteoAlarm · '+t('lw.official'),'https://meteoalarm.org/en/live/'));
  }catch{
   if(id!==homeWarningRequest||lat!==S.lat||lon!==S.lon)return;
   // A failed check is one quiet line, not a box that looks like a warning
   box.hidden=false;box.removeAttribute('data-severity');box.classList.add('is-quiet');
-  const line=envNode('p',envText('Brīdinājumus pašlaik nevar pārbaudīt. ','Warnings cannot be checked right now. '));
+  const line=envNode('p',t('lw.unchecked')+' ');
   const link=envNode('a','MeteoAlarm');link.href='https://meteoalarm.org/en/live/';link.target='_blank';link.rel='noopener';
   line.append(link);box.append(line);
  }

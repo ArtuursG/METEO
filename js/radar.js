@@ -23,10 +23,6 @@ const roadCondLabel=c=>c?(ROAD_COND_KEY[c]?t(ROAD_COND_KEY[c]):String(c)):'-';
 const NETWORK_NAME={lvc:'LVC',lvgmc:'LVĢMC'};
 
 let _rMap=null;
-// environment.js swaps the layers in this object when the theme changes. The radar uses
-// addThemedMapLayer() for its theme base map instead, so this stays null and that code
-// leaves the user's base map choice alone.
-let _rBaseLayers=null;
 // Raw worker responses (other modules read these; LVĢMC items keep history[], latest last)
 let _lvcStations=[],_lvgmcStations=[];
 
