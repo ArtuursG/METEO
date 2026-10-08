@@ -171,7 +171,9 @@ function renderMiniMap(lat,lon,name){
 function renderTrend(cur){
   const el=$('stTrend');
   const prev=prevReading(P.hist,cur.time);
-  const tr=prev?tempTrend(cur.airTemp,cur.time,prev.airTemp,prev.time):null;
+  // Tikai svaigam mērījumam: veca rādījuma "pēdējā stunda" lasītāju maldinātu
+  const fresh=Date.now()-parseStationTime(cur.time)<=90*60000;
+  const tr=prev&&fresh?tempTrend(cur.airTemp,cur.time,prev.airTemp,prev.time):null;
   el.hidden=!tr;
   if(!tr)return;
   el.textContent=Math.abs(tr.delta)<0.3?t('stp.trend_flat'):t('stp.trend',{arrow:tr.delta>0?'↑':'↓',v:fmtT(Math.abs(tr.delta))});

@@ -344,10 +344,10 @@ function mkModelSelector(containerId,stateKey,title,onSelect,has){
   wrap.setAttribute('role','group');
   wrap.setAttribute('aria-label',title);
   RECOMMENDED_MODELS.forEach(tm=>{
-    const ok=usable(MODELS.find(m=>m.id===tm.id));
+    // A recommended model without data here is left out, like the other models
+    if(!usable(MODELS.find(m=>m.id===tm.id)))return;
     const b=pickerNode('button',null,tm.name);b.type='button';b.dataset.k='seg:'+tm.id;
     b.setAttribute('aria-pressed',String(shown?.id===tm.id));
-    b.disabled=!ok;if(!ok)b.title=t('ch.no_data');
     b.onclick=()=>pick(tm.id);
     wrap.append(b);
   });

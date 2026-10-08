@@ -95,30 +95,47 @@ function roadText(r){
   const where=r.total===1?t('today.road_single')
     :all&&r.total===2?t('today.road_both')
     :all&&!lvSingular(r.total)?t('today.road_all',{n:r.count})
+    :all?t('today.road_all_one',{n:r.count})
     :t(lvSingular(r.total)?'today.road_of_one':'today.road_of',{n:r.count,total:r.total});
-  return t('today.road_ice',{where,what:t(r.frost?'today.road_frost':'today.road_below'),coldest});
+  // Only reported frost, ice or snow (no surface measured at or below 0): say just that
+  const what=r.frost===r.count?'today.road_cond':r.frost?'today.road_frost':'today.road_below';
+  return t('today.road_ice',{where,what:t(what),coldest});
+}
+
+// Road ice needs a cold night or day: below this forecast minimum the road stations are not even asked
+const ROAD_COLD_T=4;
+function roadWeatherCold(){
+  try{
+    const now=fsNum((S.data['ecmwf_ifs025']||Object.values(S.data)[0])?.current?.temperature_2m);
+    const lows=dailyConsensus(S.data,{maxDays:2}).map(r=>r.tmin);
+    return [now,...lows].some(v=>v!=null&&v<=ROAD_COLD_T);
+  }catch{return false;}
+}
+
+// Draws the line from the stations already loaded; radar.js calls it again after every LVC refresh
+function showRoad(){
+  const el=$('nowRoad');
+  if(!el)return;
+  let r=null;
+  if(nearLatvia()&&Object.keys(S.data).length&&roadWeatherCold()){
+    try{r=roadIceSummary(_lvcStations,S.lat,S.lon);}catch(e){console.warn('[today] road',e);}
+  }
+  el.hidden=!r;
+  if(!r)return;
+  el.dataset.level=r.level;
+  el.textContent=roadText(r);
+  el.title=t('today.road_open');
 }
 
 // Loads after the main render and never blocks it; a late answer for an old place is dropped
 let _roadReq=0;
 async function renderRoad(){
-  const el=$('nowRoad');
-  if(!el)return;
   const id=++_roadReq;
-  const show=()=>{
-    let r=null;
-    try{r=roadIceSummary(_lvcStations,S.lat,S.lon);}catch(e){console.warn('[today] road',e);}
-    el.hidden=!r;
-    if(!r)return;
-    el.dataset.level=r.level;
-    el.textContent=roadText(r);
-    el.title=t('today.road_open');
-  };
-  if(!nearLatvia()||typeof ensureLvcStations!=='function'){el.hidden=true;return;}
-  if(_lvcStations.length)show();else el.hidden=true;
+  showRoad();
+  if(!nearLatvia()||typeof ensureLvcStations!=='function'||!roadWeatherCold())return;
   try{await ensureLvcStations();}catch{}
   if(id!==_roadReq)return;
-  show();
+  showRoad();
 }
 
 // ─── Forecast change since the previous visit ───
@@ -152,7 +169,7 @@ function pruneSnapshots(){
   drop.forEach(k=>localStorage.removeItem(k));
 }
 
-// "šodien 07:10", "vakar 18:40", else the weekday (the visitor's own clock)
+// "07:10", "vakar 18:40", else the weekday (the visitor's own clock)
 function sinceText(ts){
   const d=new Date(ts),time=d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
   const days=Math.round((new Date().setHours(0,0,0,0)-new Date(ts).setHours(0,0,0,0))/864e5);
@@ -167,7 +184,7 @@ const changeKind=c=>c.kind==='tmax'?(c.delta>0?'warmer':'cooler')
   :(c.snow?'snow':'rain')+c.kind.slice(6);   // precip_new -> rain_new
 
 // The chosen changes are told day by day, temperature first, naming each day once:
-// "rīt par 3° siltāks, lietus vairs negaida"; different days are split by a semicolon
+// "rīt par 3° siltāks, lietus vairs nav gaidāms"; different days are split by a semicolon
 function changeText(changes,ts,rows){
   const offset=new Map(rows.map(r=>[r.date,r.offset]));
   const isTemp=c=>c.kind==='tmax'||c.kind==='tmin';

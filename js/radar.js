@@ -142,6 +142,8 @@ function ensureStations(net){
     }
     st.promise=null;
     try{net==='lvc'?renderLvcRows():renderLvgmcRows();}catch(e){console.warn('[stations] render',e);}
+    // The road line in the now block follows every LVC refresh (today.js)
+    if(net==='lvc'&&typeof showRoad==='function')try{showRoad();}catch(e){console.warn('[stations] road',e);}
   })();
   return st.promise;
 }
@@ -618,7 +620,7 @@ function stationPopup(row){
   const wind=r=>r.windSpeed==null?null:`${fmtNum(r.windSpeed,1)} m/s${r.windDir!=null?' '+COMPASS[LANG][compassIndex(r.windDir)]:''}`;
   // Third item marks secondary readings, hidden on phones to keep the popup short.
   // The last-hour change sits in the air temperature row, so the popup keeps its height.
-  const air=row.airTemp==null?null:[temp(row.airTemp),stationTrendMark(row.trend,true)];
+  const air=row.airTemp==null?null:[temp(row.airTemp),stationTrendMark(freshTrend(row),true)];
   const rows=row.net==='lvc'?[
     ['station.air_t',air],
     ['station.road_surface_t',temp(row.surfaceTemp)],
@@ -845,6 +847,8 @@ const stationTrendText=tr=>(tr.delta>0?'+':'')+fmtTemp(tr.delta,1);
 const STATION_TREND_ARROW='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 8.6V1.6M1.9 4.6 5 1.5l3.1 3.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 // Small arrow when the air temperature moved at least 0.3° in the last hour, else null.
 // The exact change is in the title and aria-label; withValue also shows it ("↑ 0,7°").
+// A trend only for a current reading (LVC every 15 min, LVĢMC hourly)
+const freshTrend=r=>!stationIsStale(r)&&Date.now()-r.time<=(r.net==='lvc'?90:180)*60000?r.trend:null;
 function stationTrendMark(tr,withValue){
   if(!tr||Math.abs(tr.delta)<.3)return null;
   const a=radarNode('span','st-trend '+(tr.delta>0?'is-up':'is-down'));
@@ -858,7 +862,7 @@ function stationTrendMark(tr,withValue){
 function stationTempCell(r){
   const box=radarNode('span','st-temp');
   box.append(tempPill(r.airTemp));
-  const mark=stationTrendMark(r.trend);
+  const mark=stationTrendMark(freshTrend(r));
   if(mark)box.append(mark);
   return box;
 }
