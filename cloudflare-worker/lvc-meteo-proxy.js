@@ -761,13 +761,19 @@ const LIVE_DATA = {
   runs: (env) => storeSnapshot(env, "runs", buildRuns),
 };
 
+// Ja kods iekopēts worker bez D1 saistes (piemēram, citā worker), saka to skaidri
+const NO_DB = "Šim worker nav D1 datubāzes (Settings → Bindings → D1, nosaukums DB). " +
+  "Šis kods ir domāts worker lvc-meteo-proxy.";
+
 export default {
   async scheduled(event, env, ctx) {
+    if (!env.DB) return console.log(NO_DB);
     ctx.waitUntil(runCron(env));
   },
 
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+    if (!env.DB) return json({ error: NO_DB }, 500);
 
     const url = new URL(request.url);
     const stationId = url.searchParams.get("station");
