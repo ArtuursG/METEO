@@ -10,6 +10,8 @@ Fewer requests for the same data, and new data sooner.
 - Models are asked for again only when Open-Meteo has a newer run of them, 10 minutes after it became available as Open-Meteo advises. A model without a known run time, or any model outside Europe, refreshes every 30 minutes as before. A page open all day uses about 300 Open-Meteo calls instead of about 1,900, which matters for offices that share one address.
 - Failed forecast requests back off 1, 2, 4 up to 15 minutes. When only the current values change, the charts are not redrawn.
 - Changes to worker code, workflows, docs and tests no longer start a GitHub Pages deployment.
+- The home warning lines name the area the place lies in, so two warnings for one place can be told apart.
+- The network buttons on the station map and the station table's network filter are one choice: switching LVC or LVĢMC in one place switches it in the other.
 
 ## v2.0.0 - 2026-10-08
 
