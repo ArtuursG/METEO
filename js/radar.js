@@ -45,7 +45,7 @@ const ST={
   on:{lvc:true,lvgmc:true},
   layers:{lvc:null,lvgmc:null},
   markers:new Map(),  // row key -> {marker,row,value,width}
-  filter:'all',query:'',inView:false,showAll:false,
+  query:'',inView:false,showAll:false,
   sort:{key:'dist',dir:1},
   selected:null,quiet:false,renderedKey:'',
 };
@@ -518,12 +518,23 @@ function bindRadarBar(){
   }));
   syncRadarBar();
 }
+// One choice for the map and the table: the network buttons on the map decide which stations
+// the table lists, and the table's network filter switches the networks on the map
 function toggleNetwork(net,on=!ST.on[net]){
   ST.on[net]=on;saveRadarPrefs();
   const layer=ST.layers[net];
   if(_rMap&&layer){if(on)layer.addTo(_rMap);else _rMap.removeLayer(layer);}
   syncRadarBar();declutterStations();
-  if(ST.inView)renderStationTable();
+  renderStationTable();
+}
+// Both on (or both off: the table still lists everything) -> all; otherwise the one that is on
+const tableNet=()=>ST.on.lvc===ST.on.lvgmc?'all':ST.on.lvc?'lvc':'lvgmc';
+function showNetworks(choice){
+  for(const net of ['lvc','lvgmc']){
+    const on=choice==='all'||choice===net;
+    if(ST.on[net]!==on)toggleNetwork(net,on);
+  }
+  renderStationTable();
 }
 function syncRadarBar(){
   const set=(id,on)=>$(id)?.setAttribute('aria-pressed',String(on));
@@ -826,7 +837,8 @@ function sortStationRows(rows){
 }
 function filteredStationRows(){
   let rows=allStationRows();
-  if(ST.filter!=='all')rows=rows.filter(r=>r.net===ST.filter);
+  const net=tableNet();
+  if(net!=='all')rows=rows.filter(r=>r.net===net);
   const q=foldText(ST.query.trim());
   if(q)rows=rows.filter(r=>foldText(r.name).includes(q));
   if(ST.inView&&_rMap&&radarPanelVisible()){
@@ -882,7 +894,7 @@ function renderStationTable(){
   const all=allStationRows();
   const counts={all:all.length,lvc:ST.lvc.rows.length,lvgmc:ST.lvgmc.rows.length};
   document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>{
-    b.setAttribute('aria-pressed',String(b.dataset.net===ST.filter));
+    b.setAttribute('aria-pressed',String(b.dataset.net===tableNet()));
     const c=b.querySelector('.st-count');if(c)c.textContent=counts[b.dataset.net]?String(counts[b.dataset.net]):'';
   });
   stationTimesText();
@@ -1037,7 +1049,7 @@ function initStationTable(){
   const search=$('stSearch');
   let typing=null;
   search?.addEventListener('input',()=>{clearTimeout(typing);typing=setTimeout(()=>{ST.query=search.value;renderStationTable();},120);});
-  document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>b.addEventListener('click',()=>{ST.filter=b.dataset.net;renderStationTable();}));
+  document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>b.addEventListener('click',()=>showNetworks(b.dataset.net)));
   $('stInView')?.addEventListener('change',e=>{ST.inView=e.target.checked;renderStationTable();});
   $('stMore')?.addEventListener('click',()=>{ST.showAll=!ST.showAll;renderStationTable();});
   // Row click selects the station on the map; the name stays a normal link

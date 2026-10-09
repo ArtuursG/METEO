@@ -70,11 +70,13 @@ async function refreshHomeWarnings(){
   const alerts=groupWarnings(warningsAtPlace(data.alerts,lat,lon));if(!alerts.length)return;
   box.hidden=false;box.dataset.severity=alerts[0].severity;
   box.append(envNode('strong',t('lw.title',{city:S.city})));
-  // In force now, or starting later (MeteoAlarm's own map shows only the current ones under "Now")
+  // In force now, or starting later (MeteoAlarm's own map shows only the current ones under "Now").
+  // The area named is the one the place lies in, so two warnings for one place can be told apart.
   const now=Date.now();
   for(const a of alerts){
    const on=Date.parse(a.onset),off=Date.parse(a.expires),later=on>now;
-   const line=envNode('p',warningTitle(a.event,LANG)+' · '+(later?t('lw.starts',{from:envWhen(on),to:envWhen(off)}):t('lw.active_until',{time:envWhen(off)})),later?'is-later':null);
+   const where=a.areas.map(x=>warningArea(x,LANG)).join(', ');
+   const line=envNode('p',warningTitle(a.event,LANG)+(where?' · '+where:'')+' · '+(later?t('lw.starts',{from:envWhen(on),to:envWhen(off)}):t('lw.active_until',{time:envWhen(off)})),later?'is-later':null);
    line.title=a.event+' · '+chartTimeTitle(a.onset,LOCALE)+' – '+chartTimeTitle(a.expires,LOCALE);
    box.append(line);
   }

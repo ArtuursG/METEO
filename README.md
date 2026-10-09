@@ -231,6 +231,14 @@ cd METEO
 
 > Open with a local server - direct `file://` access may block API requests due to CORS.
 
+## Branches and releases
+
+- `dev` - every change lands here first. Test it at https://raw.githack.com/ArtuursG/METEO/dev/index.html
+- `main` - what the public site serves. GitHub Pages deploys on every push to `main` that changes the site, so changes reach `main` together as a tested release, not one by one.
+- Versions are MAJOR.MINOR.PATCH: MINOR (2.1.0) for new features or changed behaviour, PATCH (2.1.1) for fixes and small adjustments, MAJOR for a redesign.
+- A release: version in `package.json`, asset version (`?v=`) in the HTML files and `CACHE` in `sw.js`, a `CHANGELOG.md` entry, merge `dev` into `main`, then a GitHub Release with the tag `vX.Y.Z` on `main`.
+- When a release changes the LVC worker, the worker is updated first (the new worker also serves the current page), then `dev` is merged.
+
 ## Install as app (iOS / Android)
 
 1. Open the site in **Safari** (iOS) or **Chrome** (Android)
