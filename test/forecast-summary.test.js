@@ -221,3 +221,19 @@ test('a stale nearest station does not hide a fresh one further away',()=>{
   assert.equal(r.temp,7.5);
   assert.ok(r.ageMin>=19&&r.ageMin<=21);
 });
+
+test('station hourly readings for the temperature chart: nearest fresh station, local hour keys',()=>{
+  const now=Date.parse('2026-10-09T09:20:00Z'); // 12:20 in Riga
+  const hist=(last)=>Array.from({length:4},(_,i)=>({time:`2026-10-09T${String(last-3+i).padStart(2,'0')}:00:00`,airTemp:5+i}));
+  const stations=[
+    {id:'far',name:'Far',lat:57.5,lon:24.1,history:hist(12)},
+    {id:'old',name:'Old',lat:56.95,lon:24.11,history:hist(5)},
+    {id:'near',name:'Near',lat:56.96,lon:24.12,history:[...hist(12),{time:'2026-10-09T12:30:00',airTemp:null}]},
+  ];
+  const r=F.stationHourly(stations,56.95,24.1,{nowMs:now});
+  assert.equal(r.id,'near');
+  assert.equal(r.values.get('2026-10-09T12:00'),8);
+  assert.equal(r.values.get('2026-10-09T09:00'),5);
+  assert.equal(r.last,'2026-10-09T12:00:00');
+  assert.equal(F.stationHourly([],56.95,24.1,{nowMs:now}),null);
+});

@@ -81,7 +81,7 @@ function buildModelPicker(key){
     const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
     b.append(dot,pickerNode('span',null,m.name));
     if(!last)b.append(pickerNode('span','mp-x','×'));
-    b.title=last?t('ch.last_one'):t('ch.remove',{name:m.name});
+    b.title=(last?t('ch.last_one'):t('ch.remove',{name:m.name}))+(runText(m.id)?' · '+runText(m.id):'');
     b.setAttribute('aria-label',b.title);
     b.disabled=last;
     b.onclick=()=>{if(last)return;set.delete(m.id);change();buildModelPicker(key);};
@@ -114,7 +114,8 @@ function buildModelPicker(key){
       };
       const dot=pickerNode('i','mp-dot');dot.style.background=m.color;
       const text=pickerNode('span');
-      const small=pickerNode('small',null,ok?`${m.org} · ${fmtRes(m.res)} · ${m.days} ${t('unit.days')}`:t('ch.no_data'));
+      const run=ok?runText(m.id):'';
+      const small=pickerNode('small',null,ok?`${m.org} · ${fmtRes(m.res)} · ${m.days} ${t('unit.days')}${run?' · '+run:''}`:t('ch.no_data'));
       if(ok&&err.has(m.id))small.append(' · ',pickerNode('span','mp-err',t('ch.skill_err',{n:fmtTemp(err.get(m.id),1)})));
       text.append(document.createTextNode(m.name));
       if(top.has(m.id)){
@@ -165,17 +166,34 @@ function buildToggles(){buildModelPicker('active');}
 
 // ─── MODEL INFO LIST ─────────────────────────────────────────────────────────
 // Builds the "Models" tab with colour dot, name, org, resolution and days
+// "9. okt. 00 UTC": the model run (initialisation) the data on screen comes from
+function fmtRun(init){
+  if(!Number.isFinite(init))return '';
+  const d=new Date(init*1000);
+  return d.toLocaleDateString(LOCALE,{day:'numeric',month:'short',timeZone:'UTC'})+' '+String(d.getUTCHours()).padStart(2,'0')+' UTC';
+}
+// Remembered when the model was fetched, or worked out now if the run times came later
+function modelRun(id){
+  const d=S.data?.[id];
+  if(!d)return null;
+  if(Number.isFinite(d.run))return d.run;
+  const runs=typeof homeRuns==='function'&&fsInEurope(S.lat,S.lon)?homeRuns():null;
+  return fsRunOf(runs,id,d.at,Date.now());
+}
+const runText=id=>{const r=modelRun(id);return Number.isFinite(r)?t('models.run',{run:fmtRun(r)}):'';};
+
 function buildModelInfo(){
   const wrap=$('modelInfoList');
   wrap.innerHTML='';
   MODELS.forEach(m=>{
+    const run=runText(m.id);
     const div=document.createElement('div');
     div.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--b)';
     div.innerHTML=`
       <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${m.name}</div>
-        <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${fmtRes(m.res)} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}</div>
+        <div style="font-size:11px;color:var(--t3)">${m.org} · ${t('models.resolution')}: ${fmtRes(m.res)} · ${t('models.forecast')}: ${m.days} ${t('unit.days')}${run?' · '+run:''}</div>
       </div>`;
     wrap.appendChild(div);
   });
@@ -200,6 +218,25 @@ Chart.register({
     ctx.strokeStyle='rgba(150,150,150,.35)';
     ctx.setLineDash([4,4]);
     ctx.stroke();
+    ctx.restore();
+  }
+});
+
+// A thin line at the current hour on a chart that also shows past hours (temperature with
+// station readings). Options: plugins.nowLine {index, color, label}.
+Chart.register({
+  id:'nowLine',
+  afterDatasetsDraw(chart,args,opts){
+    const i=opts?.index;
+    if(!Number.isInteger(i)||i<=0)return;
+    const x=chart.scales.x.getPixelForValue(i);
+    const{top,bottom,left,right}=chart.chartArea;
+    if(x<left||x>right)return;
+    const ctx=chart.ctx;
+    ctx.save();
+    ctx.strokeStyle=opts.color;ctx.fillStyle=opts.color;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
+    if(opts.label){ctx.font="11px 'IBM Plex Mono',ui-monospace,monospace";ctx.fillText(opts.label,x+4,top+11);}
     ctx.restore();
   }
 });
@@ -257,6 +294,20 @@ function tempSpread(models){
   return {min,max};
 }
 
+// Past hours the temperature chart keeps when a station's readings can be set against them
+const TEMP_PAST_HOURS=12;
+// Nearest LVĢMC station's hourly readings (forecast-summary.js stationHourly), near Latvia only
+function tempObservations(){
+  if(typeof nearLatvia!=='function'||!nearLatvia()||typeof _lvgmcStations==='undefined')return null;
+  return stationHourly(_lvgmcStations,S.lat,S.lon);
+}
+// The live answer refreshes the stations every 15 min: redraw only when the readings changed
+let _tempObsKey='';
+function refreshTempObservations(){
+  const o=tempObservations(),key=o?o.id+'|'+o.last:'';
+  if(key!==_tempObsKey&&Object.keys(S.data).length)rebuildTempChart();
+}
+
 function rebuildTempChart(){
   const first=Object.values(S.data)[0];
   if(!first?.hourly?.time)return;
@@ -290,17 +341,36 @@ function rebuildTempChart(){
     borderColor:cssVar('--t'),borderWidth:2.5,pointRadius:0,tension:0.3,fill:false,order:0,
   }]:[];
 
+  // Station readings as points over the past hours, with a line at the current hour
+  const o=tempObservations();
+  _tempObsKey=o?o.id+'|'+o.last:'';
+  const times=first.hourly.time;
+  const obs=o?[{
+    label:t('ch.obs',{station:o.name}),
+    data:times.map(k=>o.values.get(String(k).slice(0,16))??null),
+    showLine:false,pointRadius:3,pointHoverRadius:4,borderWidth:1.5,
+    borderColor:cssVar('--t'),backgroundColor:cssVar('--panel'),order:-1,
+  }]:[];
+  const nowKey=new Date(Date.now()+(first.utcOffset||0)*1000).toISOString().slice(0,13)+':00';
+  const nowIndex=o?times.findIndex(k=>k>=nowKey):-1;
+  const note=$('tempObs');
+  if(note){
+    note.hidden=!o;
+    note.textContent=o?t('ch.obs_note',{station:o.name,km:fmtNum(o.dist,o.dist<10?1:0)}):'';
+  }
+
   showChart('loadT','cT');
   if(S.charts.temp)S.charts.temp.destroy();
   S.charts.temp=new Chart($('cT'),{
-    type:'line',data:{labels,datasets:[...band,...lines,...med]},
+    type:'line',data:{labels,datasets:[...band,...lines,...med,...obs]},
     options:{...chartDefaults,
       scales:{...chartDefaults.scales,
         y:{...chartDefaults.scales.y,ticks:{...chartDefaults.scales.y.ticks,callback:v=>v+'°'}}
       },
       plugins:{...chartDefaults.plugins,
+        nowLine:{index:nowIndex,color:cssVar('--t3'),label:t('ch.now')},
         tooltip:{...chartDefaults.plugins.tooltip,
-          filter:item=>!item.dataset._band,
+          filter:item=>!item.dataset._band&&item.parsed.y!=null,
           itemSort:(a,b)=>(b.parsed.y??-99)-(a.parsed.y??-99),
           callbacks:{
             title:items=>fmtTooltipTitle(first.hourly.time,items[0].dataIndex),
@@ -459,19 +529,29 @@ function buildWindChart(){
     units.appendChild(b);
   });
   chartHeader('windCardHd',`${t('chart.wind_speed')} (${S.windUnit})`,units);
+  $('windCardHd')?.querySelector('.card-title')?.append(pickerNode('span','card-note',t('chart.gust_note')));
   buildModelPicker('windModels');
 
   const base=S.data['ecmwf_ifs025']||Object.values(S.data)[0];
   if(!base?.hourly?.time)return;
   const chartDefaults=CD();
   const labels=base.hourly.time.map(fmtHour);
+  // Mean wind as a solid line, gusts as a dashed line in the model's colour
   const datasets=MODELS
     .filter(m=>S.windModels.has(m.id)&&S.data[m.id]?.hourly?.wind_speed_10m)
-    .map(m=>({
-      label:m.name,
-      data:S.data[m.id].hourly.wind_speed_10m.map(v=>windConv(v)),
-      borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
-    }));
+    .flatMap(m=>{
+      const h=S.data[m.id].hourly,out=[{
+        label:m.name,
+        data:h.wind_speed_10m.map(v=>windConv(v)),
+        borderColor:m.color,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false
+      }];
+      if(h.wind_gusts_10m?.some(v=>v!=null))out.push({
+        label:m.name+' · '+t('chart.gust'),
+        data:h.wind_gusts_10m.map(v=>windConv(v)),
+        borderColor:m.color,borderWidth:1,borderDash:[5,4],pointRadius:0,tension:0.3,fill:false
+      });
+      return out;
+    });
   showChart('loadW','cW');
   if(S.charts.wind)S.charts.wind.destroy();
   S.charts.wind=new Chart($('cW'),{
@@ -612,7 +692,7 @@ function buildTable(){
   const src=S.data[id];
   if(!src?.daily?.time)return;
   const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
-         precipitation_probability_max:ppm,wind_speed_10m_max:wmax,
+         precipitation_probability_max:ppm,wind_speed_10m_max:wmax,wind_gusts_10m_max:gmax,
          relative_humidity_2m_mean:rh,weather_code:wc,cloud_cover_mean:cc}=src.daily;
   const tbody=$('tBody');
   tbody.replaceChildren();
@@ -640,6 +720,7 @@ function buildTable(){
     tr.append(day,wx,pill(tmin?.[i]),pill(tmax?.[i]),pr,
       td('ft-num',ppm?.[i]!=null?r0(ppm[i])+'%':'-'),
       td('ft-num',wmax?.[i]!=null?fmtNum(windConv(wmax[i]),S.windUnit==='m/s'?1:0)+' '+S.windUnit:'-'),
+      td('ft-num',gmax?.[i]!=null?fmtNum(windConv(gmax[i]),S.windUnit==='m/s'?1:0)+' '+S.windUnit:'-'),
       td('ft-num',cc?.[i]!=null?r0(cc[i])+'%':'-'),
       td('ft-num',rh?.[i]!=null?r0(rh[i])+'%':'-'));
     tbody.appendChild(tr);

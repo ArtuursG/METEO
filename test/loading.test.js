@@ -13,7 +13,7 @@ function setup(){
  document:{getElementById:el,addEventListener(){},body:{classList:{add(){},remove(){}}}},
  t:x=>x,sameLoc:()=>false,clearTimeout,setTimeout,
  fetch:(url,options)=>new Promise(resolve=>pending.push({url,options,resolve})),
- updateMetrics(){},rebuildTempChart(){},buildPrecipCharts(){},buildWindChart(){},buildCloudChart(){},buildUVChart(){},buildTable(){},buildToggles(){},showToast(){},renderFavBtn(){}});
+ updateMetrics(){},buildModelInfo(){},rebuildTempChart(){},buildPrecipCharts(){},buildWindChart(){},buildCloudChart(){},buildUVChart(){},buildTable(){},buildToggles(){},showToast(){},renderFavBtn(){}});
  vm.runInContext(fs.readFileSync('js/core.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('js/forecast-sync.js','utf8'),ctx);
  vm.runInContext(fs.readFileSync('js/data.js','utf8'),ctx);
@@ -25,7 +25,7 @@ function setup(){
   ?{utc_offset_seconds:0,current:{temperature_2m:value},daily:{time:['2026-09-13'],sunrise:['2026-09-13T06:00'],sunset:['2026-09-13T19:00']}}
   :{utc_offset_seconds:0,hourly:{time:['2026-09-13T00:00'],temperature_2m_ecmwf_ifs025:[value]},daily:{time:['2026-09-13'],temperature_2m_max_ecmwf_ifs025:[value]}};
  const respond=(job,value)=>job.resolve({ok:true,json:async()=>answer(job.url,value)});
- const saved=(lat,lon)=>JSON.parse(store.get(`wx8_${lat.toFixed(3)}_${lon.toFixed(3)}`)||'null');
+ const saved=(lat,lon)=>JSON.parse(store.get(run(`fcKey(${lat},${lon})`))||'null');
  return {ctx,run,pending,respond,saved,el};
 }
 test('late city response cannot replace newer city or be saved under its coordinates',async()=>{

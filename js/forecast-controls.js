@@ -11,8 +11,10 @@ function rangeCopy(){
    b.textContent=t(['ch.p48','ch.p7','ch.p14'][i]);
    b.setAttribute('aria-pressed',String(Number(b.dataset.hours)===forecastHours));
   });
+  // The temperature chart begins 12 h earlier when station readings are set against the models
+  const past=!!bar.closest('#tab-temp')&&typeof tempObservations==='function'&&!!tempObservations();
   const note=bar.querySelector('.range-note');
-  note.textContent=t('ch.period_hint');note.title=t('ch.period_note');
+  note.textContent=t(past?'ch.period_hint_obs':'ch.period_hint');note.title=t(past?'ch.period_note_obs':'ch.period_note');
  });
 }
 rangeSections.forEach(key=>{
@@ -27,13 +29,14 @@ rangeSections.forEach(key=>{
  const note=document.createElement('span');note.className='range-note';bar.append(note);
  document.getElementById('tab-'+key).prepend(bar);
 });
-function rangedBuild(build){return function(...args){
+// past(): hours before now to keep (the temperature chart, when it has station readings)
+function rangedBuild(build,past=()=>0){return function(...args){
  const original=S.data;
  if(!Object.keys(original).length)return;
- S.data=forecastWindow(original,forecastHours);
+ S.data=forecastWindow(original,forecastHours,Date.now(),past());
  try{return build(...args);}finally{S.data=original;rangeCopy();}
 };}
-rebuildTempChart=rangedBuild(rebuildTempChart);
+rebuildTempChart=rangedBuild(rebuildTempChart,()=>tempObservations()?TEMP_PAST_HOURS:0);
 buildPrecipCharts=rangedBuild(buildPrecipCharts);
 buildWindChart=rangedBuild(buildWindChart);
 buildCloudChart=rangedBuild(buildCloudChart);

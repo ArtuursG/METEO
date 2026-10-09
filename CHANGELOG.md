@@ -6,10 +6,14 @@ Fewer requests for the same data, and new data sooner.
 
 - One worker request instead of three: the LVC worker's `?data=home` answer carries both station networks, the MeteoAlarm warnings and the Open-Meteo model run times, and says when its next cron run is. An open page asks again 90 seconds after that run instead of on its own timers, so new readings show up within about two minutes and a page open all day makes about 100 worker requests instead of about 340.
 - The LVĢMC stations are prepared by the LVC worker's cron and parsed only when the source file changed (about once an hour). The separate LVĢMC worker is no longer used.
-- Lighter forecast requests: the current values and sunrise/sunset, which the page takes from ECMWF IFS only, come from a small separate request every 15 minutes instead of being requested for all 14 models. A new place costs about 24 Open-Meteo calls instead of 40.
+- Lighter forecast requests: the current values and sunrise/sunset, which the page takes from ECMWF IFS only, come from a small separate request every 15 minutes instead of being requested for all 14 models. A new place costs about 25 Open-Meteo calls instead of 40, with the new wind gusts included.
 - Models are asked for again only when Open-Meteo has a newer run of them, 10 minutes after it became available as Open-Meteo advises. A model without a known run time, or any model outside Europe, refreshes every 30 minutes as before. A page open all day uses about 300 Open-Meteo calls instead of about 1,900, which matters for offices that share one address.
 - Model run time metadata older than 36 hours (a domain Open-Meteo no longer updates, such as GEM's) counts as unknown, so that model refreshes every 30 minutes instead of waiting.
 - The worker decides whether the LVĢMC file changed from its content, not from the server's ETag or date.
+- The temperature chart shows the nearest LVĢMC station's readings over the past 12 hours as points against the models for the same hours, with a line at the current hour (near Latvia).
+- Wind gusts: a dashed line per model in the wind chart and a gust maximum column in the daily table, worked out from the hourly gusts.
+- Each model shows the run its data comes from (for example "aprēķins 9. okt. 00 UTC") in the model picker, on the model chips and in the Modeļi list.
+- Model accuracy is kept for 6 hours instead of 2. CI runs on Node 22 and also on the dev branch.
 - Failed forecast requests back off 1, 2, 4 up to 15 minutes. When only the current values change, the charts are not redrawn.
 - Changes to worker code, workflows, docs and tests no longer start a GitHub Pages deployment.
 - The home warning lines name the area the place lies in, so two warnings for one place can be told apart.

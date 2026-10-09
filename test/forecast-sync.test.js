@@ -105,3 +105,31 @@ test('S.data from the saved copy: same shape as before, now values on the first 
   c.now.day='2026-10-08';
   assert.equal(F.forecastData(c,IDS).ecmwf_ifs025.current,undefined);
 });
+
+test('daily gust maximum from the hourly gusts, per local day',()=>{
+  const hourly=['2026-10-09T00:00','2026-10-09T13:00','2026-10-09T23:00','2026-10-10T00:00','2026-10-10T01:00'];
+  assert.deepEqual(F.fsDailyMax(hourly,[5,12.4,9,null,7.5],['2026-10-09','2026-10-10','2026-10-11']),[12.4,7.5,null]);
+  const c=F.mergeModels(null,{utc_offset_seconds:OFF,hourly:{time:hourly,temperature_2m:[1,2,3,4,5],wind_gusts_10m:[5,12.4,9,null,7.5]},daily:{time:['2026-10-09','2026-10-10']}},['icon_eu'],NOW);
+  assert.deepEqual(F.forecastData(c,['icon_eu']).icon_eu.daily.wind_gusts_10m_max,[12.4,7.5]);
+});
+
+test('the run a model came from: known once that run had settled when it was fetched',()=>{
+  const avail=(NOW-60*MIN)/1000,init=(NOW-7*3600e3)/1000;
+  const runs={models:{icon_eu:avail},inits:{icon_eu:init},checkedAt:NOW-5*MIN};
+  assert.equal(F.fsRunOf(runs,'icon_eu',NOW),init);
+  // Fetched 5 min after the run became available: may still be the previous run
+  assert.equal(F.fsRunOf(runs,'icon_eu',avail*1000+5*MIN),null);
+  assert.equal(F.fsRunOf({...runs,checkedAt:NOW-50*MIN},'icon_eu',NOW),null);
+  assert.equal(F.fsRunOf(null,'icon_eu',NOW),null);
+  assert.equal(F.fsRunOf(runs,'gem_seamless',NOW),null);
+  const c=F.mergeModels(null,{utc_offset_seconds:OFF,hourly:{time:[DAY+'T00:00'],temperature_2m:[1]},daily:{time:[DAY]}},['icon_eu'],NOW,runs);
+  assert.equal(F.forecastData(c,['icon_eu']).icon_eu.run,init);
+});
+
+test('the run can be worked out later from the fetch time, until a newer run comes out',()=>{
+  const at=NOW-30*MIN,init=(NOW-9*3600e3)/1000;
+  const runs={models:{icon_eu:(NOW-2*3600e3)/1000},inits:{icon_eu:init},checkedAt:NOW-3*MIN};
+  assert.equal(F.fsRunOf(runs,'icon_eu',at,NOW),init);
+  // A newer run already out: the saved data may be from the one before
+  assert.equal(F.fsRunOf({...runs,models:{icon_eu:(NOW-20*MIN)/1000}},'icon_eu',at,NOW),null);
+});

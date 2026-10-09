@@ -298,6 +298,24 @@ function nearestStationReading(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAg
   return best;
 }
 
+// Hourly air temperature of the nearest station for the temperature chart, keyed by local
+// wall-clock hour like the forecast ("2026-10-09T11:00"). A station whose newest reading is
+// older than maxAgeH is left out.
+function stationHourly(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAgeH=6}={}){
+  let best=null;
+  for(const s of stations||[]){
+    if(!s||!Number.isFinite(+s.lat)||!Number.isFinite(+s.lon)||!Array.isArray(s.history))continue;
+    const pts=s.history.filter(h=>h&&h.time&&fsNum(h.airTemp)!=null);
+    if(!pts.length)continue;
+    const age=(nowMs-stationTimeMs(pts[pts.length-1].time))/3600000;
+    if(!Number.isFinite(age)||age>maxAgeH)continue;
+    const dist=fsHaversine(lat,lon,+s.lat,+s.lon);
+    if(dist>maxKm||(best&&dist>=best.dist))continue;
+    best={id:s.id,name:s.name,dist,last:pts[pts.length-1].time,values:new Map(pts.map(h=>[String(h.time).slice(0,16),+h.airTemp]))};
+  }
+  return best;
+}
+
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={hourlyConsensus,hourSlots,sunTimes,isNightAt,skyKey,dailyConsensus,forecastSummary,stationTimeMs,nearestStationReading};
+  module.exports={hourlyConsensus,hourSlots,sunTimes,isNightAt,skyKey,dailyConsensus,forecastSummary,stationTimeMs,nearestStationReading,stationHourly};
 }
