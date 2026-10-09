@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.0 - 2026-10-09
+
+Fewer requests for the same data, and new data sooner.
+
+- One worker request instead of three: the LVC worker's `?data=home` answer carries both station networks, the MeteoAlarm warnings and the Open-Meteo model run times, and says when its next cron run is. An open page asks again 90 seconds after that run instead of on its own timers, so new readings show up within about two minutes and a page open all day makes about 100 worker requests instead of about 340.
+- The LVĢMC stations are prepared by the LVC worker's cron and parsed only when the source file changed (about once an hour). The separate LVĢMC worker is no longer used.
+- Lighter forecast requests: the current values and sunrise/sunset, which the page takes from ECMWF IFS only, come from a small separate request every 15 minutes instead of being requested for all 14 models. A new place costs about 24 Open-Meteo calls instead of 40.
+- Models are asked for again only when Open-Meteo has a newer run of them, 10 minutes after it became available as Open-Meteo advises. A model without a known run time, or any model outside Europe, refreshes every 30 minutes as before. A page open all day uses about 300 Open-Meteo calls instead of about 1,900, which matters for offices that share one address.
+- Failed forecast requests back off 1, 2, 4 up to 15 minutes. When only the current values change, the charts are not redrawn.
+- Changes to worker code, workflows, docs and tests no longer start a GitHub Pages deployment.
+
 ## v2.0.0 - 2026-10-08
 
 The redesigned site: five sections, a Today view, a new radar, live data from the workers instead of scheduled builds.

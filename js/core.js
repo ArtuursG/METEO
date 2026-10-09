@@ -57,21 +57,9 @@ const fmtTemp=(v,d=0)=>v==null||!Number.isFinite(+v)?'-':fmtNum(Math.abs(+v)<0.5
 const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(v*10)/10;
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-// A saved forecast is reused for 10 minutes (reloads, place changes back and forth);
-// an older one up to 3 h only stands in when the network request fails
-const CACHE_FRESH=10*60*1000;
+// The forecast is saved per place and model (data.js, forecast-sync.js); when the network
+// fails, a saved one stands in if the page heard from Open-Meteo within this time
 const CACHE_KEEP=3*60*60*1000;
-// Prefix is bumped when API request variables change, to invalidate stale entries
-const CACHE_PFX='wx7_';
-
-function getCached(lat,lon,maxAge=CACHE_FRESH){
-  try{
-    const raw=localStorage.getItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`);
-    if(!raw)return null;
-    const{ts,d}=JSON.parse(raw);
-    return Date.now()-ts<maxAge?{d,ts}:null;
-  }catch{return null;}
-}
 
 // "pirms N min" / "pirms N h" for the data timestamp
 function relTime(ts){
@@ -93,10 +81,6 @@ function showToast(msg,ms=5000){
     el.classList.remove('show');
     setTimeout(()=>{el.hidden=true;},250);
   },ms);
-}
-
-function setCache(lat,lon,d){
-  try{localStorage.setItem(`${CACHE_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`,JSON.stringify({ts:Date.now(),d}));}catch{}
 }
 
 // ─── URL STATE ───────────────────────────────────────────────────────────────

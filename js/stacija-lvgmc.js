@@ -11,7 +11,8 @@ const fmtT=v=>v==null||!Number.isFinite(+v)?'-':fmtN(Math.abs(+v)<0.05?0:v,1)+'�
 const _mapLayers=[];
 const mapTileUrl=part=>`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${document.documentElement.getAttribute('data-theme')==='dark'?'Dark':'Light'}_Gray_${part}/MapServer/tile/{z}/{y}/{x}`;
 
-const LVGMC_API='https://lvgmc-meteo-proxy.jkedainis.workers.dev/';
+// LVĢMC stacijas tagad sagatavo LVC worker cron (agrāk atsevišķs worker)
+const LVGMC_API='https://lvc-meteo-proxy.jkedainis.workers.dev/?data=lvgmc';
 const HOURS=48;
 
 applyStaticI18n();

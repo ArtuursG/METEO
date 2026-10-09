@@ -39,6 +39,4 @@ buildWindChart=rangedBuild(buildWindChart);
 buildCloudChart=rangedBuild(buildCloudChart);
 buildUVChart=rangedBuild(buildUVChart);
 buildTable=rangedBuild(buildTable);
-const originalSplit=splitCombined;
-splitCombined=function(raw){const result=originalSplit(raw);for(const src of Object.values(result))src.utcOffset=raw.utc_offset_seconds||0;return result;};
 rangeCopy();

@@ -153,7 +153,7 @@ function skillForStation(pick){
 
 async function skillState(lat,lon){
   if(!skillInArea(lat,lon))return {status:'none'};
-  await ensureLvgmcStations(); // refetches only when older than STATION_TTL
+  await ensureLvgmcStations(); // shared live answer, asks again only after the worker's next run
   if(!_lvgmcStations.length)return {status:'failed'};
   const pick=pickSkillStation(_lvgmcStations,lat,lon);
   if(!pick)return {status:'none'};

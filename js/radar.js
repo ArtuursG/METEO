@@ -1,14 +1,12 @@
 // ─── RADAR & WEATHER STATIONS (LVC + LVĢMC) ─────────────────────────────────
 // Precipitation frames: RainViewer free tier (observed frames only, native zoom up to 6).
-// Stations: the two Cloudflare workers in cloudflare-worker/. Shared map helpers live in
+// Stations: the LVC worker in cloudflare-worker/ (one ?data=home answer). Shared map helpers live in
 // map-utils.js, the frame scrubber in timeline.js. Nothing here runs Leaflet code until
 // the radar panel is opened for the first time (initRadar).
 
 const LVC_API='https://lvc-meteo-proxy.jkedainis.workers.dev/';
-const LVGMC_API='https://lvgmc-meteo-proxy.jkedainis.workers.dev/';
 const RAINVIEWER_API='https://api.rainviewer.com/public/weather-maps.json';
 const RAINVIEWER_TILES='https://tilecache.rainviewer.com';
-const STATION_TTL=10*60*1000;        // the workers refresh every 10-15 min
 const STATION_RETRY=60*1000;
 const RADAR_REFRESH=5*60*1000;
 const RADAR_RETRY=60*1000;
@@ -119,37 +117,75 @@ function fetchStationJson(url){
   return fetch(url,options).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 }
 
-// Loads one network unless its data is fresh. Resolves when done, never rejects; works
-// before the map exists and while the radar panel is hidden.
-function ensureStations(net){
-  const st=ST[net];
-  if(st.promise)return st.promise;
-  const now=Date.now();
-  const fresh=st.fetchedAt&&now-st.fetchedAt<STATION_TTL;
-  const backoff=st.error&&now-st.failedAt<STATION_RETRY;
-  if(fresh||backoff){
-    try{if(ST.renderedKey!==stationRenderKey())renderStations();}catch(e){console.warn('[stations] render',e);}
-    return Promise.resolve();
-  }
-  st.promise=(async()=>{
-    try{
-      const d=await fetchStationJson(net==='lvc'?LVC_API:LVGMC_API);
-      const list=Array.isArray(d?.stations)?d.stations:[];
-      if(net==='lvc')_lvcStations=list;else _lvgmcStations=list;
-      st.fetchedAt=Date.now();st.error=false;
-    }catch(e){
-      st.error=true;st.failedAt=Date.now();
-      console.warn('[stations]',net,e?.message||e);
-    }
-    st.promise=null;
-    try{net==='lvc'?renderLvcRows():renderLvgmcRows();}catch(e){console.warn('[stations] render',e);}
-    // The road line in the now block follows every LVC refresh (today.js)
-    if(net==='lvc'&&typeof showRoad==='function')try{showRoad();}catch(e){console.warn('[stations] road',e);}
-  })();
-  return st.promise;
+// ─── LIVE DATA: one request for both networks, warnings and model run times ─
+// The LVC worker answers ?data=home with everything the page needs right away and the time
+// of its next cron run (every 15 min). The next request goes right after that run, so new
+// readings show up within about two minutes, and an open page makes one request per run
+// instead of one per network on its own timer. Resolves with the answer (or the last good
+// one), never rejects; works before the map exists and while the radar panel is hidden.
+const HOME_API=LVC_API+'?data=home';
+const HOME_AFTER_RUN=90*1000;        // the cron run needs a moment to finish
+const HOME_MAX_WAIT=15*60*1000;
+const H={data:null,fetchedAt:0,failedAt:0,error:false,fails:0,promise:null,nextAt:0,updated:null,late:0};
+function homeDue(now=Date.now()){
+  // After failures (worker down, daily limit reached) wait 1, 2, 4... up to 15 min
+  if(H.error)return now-H.failedAt>=Math.min(HOME_MAX_WAIT,STATION_RETRY*2**(H.fails-1));
+  return !H.fetchedAt||now>=H.nextAt;
 }
-function ensureLvcStations(){return ensureStations('lvc');}
-function ensureLvgmcStations(){return ensureStations('lvgmc');}
+// When to ask again: after the next run; if the run is late (same answer), 1, 2, 4... min
+function homeNextAt(d,now,late){
+  if(late)return now+Math.min(HOME_MAX_WAIT,60000*2**(late-1));
+  const next=Date.parse(d?.next);
+  return Number.isFinite(next)?Math.min(now+HOME_MAX_WAIT+HOME_AFTER_RUN,Math.max(now+60000,next+HOME_AFTER_RUN)):now+HOME_MAX_WAIT;
+}
+function ensureHome(){
+  if(H.promise)return H.promise;
+  if(!homeDue())return Promise.resolve(H.data);
+  H.promise=ST.lvc.promise=ST.lvgmc.promise=(async()=>{
+    try{
+      const d=await fetchStationJson(HOME_API);
+      if(d?.ok!==true)throw new Error('unexpected answer');
+      const now=Date.now();
+      H.late=H.updated!=null&&d.updated===H.updated?H.late+1:0;
+      H.updated=d.updated??null;
+      H.data=d;H.fetchedAt=now;H.error=false;H.fails=0;H.nextAt=homeNextAt(d,now,H.late);
+      setNetwork('lvc',d.lvc);
+      setNetwork('lvgmc',d.lvgmc);
+    }catch(e){
+      H.error=true;H.failedAt=Date.now();H.fails++;
+      console.warn('[stations]',e?.message||e);
+      // Readings already on screen stay; the status line says the update failed
+      for(const net of ['lvc','lvgmc']){ST[net].error=true;ST[net].failedAt=H.failedAt;}
+    }
+    H.promise=ST.lvc.promise=ST.lvgmc.promise=null;
+    try{renderLvcRows();renderLvgmcRows();}catch(e){console.warn('[stations] render',e);}
+    // The now block follows every refresh (today.js, local-warnings.js)
+    for(const f of ['showRoad','renderNearestStation','refreshHomeWarnings'])
+      if(typeof window[f]==='function')try{window[f]();}catch(e){console.warn('[stations]',f,e);}
+    return H.data;
+  })();
+  return H.promise;
+}
+// One network's part of the answer; a missing or failed part counts as that network's error
+function setNetwork(net,part){
+  const list=part&&part.ok!==false&&Array.isArray(part.stations)?part.stations:null;
+  const st=ST[net];
+  if(list){
+    if(net==='lvc')_lvcStations=list;else _lvgmcStations=list;
+    st.fetchedAt=Date.now();st.error=false;
+  }else{st.error=true;st.failedAt=Date.now();}
+}
+// Open-Meteo model run times from the same answer (unix seconds per model, null if unknown)
+function homeRuns(){
+  const r=H.data?.runs;
+  return r?.ok&&r.models?{models:r.models,checkedAt:Date.parse(H.data.updated||r.fetchedAt)}:null;
+}
+function ensureStations(){return ensureHome().then(()=>{});}
+// Keeping the live answer current pays off for places near Latvia or once the station map is
+// open; hidden pages make no requests
+function liveWanted(){return !document.hidden&&(nearLatvia()||!!_rMap);}
+function ensureLvcStations(){return ensureStations();}
+function ensureLvgmcStations(){return ensureStations();}
 
 // Rebuild rows from the raw worker data and redraw markers and the table
 function renderLvcRows(){ST.lvc.rows=_lvcStations.map(lvcRow).filter(Boolean);renderStations();}
@@ -191,7 +227,7 @@ async function initRadar(){
       syncPlace();
     }
     requestAnimationFrame(()=>{if(_rMap){_rMap.invalidateSize();syncPlace();declutterStations();}});
-    const jobs=[ensureLvcStations(),ensureLvgmcStations()];
+    const jobs=[ensureStations()];
     if(R.show&&!R.loading&&(!R.frames.length||Date.now()-R.fetchedAt>=RADAR_REFRESH))jobs.push(loadRadarFrames());
     await Promise.all(jobs);
   }catch(e){console.warn('[radar]',e);}
@@ -440,7 +476,7 @@ function radarTick(){
   syncPlace();
   const now=Date.now();
   if(R.show&&now-R.fetchedAt>=RADAR_REFRESH&&!(R.failed&&now-R.failedAt<RADAR_RETRY))loadRadarFrames();
-  ensureLvcStations();ensureLvgmcStations();
+  ensureStations();
   updateRadarStatus();
 }
 
