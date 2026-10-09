@@ -78,6 +78,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - NOAA SWPC planetary Kp observations provide geomagnetic context, not a local aurora probability.
 - Environmental layers load only when the relevant view is opened; the compact local-warning banner also loads the shared warning snapshot on location selection. Concurrent identical requests share a promise; failures have a 60-second cooldown. Persistent cache holds at most 12 entries.
 - The warning, hydrology, Kp and marine snapshots are built by the LVC worker's cron (every 15 minutes), independent of visitor count, and stored as ready JSON in D1: warnings every 15 minutes, Kp and hydrology every 30, marine every 4 hours, at most one large file per run. The page reads them with `?data=warnings|hydro|aurora|marine-wave|marine-temperature|marine-current` (one D1 row per request, 60 s cache). The UI displays snapshot and observation times and flags stale snapshots. This is not a real-time alert service.
+- `?data=home` returns in one answer what the page needs right away: both station networks, the warnings and the Open-Meteo model run times, plus the time of the worker's next cron run. The page asks again 90 s after that run (backing off while a run is late), so an open page makes one worker request per 15 minutes and new readings show up within about two minutes.
 - A failed source keeps its last successful snapshot with the original time. GitHub Pages only publishes code changes; there is no scheduled deployment.
 - Public Open-Meteo endpoints are for non-commercial use within their free limits. Source attribution is shown in each view.
 
@@ -156,11 +157,12 @@ js/                                   - all application logic, plain sequential 
   i18n.js       - lv/en string tables, t(), setLang(), applyStaticI18n()
   pure.js       - side-effect-free helpers (tempCls, wKey, haversineKm, stripeColor,
                   processClimate, compassIndex, moonPhaseFrac); also require()-able from Node
-  core.js       - MODELS, state (S), utils ($, round, cssVar...), cache, URL state
+  core.js       - MODELS, state (S), utils ($, round, cssVar...), URL state
   weather.js    - wind direction, weather icons/text, date formatting
   charts.js     - model toggle buttons, Chart.js defaults, every forecast chart, the forecast table
   climate.js    - Climate tab (ERA5 anomaly + warming stripes) and model verification
-  data.js       - current-conditions metrics, combined multi-model fetch, load pipeline
+  forecast-sync.js - which models to ask Open-Meteo for, the saved per-model forecast (pure, tested)
+  data.js       - current-conditions metrics, forecast requests, load pipeline
   locations.js  - city search, theme, saved/recent places, share, geolocation
   forecast-summary.js - model consensus for the Today view (pure, tested)
   today.js      - Today view: agreement, nearest station, road and forecast change lines, hourly strip, daily list
@@ -182,16 +184,19 @@ cross-file calls that happen at runtime (tab clicks, language switch) can point 
 stacija.html / stacija-lvgmc.html     - LVC / LVĢMC station detail pages
 
 cloudflare-worker/
-  lvc-meteo-proxy.js    - parses the LVC DATEX II feed, accumulates history in D1 on a Cron Trigger
-  lvgmc-meteo-proxy.js  - fetches/parses the LVĢMC CSV, no D1 needed (source keeps its own 48h window)
+  lvc-meteo-proxy.js    - the one worker: LVC DATEX II history in D1, LVĢMC stations, model run
+                          times and the public data snapshots, all on one 15-min Cron Trigger
   schema.sql            - D1 table definitions for lvc-meteo-proxy
-  wrangler.toml / wrangler-lvgmc.toml - Worker deploy config
+  wrangler.toml         - Worker deploy config (reference; deployed from the Cloudflare dashboard)
 ```
 
 ### Key implementation details
 
-- **Caching** - the combined API response is cached in localStorage for 1 hour, keyed by coordinates. Prefix `wx7_` - bumped when API request parameters change to invalidate stale data. `S.dataTs` carries the fetch (or cache-write) time so the "Dati atjaunoti" label is honest even when served from cache.
-- **Single combined request** - all 14 models are fetched in one Open-Meteo call (`models=` comma-separated). Each variable comes back suffixed per model; a model outside its geographic coverage is simply absent from the response and skipped. No per-model fallback cascade is needed.
+- **Forecast requests** (`js/forecast-sync.js`, `js/data.js`) - Open-Meteo counts a request as variables × models × days / (10 × 14) calls against a per-address limit (600 a minute, 10,000 a day), and an office shares one address. So the forecast is saved per place and model (localStorage, prefix `wx8_`, 6 places):
+  - all 14 models once per place and local day, in one request (`models=` comma-separated; variables come back suffixed per model, a model outside its area is left out);
+  - after that only the models Open-Meteo has a newer run of, 10 minutes after the run became available (run times from the worker's `?data=home`, Open-Meteo metadata that does not count against the limit); a model whose run time is unknown, or any model outside Europe, every 30 minutes as before;
+  - the "now" values and sunrise/sunset, which the page takes from ECMWF IFS only, in a small separate request every 15 minutes instead of for all 14 models.
+  The rest of the app sees the same `S.data` shape as before. A page open all day makes about 300 weighted calls instead of about 1,900, and a new place costs about 24 instead of 40. When the network fails, the saved forecast stands in if the page heard from Open-Meteo within 3 hours; failed requests back off 1, 2, 4... up to 15 minutes.
 - **UV index** - hourly `uv_index` variable requested for all models; ECMWF IFS is the primary source, GFS is the fallback. Models that return an array of nulls (unsupported variable) are skipped - a plain array existence check is insufficient.
 - **Cloud cover** - hourly `cloud_cover` variable, shown for 5 days. Colour-coded bars: sky blue (clear) -> dark slate (overcast).
 - **Cloud map** (`js/cloud-map.js`) - lazy: pressing "Show cloud map" fetches the DWD ICON grid metadata (`.../data_spatial/dwd_icon/latest.json`, gives the `valid_times` forecast frame list) in parallel with the SRI-pinned `@openmeteo/weather-map-layer` CDN script. The combined timeline is `[...satellite frames, ...model frames]`, one array of `{time, kind}` walked by a single slider - same shape as the radar frames, and played by the same timeline component.
@@ -206,7 +211,7 @@ cloudflare-worker/
 - **Crosshair plugin** - custom Chart.js plugin registered globally via `Chart.register()`; draws a vertical dashed line at the hovered x position using `chartArea` bounds.
 - **Radar** (`js/radar.js`, `js/timeline.js`, `js/map-utils.js`) - Leaflet map created on first tab open. One RainViewer tile layer per frame lives in a dedicated pane above the base map; frames are switched by opacity. Radar tiles are capped at `maxNativeZoom: 6` (Leaflet upscales closer views). The shared timeline component in `js/timeline.js` drives both the radar and the cloud map; its pure helpers (tick positions, speed steps, keeping the position on refresh) are unit tested. Badge decluttering is a pure function in `js/map-utils.js` (tested in `test/declutter.test.js`).
 - **LVC weather stations** - the live DATEX II feed only exposes ~30 min of history, so a Cloudflare Worker on a 15-min Cron Trigger parses it and accumulates readings in D1; the site reads the accumulated 24h window from D1 instead of hitting the feed directly. The API key is a Cloudflare Secret, never present in any committed file or client-side code.
-- **LVĢMC weather stations** - the public CSV already carries a 48h rolling window, so no database is needed; a Worker fetches/parses it and serves it through Cloudflare's Cache API (10 min TTL) purely to add CORS headers, since the source doesn't send them. Precipitation-only gauge stations (no temperature sensor) are filtered out of the table/map, matching how other public displays of this data handle them.
+- **LVĢMC weather stations** - the public CSV already carries a 48h rolling window. The LVC worker's cron downloads it every run (with ETag / a cheap fingerprint) and parses it only when it changed, about once an hour; the page gets it in `?data=home`, the station page from `?data=lvgmc`. Precipitation-only gauge stations (no temperature sensor) are filtered out of the table/map, matching how other public displays of this data handle them.
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.

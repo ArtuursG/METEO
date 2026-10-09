@@ -81,3 +81,66 @@ test('cron: due sources oldest first, only one large file per run',async()=>{
   checked['marine-temperature']=now;
   assert.deepEqual(dueData(checked,now),['marine-current']);
 });
+
+test('LVĢMC: stations with history, quoted names, unknown parameters and stations without coordinates left out',async()=>{
+  const {parseLvgmc}=await parsers();
+  const stations='STATION_ID,NAME,GEOGR1,GEOGR2\n"RIGASLU","Rīga, LU",24.1,56.95\n"DAUGPILS","Daugavpils",26.6,55.87\n"NOPLACE","X",,\n';
+  const readings='STATION_ID,ABBREVIATION,DATETIME,VALUE\r\n'+
+    '"RIGASLU","TDRY","2026.10.09 11:00:00",8.9\r\n"RIGASLU","TDRY","2026.10.09 10:00:00",8.1\r\n'+
+    '"RIGASLU","WNS10","2026.10.09 11:00:00",3.4\r\n"RIGASLU","XXXX","2026.10.09 11:00:00",1\r\n'+
+    '"NOPLACE","TDRY","2026.10.09 11:00:00",5\r\n\r\n';
+  const r=parseLvgmc(stations,readings);
+  assert.equal(r.stations.length,1);
+  const riga=r.stations[0];
+  assert.deepEqual([riga.id,riga.name,riga.lat,riga.lon],['RIGASLU','Rīga, LU',56.95,24.1]);
+  assert.deepEqual(riga.history,[{time:'2026-10-09T10:00:00',airTemp:8.1},{time:'2026-10-09T11:00:00',airTemp:8.9,windSpeed:3.4}]);
+  assert.throws(()=>parseLvgmc(stations,'A,B\n1,2\n'),/columns/);
+  assert.throws(()=>parseLvgmc(stations,'STATION_ID,ABBREVIATION,DATETIME,VALUE\n'),/No LVĢMC/);
+});
+
+test('LVĢMC: history is shortened only when the row would not fit in D1',async()=>{
+  const {lvgmcBody}=await parsers();
+  const station=(n)=>({id:'S'+n,name:'S',lat:57,lon:24,history:Array.from({length:48},(_,h)=>({time:'2026-10-09T'+String(h%24).padStart(2,'0')+':00:00',airTemp:h,note:'x'.repeat(400)}))});
+  const small=JSON.parse(lvgmcBody('t',{updated:'u',stations:[station(1)]}));
+  assert.equal(small.stations[0].history.length,48);
+  assert.equal(small.ok,true);
+  const big=lvgmcBody('t',{updated:'u',stations:Array.from({length:100},(_,i)=>station(i))});
+  assert.ok(big.length<=1800000);
+  assert.ok(JSON.parse(big).stations[0].history.length<48);
+});
+
+test('model run times: newest of a model\'s domains, unknown when one is missing',async()=>{
+  const {runTimes,modelRuns,MODEL_DOMAINS}=await parsers();
+  assert.deepEqual(runTimes({last_run_initialisation_time:100,last_run_availability_time:200}),{init:100,avail:200});
+  assert.deepEqual(runTimes({last_run_modification_time:150}),{init:null,avail:150});
+  assert.equal(runTimes(null),null);
+  assert.equal(runTimes({last_run_availability_time:0}),null);
+  const byDomain=Object.fromEntries([...new Set(Object.values(MODEL_DOMAINS).flat())].map(d=>[d,{init:1,avail:1000}]));
+  byDomain.dwd_icon={init:1,avail:1500};
+  byDomain.jma_gsm=null;
+  const m=modelRuns(byDomain);
+  assert.equal(m.icon_seamless,1500);
+  assert.equal(m.icon_eu,1000);
+  assert.equal(m.jma_seamless,null);
+  assert.deepEqual(Object.keys(m).sort(),Object.keys(MODEL_DOMAINS).sort());
+});
+
+test('home answer: valid JSON from stored parts, missing parts as null, next cron run',async()=>{
+  const {homeText,nextCron}=await parsers();
+  assert.equal(nextCron(Date.parse('2026-10-09T10:07:30Z')),'2026-10-09T10:15:00.000Z');
+  assert.equal(nextCron(Date.parse('2026-10-09T10:15:00Z')),'2026-10-09T10:30:00.000Z');
+  const text=homeText({lvc:'{"stations":[1]}',warnings:'{"ok":true,"alerts":[]}'},'2026-10-09T10:00:20Z',Date.parse('2026-10-09T10:07:30Z'));
+  const h=JSON.parse(text);
+  assert.deepEqual(h,{ok:true,updated:'2026-10-09T10:00:20Z',next:'2026-10-09T10:15:00.000Z',lvc:{stations:[1]},lvgmc:null,warnings:{ok:true,alerts:[]},runs:null});
+  assert.equal(JSON.parse(homeText({},null,0)).updated,null);
+});
+
+test('cron: a big file already handled this run holds the other big ones back',async()=>{
+  const {dueData}=await parsers();
+  const now=Date.parse('2026-10-09T10:00:00Z');
+  const due=dueData({},now);
+  assert.equal(due.filter(n=>n==='hydro'||n.startsWith('marine')).length,1);
+  const after=dueData({},now,1);
+  assert.equal(after.filter(n=>n==='hydro'||n.startsWith('marine')).length,0);
+  assert.ok(after.includes('warnings')&&after.includes('aurora'));
+});

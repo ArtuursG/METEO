@@ -4,6 +4,14 @@ const environmentalData=createDataCache({storage:environmentStorage});
 // Warnings, hydro, Kp and marine snapshots, refreshed by the LVC worker's cron (radar.js LVC_API)
 const publicDataUrl=name=>LVC_API+'?data='+encodeURIComponent(name);
 const publicData=(key,name,ttl)=>environmentalData(key,publicDataUrl(name),ttl);
+// Warnings come with the live answer the page already loads (radar.js ensureHome), so they
+// cost no request of their own; their own snapshot is the fallback
+async function liveWarnings(){
+ if(typeof ensureHome==='function'){
+  try{const d=await ensureHome();if(d?.warnings?.ok&&Array.isArray(d.warnings.alerts))return d.warnings;}catch{}
+ }
+ return publicData('warnings-v2','warnings',600000);
+}
 const envNode=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=text;if(className)el.className=className;return el;};
 function environmentLabels(){
  $('tb-environment').textContent=t('nav.env');
@@ -72,7 +80,8 @@ async function initEnvironment(){
    data=await environmentalData('air_'+x+'_'+y,'https://air-quality-api.open-meteo.com/v1/air-quality?'+p,3600000);
   }else if(kind==='marine'){
    try{data=await publicData('marine-'+marineParameter,'marine-'+marineParameter,3600000);}catch{data=null;}
-  }else data=await publicData(kind==='warnings'?'warnings-v2':kind,kind,kind==='hydro'?1800000:600000);
+  }else if(kind==='warnings')data=await liveWarnings();
+  else data=await publicData(kind,kind,kind==='hydro'?1800000:600000);
   if(id!==environmentRequest||lat!==S.lat||lon!==S.lon||kind!==environmentKind)return;
   content.replaceChildren();
   if(kind==='air')renderAir(data);

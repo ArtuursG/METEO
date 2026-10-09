@@ -109,6 +109,13 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 - [x] LVC worker cron saglabā gatavu staciju sarakstu (ar rādījumu ~1 h agrāk).
       Saraksta pieprasījums = 1 rinda, nevis visas tabulas skenēšana.
 - [x] Īss kešs (60 s) tikai pret vienlaicīgu pieprasījumu viļņiem.
+- [x] Viens worker pieprasījums (`?data=home`) abiem staciju tīkliem, brīdinājumiem un
+      modeļu aprēķinu laikiem; nākamais tieši pēc nākamās cron reizes. LVĢMC stacijas
+      sagatavo LVC worker cron (pārparsē tikai, kad fails mainījies); atsevišķais LVĢMC
+      worker vairs nav vajadzīgs.
+- [x] Open-Meteo: "tagad" vērtības un saullēkts mazā ECMWF pieprasījumā (40 -> ~24
+      izsaukumi vietai); modeļi pārlādējas tikai, kad iznāk jauns aprēķins (visu dienu
+      atvērta lapa ~1900 -> ~300 izsaukumi dienā).
 - [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā mainās lēni.
 
 ## Vēlāk

@@ -78,64 +78,105 @@ function updateMetrics(){
 }
 
 // ─── DATA FETCHING ────────────────────────────────────────────────────────────
-// Open-Meteo supports comma-separated models in one request: each hourly/daily
-// variable comes back suffixed per model (temperature_2m_ecmwf_ifs025, ...), sharing
-// one time array sized to the longest model horizon. Models unsupported at a variable
-// come back null-filled rather than 400; models outside their geographic coverage are
-// silently omitted from the response. This means no per-model fallback cascade is needed.
-async function fetchAllModels(lat,lon,signal){
-  const hit=getCached(lat,lon);
-  if(hit)return hit;
-  try{return await fetchModelsNow(lat,lon,signal);}
-  catch(e){
-    // No network: an older saved forecast is better than none (its age is shown)
-    const old=e?.name!=='AbortError'&&getCached(lat,lon,CACHE_KEEP);
-    if(old)return old;
-    throw e;
-  }
+// Open-Meteo counts a request as variables × models × days / (10 × 14) calls against a
+// per-address limit (offices share one address), so the forecast is kept per model in
+// forecast-sync.js and only what changed is asked for:
+// - all models, hourly and daily, once per place and day; after that only the models
+//   Open-Meteo has a newer run of (run times from the LVC worker's live answer), or every
+//   30 min for a model whose run time is not known;
+// - the "now" values and sunrise/sunset, used from ECMWF IFS only, in a small separate
+//   request every 15 min instead of for all 14 models.
+// Several models in one request come back suffixed per model (temperature_2m_icon_eu);
+// models outside their area are left out of the answer.
+const FC_URL='https://api.open-meteo.com/v1/forecast';
+const FC_NOW='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
+const FC_HOURLY='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
+const FC_DAILY='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean';
+const FC_PFX='wx8_',FC_PLACES=FC_PFX+'places',FC_KEEP_PLACES=6;
+const fcKey=(lat,lon)=>`${FC_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`;
+const fcModelIds=()=>MODELS.map(m=>m.id);
+let _fc={key:null,cache:null},_fcFails=0,_fcFailedAt=0;
+
+function readForecast(key){
+  try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&v.models?v:null;}catch{return null;}
+}
+// Keeps the latest few places; returns the saved text (a clean copy for rendering)
+function saveForecast(key,cache){
+  const text=JSON.stringify(cache);
+  try{
+    let places=[];
+    try{places=JSON.parse(localStorage.getItem(FC_PLACES)||'[]');}catch{}
+    places=[key,...places.filter(k=>k!==key)];
+    for(const k of places.slice(FC_KEEP_PLACES))localStorage.removeItem(k);
+    places=places.slice(0,FC_KEEP_PLACES);
+    // The previous format (one combined answer per place) is no longer read
+    const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith('wx7_'))old.push(k);}
+    old.forEach(k=>localStorage.removeItem(k));
+    try{localStorage.setItem(key,text);}
+    catch{places.slice(1).forEach(k=>localStorage.removeItem(k));places=[key];localStorage.setItem(key,text);}
+    localStorage.setItem(FC_PLACES,JSON.stringify(places));
+  }catch{}
+  return text;
+}
+// After failed requests: wait 1, 2, 4... up to 15 min before asking again
+const fcBackoff=()=>_fcFails?Math.min(15,2**(_fcFails-1))*60000:0;
+const fcRuns=()=>typeof homeRuns==='function'?homeRuns():null;
+function fcPlan(lat,lon,runs=fcRuns()){
+  return forecastPlan(_fc.cache,{nowMs:Date.now(),ids:fcModelIds(),runs,lat,lon});
+}
+// app.js asks this every minute: is anything newer than what is on screen?
+function forecastDue(lat,lon){
+  if(_fc.key!==fcKey(lat,lon))return true;
+  if(Date.now()-_fcFailedAt<fcBackoff())return false;
+  const p=fcPlan(lat,lon);
+  return p.now||p.models.length>0;
 }
 
-async function fetchModelsNow(lat,lon,signal){
-  const cur='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
-  const h='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
-  const d='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean,sunrise,sunset';
-  const models=MODELS.map(m=>m.id).join(',');
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=${models}&hourly=${h}&daily=${d}&current=${cur}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
-
+async function fcGet(url,signal){
   const r=await fetch(url,{signal});
-  if(!r.ok)throw new Error(r.status);
-  const data=await r.json();
-  setCache(lat,lon,data);
-  return {d:data,ts:Date.now(),fresh:true};
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
 }
 
-// Splits the combined multi-model response back into the per-model {hourly,daily,current}
-// shape the rest of the app expects in S.data[modelId]. A model with no suffixed
-// temperature_2m key was geographically out of coverage and is skipped entirely.
-function splitCombined(raw){
-  const out={};
-  // Open-Meteo returns the `current` block from the first model in the request.
-  // Attach it to the first model that actually made it into the response, so
-  // current conditions still work when ECMWF IFS is outside its coverage area.
-  let currentAssigned=false;
-  MODELS.forEach(m=>{
-    const tKey=`temperature_2m_${m.id}`;
-    if(!(raw.hourly?.[tKey]))return;
-    const hourly={time:raw.hourly.time};
-    Object.keys(raw.hourly).forEach(k=>{
-      if(k.endsWith(`_${m.id}`))hourly[k.slice(0,-(m.id.length+1))]=raw.hourly[k];
-    });
-    const daily={time:raw.daily?.time};
-    Object.keys(raw.daily||{}).forEach(k=>{
-      if(k.endsWith(`_${m.id}`))daily[k.slice(0,-(m.id.length+1))]=raw.daily[k];
-    });
-    out[m.id]={hourly,daily};
-    if(!currentAssigned){out[m.id].current=raw.current;currentAssigned=true;}
-  });
-  return out;
+// Brings the saved copy of this place up to date and returns it as S.data.
+// force: the visitor asked for it (search, location), so a failure backoff does not hold it back
+async function syncForecast(lat,lon,signal,{force=false}={}){
+  const key=fcKey(lat,lon);
+  if(_fc.key!==key){_fc={key,cache:readForecast(key)||emptyForecast()};_fcFails=0;_fcFailedAt=0;}
+  const entry=_fc;
+  let plan=fcPlan(lat,lon);
+  // Saved models could be reused: give the run times (already on their way) a moment
+  if(plan.models.length&&Object.keys(entry.cache.models).length&&!fcRuns()&&fsInEurope(lat,lon)
+    &&typeof ensureHome==='function'&&typeof liveWanted==='function'&&liveWanted()){
+    await Promise.race([ensureHome(),new Promise(r=>setTimeout(r,3000))]);
+    plan=fcPlan(lat,lon);
+  }
+  if(!force&&Date.now()-_fcFailedAt<fcBackoff())plan={models:[],now:false};
+  const jobs=[];let modelsChanged=false;
+  if(plan.models.length){
+    const ids=plan.models;
+    const url=`${FC_URL}?latitude=${lat}&longitude=${lon}&models=${ids.join(',')}&hourly=${FC_HOURLY}&daily=${FC_DAILY}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
+    jobs.push(fcGet(url,signal).then(raw=>{entry.cache=mergeModels(entry.cache,raw,ids,Date.now());modelsChanged=true;}));
+  }
+  if(plan.now){
+    const url=`${FC_URL}?latitude=${lat}&longitude=${lon}&models=ecmwf_ifs025&current=${FC_NOW}&daily=sunrise,sunset&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
+    jobs.push(fcGet(url,signal).then(raw=>{entry.cache=mergeNow(entry.cache,raw,Date.now());}));
+  }
+  const done=await Promise.allSettled(jobs);
+  if(signal?.aborted)throw new DOMException('Aborted','AbortError');
+  const failed=done.filter(r=>r.status==='rejected').map(r=>r.reason);
+  if(failed.length){_fcFails++;_fcFailedAt=Date.now();console.warn('[forecast]',...failed);}
+  else if(jobs.length){_fcFails=0;_fcFailedAt=0;}
+  const text=done.some(r=>r.status==='fulfilled')?saveForecast(key,entry.cache):JSON.stringify(entry.cache);
+  const view=JSON.parse(text);
+  const data=forecastData(view,fcModelIds());
+  const ts=forecastTs(view);
+  // No network: a saved forecast stands in for up to CACHE_KEEP (its age is shown)
+  if(!Object.keys(data).length||(failed.length&&Date.now()-ts>CACHE_KEEP))throw failed[0]||new Error('No forecast');
+  return {key,data,ts,modelsChanged};
 }
 
-// Fetches all models in one request; skips models missing from the response
+// Loads the forecast (only what changed, see above) and redraws what depends on it
 let _loadId=0, _loadController=null;
 // quiet: a background refresh; on failure the data on screen stays without a message
 async function loadAll({quiet=false}={}){
@@ -153,12 +194,12 @@ async function loadAll({quiet=false}={}){
 
   let fresh=null, fetched=null;
   try{
-    fetched=await fetchAllModels(lat,lon,_loadController.signal);
+    fetched=await syncForecast(lat,lon,_loadController.signal,{force:!quiet});
     if(id!==_loadId)return null;
-    fresh=splitCombined(fetched.d);
+    fresh=fetched.data;
   }catch(e){
     if(id!==_loadId)return null;
-    console.warn('[loadAll] combined fetch failed',e);
+    if(e?.name!=='AbortError')console.warn('[loadAll] forecast failed',e);
   }
 
   if(!fresh||!Object.keys(fresh).length){
@@ -174,11 +215,15 @@ async function loadAll({quiet=false}={}){
     return false;
   }
 
+  // Same place and no model changed: only the "now" values moved, the charts stay as they are
+  const nowOnly=hadData&&S.dataKey===fetched.key&&!fetched.modelsChanged;
   S.data=fresh;
   S.dataTs=fetched.ts;
+  S.dataKey=fetched.key;
   updateMetrics();
-  // Snapshots for the "forecast changed" line come only from a fresh API response
-  if(fetched.fresh&&typeof saveForecastSnapshot==='function')saveForecastSnapshot(lat,lon);
+  if(nowOnly)return true;
+  // Snapshots for the "forecast changed" line come only from models fresh from the API
+  if(fetched.modelsChanged&&typeof saveForecastSnapshot==='function')saveForecastSnapshot(lat,lon);
   rebuildTempChart();
   buildPrecipCharts();
   buildWindChart();

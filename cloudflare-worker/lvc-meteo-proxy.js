@@ -17,8 +17,12 @@
  *   prevAirTemp) temperatūras tendencei; ja tāda nav - null.
  *   Gatavo staciju sarakstu cron saglabā tabulā "snapshots", tāpēc pārlūka
  *   pieprasījums nolasa vienu rindu, nevis skenē visus rādījumus.
- *   Tas pats cron atjauno arī lapas publiskos datus (MeteoAlarm brīdinājumi,
- *   LVĢMC hidro, NOAA Kp, LVĢMC jūras prognoze): ?data=<nosaukums>.
+ *   Tas pats cron atjauno arī LVĢMC meteostacijas (agrāk atsevišķs worker),
+ *   Open-Meteo modeļu aprēķinu laikus un lapas publiskos datus (MeteoAlarm
+ *   brīdinājumi, LVĢMC hidro, NOAA Kp, LVĢMC jūras prognoze): ?data=<nosaukums>.
+ *   ?data=home atdod visu sākumlapai vajadzīgo vienā atbildē (LVC, LVĢMC,
+ *   brīdinājumi, modeļu laiki) un nākamās cron reizes laiku, lai lapa jaunos
+ *   datus prasītu tieši tad, kad tie ir gatavi.
  *   Tabulu "snapshots" Worker izveido pats, nekas papildus nav jāiestata.
  *
  * ATSLĒGU UN D1 UZSTĀDĪŠANA - dari TIKAI Cloudflare panelī, NEKAD
@@ -285,8 +289,9 @@ const PUBLIC_DATA = {
   "marine-current": { every: 240, heavy: true, build: () => buildMarine("current") },
 };
 
+const USER_AGENT = "prognoze.lv public data cache";
 async function getText(url) {
-  const res = await fetch(url, { headers: { "User-Agent": "prognoze.lv public data cache" } });
+  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
   if (!res.ok) throw new Error(`${res.status} ${url}`);
   const text = await res.text();
   if (text.length > 12000000) throw new Error("Response too large");
@@ -463,51 +468,298 @@ async function buildMarine(kind) {
   return parseMarine(await getText(url), kind);
 }
 
+// ─── LVĢMC METEOSTACIJAS ─────────────────────────────────────────────────────
+// Agrāk atsevišķs worker, kas CSV parsēja katram pieprasījumam. Tagad to dara cron: avots
+// (data.gov.lv) glabā 48 h vēsturi stundas solī un atjaunojas ik stundu, tāpēc cron to
+// pārbauda katru reizi, bet pārparsē tikai tad, kad fails tiešām mainījies.
+const LVGMC_DATASET = "https://data.gov.lv/dati/dataset/hidrometeorologiskie-noverojumi/resource/";
+const LVGMC_STATIONS_URL = LVGMC_DATASET + "c32c7afd-0d05-44fd-8b24-1de85b4bf11d/download/meteo_stacijas.csv";
+const LVGMC_READINGS_URL = LVGMC_DATASET + "17460efb-ae99-4d1d-8144-1068f184b05f/download/meteo_operativie_dati.csv";
+// Avota parametru kodi -> lauki, ko rāda lapa
+const LVGMC_PARAMS = {
+  TDRY: "airTemp",
+  SAJT: "feelsLike",
+  HATMN: "minTemp",
+  HATMX: "maxTemp",
+  WNS10: "windSpeed",
+  WPGST: "windGust",
+  WNDD10: "windDir",
+  PRSL: "pressure",
+  RLH: "humidity",
+  VSBA: "visibility",
+  SNOWA: "snowDepth",
+  HPRAB: "precipHour",
+  UVIL: "uv",
+  LITOT: "lightning",
+  CCTMX: "cloudCoverOktas",
+};
+// D1 rindas robeža ir 2 MB; ja staciju kādreiz būtu daudz vairāk, vēsturi saīsina
+const LVGMC_MAX_BYTES = 1800000;
+
+const unquote = (s) => (s == null ? "" : String(s).trim().replace(/^"|"$/g, ""));
+// "2026.08.19 11:00:00" -> "2026-08-19T11:00:00" (vietējais laiks bez zonas, kā avotā)
+function lvgmcTime(dt) {
+  const m = dt.match(/^(\d{4})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` : dt;
+}
+
+/** Stacijas + garā formāta rādījumi (stacija, parametrs, laiks, vērtība) -> stacijas ar vēsturi */
+function parseLvgmc(stationsCsv, readingsCsv) {
+  const stations = new Map();
+  for (const row of csvRows(stationsCsv)) {
+    const lat = num(row.GEOGR2), lon = num(row.GEOGR1);
+    if (lat == null || lon == null || !row.STATION_ID) continue;
+    stations.set(row.STATION_ID, { id: row.STATION_ID, name: row.NAME, lat, lon });
+  }
+  // Rādījumu failā ir desmitiem tūkstošu rindu bez komatiem vērtībās: ātrs split
+  const lines = readingsCsv.split(/\r?\n/);
+  const head = (lines[0] || "").split(",").map(unquote);
+  const col = (name) => head.indexOf(name);
+  const iId = col("STATION_ID"), iParam = col("ABBREVIATION"), iTime = col("DATETIME"), iValue = col("VALUE");
+  if (Math.min(iId, iParam, iTime, iValue) < 0) throw new Error("Unexpected LVĢMC columns");
+  const byStation = new Map();
+  for (let k = 1; k < lines.length; k++) {
+    if (!lines[k]) continue;
+    const c = lines[k].split(",");
+    const field = LVGMC_PARAMS[unquote(c[iParam])];
+    if (!field) continue;
+    const id = unquote(c[iId]), time = lvgmcTime(unquote(c[iTime]));
+    let times = byStation.get(id);
+    if (!times) byStation.set(id, (times = new Map()));
+    let rec = times.get(time);
+    if (!rec) times.set(time, (rec = { time }));
+    rec[field] = num(unquote(c[iValue]));
+  }
+  const out = [];
+  for (const [id, station] of stations) {
+    const times = byStation.get(id);
+    if (!times) continue;
+    const history = [...times.values()].sort((a, b) => (a.time < b.time ? -1 : 1));
+    out.push({ ...station, history });
+  }
+  if (!out.length) throw new Error("No LVĢMC readings");
+  return { updated: new Date().toISOString(), stations: out };
+}
+function lvgmcBody(at, data) {
+  let text = JSON.stringify({ fetchedAt: at, ok: true, ...data });
+  for (const hours of [36, 24]) {
+    if (text.length <= LVGMC_MAX_BYTES) break;
+    for (const s of data.stations) s.history = s.history.slice(-hours);
+    text = JSON.stringify({ fetchedAt: at, ok: true, ...data });
+  }
+  return text;
+}
+// Lēts nospiedums, lai nepārparsētu nemainītu failu, ja serveris neatbalsta ETag
+const fingerprint = (text) => text.length + ":" + text.slice(0, 80) + "|" + text.slice(-400);
+
+// true, ja dati šoreiz pārparsēti (tad cron šoreiz neņem citus lielos failus)
+async function refreshLvgmc(env) {
+  const at = new Date().toISOString();
+  try {
+    const have = await env.DB.prepare("SELECT fetched FROM snapshots WHERE name = 'lvgmc'").first();
+    const prev = have?.fetched ? await readJson(env, "lvgmc-source") : null;
+    const headers = { "User-Agent": USER_AGENT };
+    if (prev?.etag) headers["If-None-Match"] = prev.etag;
+    if (prev?.modified) headers["If-Modified-Since"] = prev.modified;
+    const res = await fetch(LVGMC_READINGS_URL, { headers });
+    if (res.status === 304) {
+      await touchSnapshot(env, "lvgmc", at);
+      return false;
+    }
+    if (!res.ok) throw new Error(`${res.status} ${LVGMC_READINGS_URL}`);
+    const text = (await res.text()).replace(/^﻿/, "");
+    const source = { etag: res.headers.get("ETag"), modified: res.headers.get("Last-Modified"), fp: fingerprint(text) };
+    if (prev && prev.fp === source.fp) {
+      await touchSnapshot(env, "lvgmc", at);
+      return false;
+    }
+    const data = parseLvgmc(await getText(LVGMC_STATIONS_URL), text);
+    await putSnapshot(env, "lvgmc", lvgmcBody(at, data), at);
+    await putSnapshot(env, "lvgmc-source", JSON.stringify(source), at);
+    return true;
+  } catch (e) {
+    console.log("LVĢMC neizdevās:", String(e));
+    await touchSnapshot(env, "lvgmc", at);
+    return false;
+  }
+}
+
+// ─── MODEĻU APRĒĶINU LAIKI ───────────────────────────────────────────────────
+// Open-Meteo katram modelim publicē, kad pēdējais aprēķins kļuvis pieejams API. Lapa pēc tā
+// pārlādē tikai modeļus ar jaunu aprēķinu, nevis visus ik pēc 30 min. Šie metadati neskaitās
+// Open-Meteo pieprasījumu limitā. Lapas modelis -> Open-Meteo domēni, no kuriem tas Eiropā
+// sastāv (seamless modeļi apvieno vairākus). Ja kāda domēna laiks nav zināms, lapa šim
+// modelim izmanto parasto 30 min atjaunošanu.
+const MODEL_DOMAINS = {
+  ecmwf_ifs025: ["ecmwf_ifs025"],
+  ecmwf_aifs025: ["ecmwf_aifs025_single"],
+  gfs_seamless: ["ncep_gfs013", "ncep_gfs025"],
+  icon_seamless: ["dwd_icon_d2", "dwd_icon_eu", "dwd_icon"],
+  icon_eu: ["dwd_icon_eu"],
+  gem_seamless: ["cmc_gem_gdps"],
+  ukmo_seamless: ["ukmo_global_deterministic_10km", "ukmo_uk_deterministic_2km"],
+  metno_seamless: ["metno_nordic_pp", "ecmwf_ifs025"],
+  meteofrance_seamless: ["meteofrance_arpege_world025", "meteofrance_arpege_europe", "meteofrance_arome_france0025", "meteofrance_arome_france_hd"],
+  jma_seamless: ["jma_gsm"],
+  cma_grapes_global: ["cma_grapes_global"],
+  meteofrance_arpege_europe: ["meteofrance_arpege_europe"],
+  knmi_harmonie_arome_europe: ["knmi_harmonie_arome_europe"],
+  dmi_harmonie_arome_europe: ["dmi_harmonie_arome_europe"],
+};
+const modelMetaUrl = (domain) => `https://api.open-meteo.com/data/${domain}/static/meta.json`;
+
+// Unix sekundes: kad aprēķins pieejams API un kad tas sākts
+function runTimes(meta) {
+  const avail = Number(meta?.last_run_availability_time ?? meta?.last_run_modification_time);
+  if (!(avail > 0)) return null;
+  const init = Number(meta.last_run_initialisation_time);
+  return { init: init > 0 ? init : null, avail };
+}
+// Modelim jaunākais no tā domēnu laikiem; null, ja kāds domēns nav zināms
+function modelRuns(byDomain) {
+  const models = {};
+  for (const [id, domains] of Object.entries(MODEL_DOMAINS)) {
+    const times = domains.map((d) => byDomain[d]);
+    models[id] = times.every(Boolean) ? Math.max(...times.map((x) => x.avail)) : null;
+  }
+  return models;
+}
+async function buildRuns() {
+  const domains = [...new Set(Object.values(MODEL_DOMAINS).flat())];
+  const metas = await Promise.all(
+    domains.map((d) =>
+      fetch(modelMetaUrl(d), { headers: { "User-Agent": USER_AGENT } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+    )
+  );
+  const byDomain = Object.fromEntries(domains.map((d, i) => [d, runTimes(metas[i])]));
+  if (!Object.values(byDomain).some(Boolean)) throw new Error("No model metadata");
+  return { models: modelRuns(byDomain), domains: byDomain };
+}
+
+// ─── SNAPSHOTI ───────────────────────────────────────────────────────────────
 async function ensureSnapshots(env) {
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS snapshots (name TEXT PRIMARY KEY, json TEXT NOT NULL, fetched TEXT, checked TEXT NOT NULL)`
   ).run();
 }
+async function putSnapshot(env, name, text, at) {
+  await env.DB.prepare(
+    `INSERT INTO snapshots (name, json, fetched, checked) VALUES (?, ?, ?, ?)
+     ON CONFLICT(name) DO UPDATE SET json = excluded.json, fetched = excluded.fetched, checked = excluded.checked`
+  ).bind(name, text, at, at).run();
+}
+// Avots neatbild vai nav mainījies: paliek pēdējie labie dati, atjaunojas tikai pārbaudes laiks
+async function touchSnapshot(env, name, at) {
+  await env.DB.prepare(
+    `INSERT INTO snapshots (name, json, fetched, checked) VALUES (?, ?, NULL, ?)
+     ON CONFLICT(name) DO UPDATE SET checked = excluded.checked`
+  ).bind(name, JSON.stringify({ ok: false, fetchedAt: at, error: "Source unavailable" }), at).run();
+}
+async function readJson(env, name) {
+  try {
+    const row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(name).first();
+    return row ? JSON.parse(row.json) : null;
+  } catch (e) {
+    return null;
+  }
+}
 // Saglabā veiksmīgu rezultātu; kļūdas gadījumā atzīmē tikai pārbaudes laiku
 async function storeSnapshot(env, name, build) {
   const at = new Date().toISOString();
   try {
-    const body = JSON.stringify({ fetchedAt: at, ok: true, ...(await build()) });
-    await env.DB.prepare(
-      `INSERT INTO snapshots (name, json, fetched, checked) VALUES (?, ?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET json = excluded.json, fetched = excluded.fetched, checked = excluded.checked`
-    ).bind(name, body, at, at).run();
+    await putSnapshot(env, name, JSON.stringify({ fetchedAt: at, ok: true, ...(await build()) }), at);
+    return true;
   } catch (e) {
-    await env.DB.prepare(
-      `INSERT INTO snapshots (name, json, fetched, checked) VALUES (?, ?, NULL, ?)
-       ON CONFLICT(name) DO UPDATE SET checked = excluded.checked`
-    ).bind(name, JSON.stringify({ ok: false, fetchedAt: at, error: "Source unavailable" }), at).run();
+    await touchSnapshot(env, name, at);
+    return false;
   }
 }
 // Kuri publiskie dati šoreiz jāatjauno: termiņš pagājis, vecākie vispirms, smagie pa vienam
-function dueData(checked, nowMs) {
-  let heavy = 0;
+// (heavyUsed: šajā reizē jau apstrādāts liels fails, piemēram, LVĢMC)
+function dueData(checked, nowMs, heavyUsed = 0) {
+  let heavy = heavyUsed;
   return Object.keys(PUBLIC_DATA)
     .filter((name) => !(nowMs - (checked[name] || 0) < (PUBLIC_DATA[name].every - 2) * 60000))
     .sort((a, b) => (checked[a] || 0) - (checked[b] || 0))
     .filter((name) => !PUBLIC_DATA[name].heavy || heavy++ < 1);
 }
 
+// ─── SĀKUMLAPAS ATBILDE ──────────────────────────────────────────────────────
+// Viss, kas lapai vajag uzreiz pēc atvēršanas, vienā pieprasījumā: LVC un LVĢMC stacijas,
+// brīdinājumi un modeļu aprēķinu laiki. "updated" ir pēdējās pabeigtās cron reizes laiks,
+// "next" ir nākamā cron reize: lapa nākamo atbildi prasa tieši pēc tās, nevis pēc taimera.
+const CRON_MS = 15 * 60000; // tāds pats kā Cron Trigger "*/15 * * * *"
+const nextCron = (ms) => new Date((Math.floor(ms / CRON_MS) + 1) * CRON_MS).toISOString();
+const HOME_PARTS = ["lvc", "lvgmc", "warnings", "runs"];
+// Saliek no gatavajām D1 rindām kā tekstu, bez lielo JSON pārparsēšanas
+function homeText(parts, updated, nowMs) {
+  return (
+    `{"ok":true,"updated":${JSON.stringify(updated)},"next":${JSON.stringify(nextCron(nowMs))}` +
+    HOME_PARTS.map((n) => `,${JSON.stringify(n)}:${parts[n] || "null"}`).join("") +
+    "}"
+  );
+}
+async function readHomeRows(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT name, json, checked FROM snapshots WHERE name IN ('lvc', 'lvgmc', 'warnings', 'runs', 'cron')`
+  ).all();
+  return Object.fromEntries((results || []).map((r) => [r.name, r]));
+}
+async function homeData(env) {
+  let rows = {};
+  try {
+    rows = await readHomeRows(env);
+  } catch (e) {
+    await ensureSnapshots(env);
+  }
+  // Tikko izvietots: trūkstošās daļas salasa uzreiz, pēc tam tās uztur cron
+  if (HOME_PARTS.some((n) => !rows[n])) {
+    const fill = {
+      lvc: async () => putSnapshot(env, "lvc", JSON.stringify(await buildStationList(env)), new Date().toISOString()),
+      lvgmc: () => refreshLvgmc(env),
+      warnings: () => storeSnapshot(env, "warnings", PUBLIC_DATA.warnings.build),
+      runs: () => storeSnapshot(env, "runs", buildRuns),
+    };
+    for (const n of HOME_PARTS) {
+      if (rows[n]) continue;
+      try {
+        await fill[n]();
+      } catch (e) {
+        console.log("Sākumlapas daļa neizdevās:", n, String(e));
+      }
+    }
+    rows = await readHomeRows(env);
+  }
+  const parts = Object.fromEntries(HOME_PARTS.filter((n) => rows[n]).map((n) => [n, rows[n].json]));
+  return homeText(parts, rows.cron ? rows.cron.checked : null, Date.now());
+}
+
 async function runCron(env) {
   await ensureSnapshots(env);
   try {
     await syncData(env);
-    await env.DB.prepare(
-      `INSERT INTO snapshots (name, json, fetched, checked) VALUES ('lvc', ?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET json = excluded.json, fetched = excluded.fetched, checked = excluded.checked`
-    ).bind(JSON.stringify(await buildStationList(env)), new Date().toISOString(), new Date().toISOString()).run();
+    await putSnapshot(env, "lvc", JSON.stringify(await buildStationList(env)), new Date().toISOString());
   } catch (e) {
     console.log("LVC sinhronizācija neizdevās:", String(e));
   }
+  // LVĢMC un modeļu laiki katru reizi; pārējie publiskie dati katrs savā ritmā
+  const lvgmcParsed = await refreshLvgmc(env);
+  await storeSnapshot(env, "runs", buildRuns);
   const { results } = await env.DB.prepare("SELECT name, checked FROM snapshots").all();
   const checked = Object.fromEntries((results || []).map((r) => [r.name, Date.parse(r.checked) || 0]));
-  for (const name of dueData(checked, Date.now())) await storeSnapshot(env, name, PUBLIC_DATA[name].build);
+  for (const name of dueData(checked, Date.now(), lvgmcParsed ? 1 : 0)) await storeSnapshot(env, name, PUBLIC_DATA[name].build);
+  // Atzīme, ka šī reize pabeigta: lapa pēc tās zina, ka visas daļas ir jaunas
+  const at = new Date().toISOString();
+  await putSnapshot(env, "cron", JSON.stringify({ at }), at);
 }
+
+// Atjaunojas katrā cron reizē (nevis PUBLIC_DATA ritmā), bet pieejami arī atsevišķi
+const LIVE_DATA = {
+  lvgmc: (env) => refreshLvgmc(env),
+  runs: (env) => storeSnapshot(env, "runs", buildRuns),
+};
 
 export default {
   async scheduled(event, env, ctx) {
@@ -522,22 +774,24 @@ export default {
     const dataName = url.searchParams.get("data");
 
     try {
+      if (dataName === "home") return cachedJson(await homeData(env));
       if (dataName) {
-        if (!Object.hasOwn(PUBLIC_DATA, dataName)) return json({ error: "Unknown data" }, 404);
+        const live = LIVE_DATA[dataName];
+        if (!live && !Object.hasOwn(PUBLIC_DATA, dataName)) return json({ error: "Unknown data" }, 404);
+        const read = () => env.DB.prepare("SELECT json, fetched FROM snapshots WHERE name = ?").bind(dataName).first();
         let row = null;
         try {
-          row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(dataName).first();
+          row = await read();
         } catch (e) {
           // Tikko izvietots, cron vēl nav bijis: tabulu izveido uzreiz
           await ensureSnapshots(env);
         }
         if (row) return cachedJson(row.json);
-        // Vieglos avotus (brīdinājumi, Kp) salasa uzreiz; lielos atstāj cron
-        if (!PUBLIC_DATA[dataName].heavy) {
-          await storeSnapshot(env, dataName, PUBLIC_DATA[dataName].build);
-          row = await env.DB.prepare("SELECT json FROM snapshots WHERE name = ?").bind(dataName).first();
-          if (row && JSON.parse(row.json).ok) return cachedJson(row.json);
-        }
+        // LVĢMC, modeļu laikus un vieglos avotus (brīdinājumi, Kp) salasa uzreiz; lielos atstāj cron
+        if (live) await live(env);
+        else if (!PUBLIC_DATA[dataName].heavy) await storeSnapshot(env, dataName, PUBLIC_DATA[dataName].build);
+        row = await read();
+        if (row?.fetched) return cachedJson(row.json);
         return json({ ok: false, error: "Not ready" }, 503);
       }
 
@@ -562,5 +816,5 @@ export default {
   },
 
   // Tikai testiem (Node): tīrās parsēšanas funkcijas
-  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData },
+  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData, parseLvgmc, lvgmcBody, runTimes, modelRuns, homeText, nextCron, MODEL_DOMAINS },
 };

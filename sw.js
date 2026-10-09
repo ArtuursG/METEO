@@ -1,9 +1,9 @@
-const CACHE = 'prognoze-v48';
+const CACHE = 'prognoze-v49';
 const SHELL = [
   './',
   './index.html',
   './style.css',
-  './style.css?v=48',
+  './style.css?v=49',
   './js/i18n.js',
   './js/pure.js',
   './js/chart-time.js',
@@ -16,6 +16,7 @@ const SHELL = [
   './js/road-ice.js',
   './js/forecast-change.js',
   './js/today.js',
+  './js/forecast-sync.js',
   './js/data.js',
   './js/locations.js',
   './js/radar.js',
@@ -31,7 +32,7 @@ const SHELL = [
   './js/timeline.js',
   './js/cloud-map.js',
   './favicon.svg',
-].map(path=>path.startsWith('./js/')?path+'?v=48':path);
+].map(path=>path.startsWith('./js/')?path+'?v=49':path);
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
