@@ -147,3 +147,13 @@ test('period extremes: hourly extremes stamped at the end of their hour, edges a
   assert.equal(P.periodExtreme([],day,'max'),null);
   assert.equal(P.periodExtreme(samples,null,'max'),null);
 });
+
+test('latest extreme: the period before stands in while the current one has no samples',()=>{
+  const P=require('../js/pure.js');
+  const t=h=>Date.parse('2026-10-09T00:00:00Z')+h*3600000;
+  const day={from:t(6),to:t(9)};
+  const yesterday=[{t:t(-12),lo:3,hi:14.5},{t:t(-15),lo:2,hi:12}];
+  assert.deepEqual(P.latestExtreme(yesterday,day,'max'),{v:14.5,t:t(-12),prev:true});
+  assert.deepEqual(P.latestExtreme([...yesterday,{t:t(8),lo:9,hi:9.5}],day,'max'),{v:9.5,t:t(8),prev:false});
+  assert.equal(P.latestExtreme([],day,'max'),null);
+});

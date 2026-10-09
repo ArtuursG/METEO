@@ -265,28 +265,33 @@ function synopticPeriods(nowMs) {
   return { night: period(nightFrom), day: period(dayFrom) };
 }
 const isoPeriod = (p) => ({ from: new Date(p.from).toISOString(), to: new Date(p.to).toISOString(), running: p.running });
-// Min/max no 15 min rādījumiem periodā (from, to]. julianday() pareizi salīdzina laikus ar
-// dažādām zonu nobīdēm; teksta robeža tikai sašaurina indeksa diapazonu (ar rezervi).
+// Min/max no 15 min rādījumiem periodā (from, to], un tas pats iepriekšējam tāda paša veida
+// periodam (24 h agrāk), ko rāda, kamēr tekošajā vēl nav rādījumu. julianday() pareizi salīdzina
+// laikus ar dažādām zonu nobīdēm; teksta robeža tikai sašaurina indeksa diapazonu (ar rezervi).
 async function synopticExtremes(env, periods) {
-  try {
-    const iso = (ms) => new Date(ms).toISOString();
-    const since = iso(Math.min(periods.night.from, periods.day.from) - 4 * SYN_HOUR);
-    const { results } = await env.DB.prepare(
-      `SELECT station_id AS id,
-         MIN(CASE WHEN julianday(time) > julianday(?1) AND julianday(time) <= julianday(?2) THEN air_temp END) AS nightMin,
-         MAX(CASE WHEN julianday(time) > julianday(?3) AND julianday(time) <= julianday(?4) THEN air_temp END) AS dayMax
-       FROM readings WHERE time >= ?5 AND air_temp IS NOT NULL GROUP BY station_id`
-    ).bind(iso(periods.night.from), iso(periods.night.to), iso(periods.day.from), iso(periods.day.to), since).all();
-    return results || [];
-  } catch (e) {
-    return [];
-  }
+  const iso = (ms) => new Date(ms).toISOString();
+  const day = 24 * SYN_HOUR, half = 12 * SYN_HOUR, n = periods.night, d = periods.day;
+  const span = `julianday(time) > julianday(?) AND julianday(time) <= julianday(?)`;
+  const { results } = await env.DB.prepare(
+    `SELECT station_id AS id,
+       MIN(CASE WHEN ${span} THEN air_temp END) AS night,
+       MIN(CASE WHEN ${span} THEN air_temp END) AS nightPrev,
+       MAX(CASE WHEN ${span} THEN air_temp END) AS day,
+       MAX(CASE WHEN ${span} THEN air_temp END) AS dayPrev
+     FROM readings WHERE time >= ? AND air_temp IS NOT NULL GROUP BY station_id`
+  ).bind(
+    iso(n.from), iso(n.to), iso(n.from - day), iso(n.from - half),
+    iso(d.from), iso(d.to), iso(d.from - day), iso(d.from - half),
+    iso(Math.min(n.from, d.from) - day - 4 * SYN_HOUR)
+  ).all();
+  return results || [];
 }
 
 // Jaunākais rādījums katrai stacijai. CROSS JOIN nosaka cilpu secību: katrai stacijai
 // pāris indeksa meklējumi, nevis visas "readings" tabulas pārskatīšana.
 async function buildStationList(env) {
   const now = Date.now(), periods = synopticPeriods(now);
+  let extremesError = null;
   const [{ results }, recent, extremes] = await Promise.all([
     env.DB.prepare(
       `SELECT s.id AS id, s.name AS name, s.lat AS lat, s.lon AS lon, ${READING_COLUMNS}
@@ -295,17 +300,24 @@ async function buildStationList(env) {
          AND r.time = (SELECT MAX(time) FROM readings WHERE station_id = s.id)`
     ).all(),
     recentReadings(env),
-    synopticExtremes(env, periods),
+    synopticExtremes(env, periods).catch((e) => ((extremesError = String(e)), [])),
   ]);
   const ext = new Map(extremes.map((e) => [e.id, e]));
-  const stations = withPrevious(results || [], recent).map((s) => ({
-    ...s,
-    nightMin: ext.get(s.id)?.nightMin ?? null,
-    dayMax: ext.get(s.id)?.dayMax ?? null,
-  }));
+  // Tekošā perioda vērtība vai, kamēr tajā nav rādījumu, iepriekšējā (nightPrev/dayPrev = true)
+  const stations = withPrevious(results || [], recent).map((s) => {
+    const e = ext.get(s.id) || {};
+    return {
+      ...s,
+      nightMin: e.night ?? e.nightPrev ?? null,
+      nightPrev: e.night == null && e.nightPrev != null,
+      dayMax: e.day ?? e.dayPrev ?? null,
+      dayPrev: e.day == null && e.dayPrev != null,
+    };
+  });
   return {
     updated: new Date(now).toISOString(),
     periods: { night: isoPeriod(periods.night), day: isoPeriod(periods.day) },
+    ...(extremesError ? { extremesError } : {}),
     stations,
   };
 }
@@ -592,8 +604,13 @@ function lvgmcBody(at, data) {
   }
   return text;
 }
-// Lēts nospiedums, lai nepārparsētu nemainītu failu, ja serveris neatbalsta ETag
-const fingerprint = (text) => text.length + ":" + text.slice(0, 80) + "|" + text.slice(-400);
+// Lēts nospiedums, lai nepārparsētu nemainītu failu: garums un katra 7. rakstzīme. Stundas
+// logs avotā ik stundu pabīda visas rindas, tāpēc jauns fails dod citu nospiedumu.
+function fingerprint(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 7) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return text.length + ":" + (h >>> 0).toString(36);
+}
 
 // true, ja dati šoreiz pārparsēti (tad cron šoreiz neņem citus lielos failus)
 async function refreshLvgmc(env) {
@@ -601,17 +618,9 @@ async function refreshLvgmc(env) {
   try {
     const have = await env.DB.prepare("SELECT fetched FROM snapshots WHERE name = 'lvgmc'").first();
     const prev = have?.fetched ? await readJson(env, "lvgmc-source") : null;
-    const headers = { "User-Agent": USER_AGENT };
-    if (prev?.etag) headers["If-None-Match"] = prev.etag;
-    if (prev?.modified) headers["If-Modified-Since"] = prev.modified;
-    const res = await fetch(LVGMC_READINGS_URL, { headers });
-    if (res.status === 304) {
-      await touchSnapshot(env, "lvgmc", at);
-      return false;
-    }
-    if (!res.ok) throw new Error(`${res.status} ${LVGMC_READINGS_URL}`);
-    const text = (await res.text()).replace(/^﻿/, "");
-    const source = { etag: res.headers.get("ETag"), modified: res.headers.get("Last-Modified"), fp: fingerprint(text) };
+    // Vienmēr lejupielādē: nosaka pēc satura, nevis pēc servera ETag vai datuma
+    const text = await getText(LVGMC_READINGS_URL);
+    const source = { fp: fingerprint(text) };
     if (prev && prev.fp === source.fp) {
       await touchSnapshot(env, "lvgmc", at);
       return false;
@@ -651,10 +660,12 @@ const MODEL_DOMAINS = {
 };
 const modelMetaUrl = (domain) => `https://api.open-meteo.com/data/${domain}/static/meta.json`;
 
-// Unix sekundes: kad aprēķins pieejams API un kad tas sākts
-function runTimes(meta) {
+// Unix sekundes: kad aprēķins pieejams API un kad tas sākts. Laiks, kas vecāks par 36 h
+// (domēns vairs netiek atjaunots), skaitās nezināms: tad lapa šo modeli atjauno ik 30 min.
+const RUN_STALE_S = 36 * 3600;
+function runTimes(meta, nowMs = Date.now()) {
   const avail = Number(meta?.last_run_availability_time ?? meta?.last_run_modification_time);
-  if (!(avail > 0)) return null;
+  if (!(avail > 0) || nowMs / 1000 - avail > RUN_STALE_S) return null;
   const init = Number(meta.last_run_initialisation_time);
   return { init: init > 0 ? init : null, avail };
 }
@@ -669,6 +680,7 @@ function modelRuns(byDomain) {
 }
 async function buildRuns() {
   const domains = [...new Set(Object.values(MODEL_DOMAINS).flat())];
+  const now = Date.now();
   const metas = await Promise.all(
     domains.map((d) =>
       fetch(modelMetaUrl(d), { headers: { "User-Agent": USER_AGENT } })
@@ -676,7 +688,7 @@ async function buildRuns() {
         .catch(() => null)
     )
   );
-  const byDomain = Object.fromEntries(domains.map((d, i) => [d, runTimes(metas[i])]));
+  const byDomain = Object.fromEntries(domains.map((d, i) => [d, runTimes(metas[i], now)]));
   if (!Object.values(byDomain).some(Boolean)) throw new Error("No model metadata");
   return { models: modelRuns(byDomain), domains: byDomain };
 }

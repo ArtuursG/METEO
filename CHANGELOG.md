@@ -8,11 +8,13 @@ Fewer requests for the same data, and new data sooner.
 - The LVĢMC stations are prepared by the LVC worker's cron and parsed only when the source file changed (about once an hour). The separate LVĢMC worker is no longer used.
 - Lighter forecast requests: the current values and sunrise/sunset, which the page takes from ECMWF IFS only, come from a small separate request every 15 minutes instead of being requested for all 14 models. A new place costs about 24 Open-Meteo calls instead of 40.
 - Models are asked for again only when Open-Meteo has a newer run of them, 10 minutes after it became available as Open-Meteo advises. A model without a known run time, or any model outside Europe, refreshes every 30 minutes as before. A page open all day uses about 300 Open-Meteo calls instead of about 1,900, which matters for offices that share one address.
+- Model run time metadata older than 36 hours (a domain Open-Meteo no longer updates, such as GEM's) counts as unknown, so that model refreshes every 30 minutes instead of waiting.
+- The worker decides whether the LVĢMC file changed from its content, not from the server's ETag or date.
 - Failed forecast requests back off 1, 2, 4 up to 15 minutes. When only the current values change, the charts are not redrawn.
 - Changes to worker code, workflows, docs and tests no longer start a GitHub Pages deployment.
 - The home warning lines name the area the place lies in, so two warnings for one place can be told apart.
 - The station table has the same LVC and LVĢMC buttons as the map, and they work as one: switching a network in one place switches it in the other.
-- Station minimum and maximum follow synoptic practice (WMO Region VI) instead of a rolling 24 hours: the night minimum over 18-06 UTC and the day maximum over 06-18 UTC, the running period marked "so far". LVC values come from the worker's 15-minute readings, LVĢMC values from the hourly extremes; the station pages show the same with the time each was reached.
+- Station minimum and maximum follow synoptic practice (WMO Region VI) instead of a rolling 24 hours: the night minimum over 18-06 UTC and the day maximum over 06-18 UTC, the running period marked "so far". While a period has no readings yet (a night just begun, a source a few hours behind), the one before stands in, marked as such, so the min..max bar is always there. LVC values come from the worker's 15-minute readings, LVĢMC values from the hourly extremes; the station pages show the same with the time each was reached.
 
 ## v2.0.0 - 2026-10-08
 
