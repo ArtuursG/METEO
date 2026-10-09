@@ -90,9 +90,11 @@ function updateMetrics(){
 // models outside their area are left out of the answer.
 const FC_URL='https://api.open-meteo.com/v1/forecast';
 const FC_NOW='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
-const FC_HOURLY='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,cloud_cover,uv_index';
+// Gusts only hourly: their daily maximum is worked out from them (forecast-sync.js)
+const FC_HOURLY='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,cloud_cover,uv_index';
 const FC_DAILY='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean';
-const FC_PFX='wx8_',FC_PLACES=FC_PFX+'places',FC_KEEP_PLACES=6;
+// The prefix changes with the requested variables, so a saved copy always has all of them
+const FC_PFX='wx9_',FC_PLACES=FC_PFX+'places',FC_KEEP_PLACES=6;
 const fcKey=(lat,lon)=>`${FC_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`;
 const fcModelIds=()=>MODELS.map(m=>m.id);
 let _fc={key:null,cache:null},_fcFails=0,_fcFailedAt=0;
@@ -109,8 +111,8 @@ function saveForecast(key,cache){
     places=[key,...places.filter(k=>k!==key)];
     for(const k of places.slice(FC_KEEP_PLACES))localStorage.removeItem(k);
     places=places.slice(0,FC_KEEP_PLACES);
-    // The previous format (one combined answer per place) is no longer read
-    const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith('wx7_'))old.push(k);}
+    // Copies saved with other variables or in the earlier format are no longer read
+    const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^wx\d+_/.test(k||'')&&!k.startsWith(FC_PFX))old.push(k);}
     old.forEach(k=>localStorage.removeItem(k));
     try{localStorage.setItem(key,text);}
     catch{places.slice(1).forEach(k=>localStorage.removeItem(k));places=[key];localStorage.setItem(key,text);}
@@ -156,7 +158,9 @@ async function syncForecast(lat,lon,signal,{force=false}={}){
   if(plan.models.length){
     const ids=plan.models;
     const url=`${FC_URL}?latitude=${lat}&longitude=${lon}&models=${ids.join(',')}&hourly=${FC_HOURLY}&daily=${FC_DAILY}&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
-    jobs.push(fcGet(url,signal).then(raw=>{entry.cache=mergeModels(entry.cache,raw,ids,Date.now());modelsChanged=true;}));
+    // Which run each model comes from is only worked out for Europe (the run times' area)
+    const runs=fsInEurope(lat,lon)?fcRuns():null;
+    jobs.push(fcGet(url,signal).then(raw=>{entry.cache=mergeModels(entry.cache,raw,ids,Date.now(),runs);modelsChanged=true;}));
   }
   if(plan.now){
     const url=`${FC_URL}?latitude=${lat}&longitude=${lon}&models=ecmwf_ifs025&current=${FC_NOW}&daily=sunrise,sunset&timezone=auto&forecast_days=16&wind_speed_unit=ms`;
@@ -224,6 +228,7 @@ async function loadAll({quiet=false}={}){
   if(nowOnly)return true;
   // Snapshots for the "forecast changed" line come only from models fresh from the API
   if(fetched.modelsChanged&&typeof saveForecastSnapshot==='function')saveForecastSnapshot(lat,lon);
+  buildModelInfo();
   rebuildTempChart();
   buildPrecipCharts();
   buildWindChart();

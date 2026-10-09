@@ -92,10 +92,10 @@ Vadlīnijas visam sarakstam:
 - [x] Stacijas lapām valodas poga, mierīga atpakaļ saite, saite uz prognozi stacijas vietā.
 - [x] Kopējā pārskata labojumi (16 atradumi).
 - [x] Īsais prognozes teksts noņemts: lapu lieto sinoptiķi, viņiem pietiek ar datiem.
-- [ ] LVC worker jāpublicē no jauna (`cloudflare-worker/lvc-meteo-proxy.js`): LVC tendence,
-      gatavais staciju saraksts un publiskie dati. **Vispirms worker, tikai tad zaru apvieno ar main.**
+- [x] LVC worker publicēts no jauna (LVC tendence, gatavais staciju saraksts, publiskie dati)
+      pirms 2.0.0 apvienošanas ar main.
 
-## 10. Svaigi dati, mazāk pieprasījumu un izvietojumu (nākamais solis)
+## 10. Svaigi dati, mazāk pieprasījumu un izvietojumu (2.1.0)
 
 Mērķis: atverot lapu, visi dati ir aktuāli; GitHub Pages publicē tikai pēc koda izmaiņām;
 apmeklētāju pieprasījumi ir lēti un paliek bezmaksas limitos (Cloudflare Workers 100k
@@ -113,10 +113,10 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
       modeļu aprēķinu laikiem; nākamais tieši pēc nākamās cron reizes. LVĢMC stacijas
       sagatavo LVC worker cron (pārparsē tikai, kad fails mainījies); atsevišķais LVĢMC
       worker vairs nav vajadzīgs.
-- [x] Open-Meteo: "tagad" vērtības un saullēkts mazā ECMWF pieprasījumā (40 -> ~24
+- [x] Open-Meteo: "tagad" vērtības un saullēkts mazā ECMWF pieprasījumā (40 -> ~25
       izsaukumi vietai); modeļi pārlādējas tikai, kad iznāk jauns aprēķins (visu dienu
       atvērta lapa ~1900 -> ~300 izsaukumi dienā).
-- [ ] Modeļu precizitāti kešot ilgāk (3-6 h), tā mainās lēni.
+- [x] Modeļu precizitāte kešota 6 h, tā mainās lēni.
 
 ## Vēlāk
 
@@ -130,10 +130,13 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 Lapa ir statiska, būvēšana nav vajadzīga.
 
 ```sh
-git fetch origin redizains
-git checkout redizains
+git fetch origin dev
+git checkout dev
 python -m http.server 8000           # vai VS Code paplašinājums "Live Server"
 ```
+
+Izmaiņas vispirms nonāk zarā `dev` (pārbaude: https://raw.githack.com/ArtuursG/METEO/dev/index.html),
+main saņem tās kopā kā versiju. Sīkāk README sadaļā "Branches and releases".
 
 Atver http://localhost:8000. Dati nāk no tiem pašiem avotiem kā īstajā lapā.
 

@@ -1,13 +1,13 @@
 // ─── MODEL SKILL: how close each model came to the nearest LVĢMC station ─────
 // The pure part (no DOM) scores the models: measured air temperature per hour against
 // the Open-Meteo value for the same hour. loadModelSkill() fetches once per station and
-// keeps the result for 2 h; the temperature chart line, the picker panel and the Modeļi
+// keeps the result for 6 h (it changes slowly); the temperature chart line, the picker panel and the Modeļi
 // view all read it. Accuracy is information only, it never changes the default models.
 // The pure helpers are require()-able from Node (test/model-skill.test.js).
 
 const SKILL_KM=50;              // the station has to be this close to the place
 const SKILL_MIN=6;              // fewest overlapping hours for a score
-const SKILL_TTL=2*3600*1000;
+const SKILL_TTL=6*3600*1000;
 const SKILL_PFX='skill1_';
 const SKILL_AREA={s:55.5,n:58.2,w:20.8,e:28.3}; // Latvia with its border strip
 

@@ -49,6 +49,7 @@ const STR = {
     'unit.days': 'dienas',
     'models.resolution': 'Izšķirtspēja',
     'models.forecast': 'Prognoze',
+    'models.run': 'aprēķins {run}',
 
     'tab.temp': 'Temperatūra',
     'tab.precip': 'Nokrišņi',
@@ -89,7 +90,10 @@ const STR = {
     'spread.tooltip_range': 'Diapazons: {min}-{max}°C (Δ {d}°)',
 
     'th.date': 'Datums', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
-    'th.precip': 'Nokrišņi', 'th.precip_pct': 'Nokrišņi %', 'th.wind_max': 'Vējš max',
+    'th.precip': 'Nokrišņi', 'th.precip_pct': 'Nokrišņi %', 'th.wind_max': 'Vējš max', 'th.gust_max': 'Brāzmas max',
+    'chart.gust': 'brāzmas', 'chart.gust_note': 'pārtrauktā līnija: brāzmas',
+    'ch.obs': 'Novērojums ({station})', 'ch.now': 'tagad',
+    'ch.obs_note': 'Punkti: stacijas {station} novērojumi (LVĢMC, {km} km) pēdējās stundās, pret modeļu tām pašām stundām.',
     'th.cloud': 'Mākoņi', 'th.humidity': 'Mitrums',
 
     'th.model': 'Modelis', 'th.mae': 'Vidējā kļūda (MAE)', 'th.bias': 'Novirze', 'th.points': 'Punkti',
@@ -429,6 +433,8 @@ const STR = {
     'ch.period': 'Periods',
     'ch.p48': '48 h', 'ch.p7': '7 dienas', 'ch.p14': '14 dienas+',
     'ch.period_hint': 'no pašreizējās stundas',
+    'ch.period_hint_obs': 'pēdējās 12 h un uz priekšu',
+    'ch.period_note_obs': 'Temperatūras grafiks sākas 12 stundas pirms pašreizējās, lai modeļus varētu salīdzināt ar tuvākās stacijas novērojumiem. Modeļu prognožu garums atšķiras; "14 dienas+" rāda visu pieejamo.',
     'ch.period_note': 'Grafiki sākas ar pašreizējo stundu. Modeļu prognožu garums atšķiras; "14 dienas+" rāda visu pieejamo. Tabulā vienmēr pilnas dienas.',
     'ch.other': 'Citi',
     'ch.others': 'Citi modeļi',
@@ -549,6 +555,7 @@ const STR = {
     'unit.days': 'days',
     'models.resolution': 'Resolution',
     'models.forecast': 'Forecast',
+    'models.run': 'run {run}',
 
     'tab.temp': 'Temperature',
     'tab.precip': 'Precipitation',
@@ -589,7 +596,10 @@ const STR = {
     'spread.tooltip_range': 'Range: {min}-{max}°C (Δ {d}°)',
 
     'th.date': 'Date', 'th.max_c': 'Max °C', 'th.min_c': 'Min °C',
-    'th.precip': 'Precip.', 'th.precip_pct': 'Precip. %', 'th.wind_max': 'Wind max',
+    'th.precip': 'Precip.', 'th.precip_pct': 'Precip. %', 'th.wind_max': 'Wind max', 'th.gust_max': 'Gusts max',
+    'chart.gust': 'gusts', 'chart.gust_note': 'dashed line: gusts',
+    'ch.obs': 'Observed ({station})', 'ch.now': 'now',
+    'ch.obs_note': 'Points: readings at {station} (LVĢMC, {km} km) over the past hours, against the models for the same hours.',
     'th.cloud': 'Clouds', 'th.humidity': 'Humidity',
 
     'th.model': 'Model', 'th.mae': 'Mean error (MAE)', 'th.bias': 'Bias', 'th.points': 'Points',
@@ -929,6 +939,8 @@ const STR = {
     'ch.period': 'Period',
     'ch.p48': '48 h', 'ch.p7': '7 days', 'ch.p14': '14 days+',
     'ch.period_hint': 'from the current hour',
+    'ch.period_hint_obs': 'past 12 h and ahead',
+    'ch.period_note_obs': 'The temperature chart begins 12 hours before the current one, so the models can be compared with the nearest station\'s readings. Model horizons differ; "14 days+" shows everything available.',
     'ch.period_note': 'Charts start at the current hour. Model horizons differ; "14 days+" shows everything available. The table always shows whole days.',
     'ch.other': 'Other',
     'ch.others': 'Other models',

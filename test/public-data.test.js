@@ -147,3 +147,12 @@ test('cron: a big file already handled this run holds the other big ones back',a
   assert.equal(after.filter(n=>n==='hydro'||n.startsWith('marine')).length,0);
   assert.ok(after.includes('warnings')&&after.includes('aurora'));
 });
+
+test('model run shown per model: the domain that gives Latvia its first days',async()=>{
+  const {modelInits}=await parsers();
+  const m=modelInits({dwd_icon_eu:{init:300,avail:400},dwd_icon_d2:{init:500,avail:600},metno_nordic_pp:{init:700,avail:800}});
+  assert.equal(m.icon_seamless,300);
+  assert.equal(m.icon_eu,300);
+  assert.equal(m.metno_seamless,700);
+  assert.equal(m.ecmwf_ifs025,null);
+});

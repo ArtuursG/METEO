@@ -62,9 +62,19 @@ function fsModelBlock(block,id,single){
   return out;
 }
 
+// The run (initialisation, unix seconds) an answer fetched at `at` came from: known when the
+// run times (checked within FS_RUNS_MAX_AGE before nowMs) say the latest run had settled on
+// Open-Meteo's servers by then. Works at fetch time and later, until a newer run comes out.
+function fsRunOf(runs,id,at,nowMs=at){
+  if(!runs||!Number.isFinite(at)||!(nowMs-runs.checkedAt<FS_RUNS_MAX_AGE))return null;
+  const avail=runs.models?.[id],init=runs.inits?.[id];
+  return Number.isFinite(avail)&&Number.isFinite(init)&&at>=avail*1000+FS_RUN_SETTLE?init:null;
+}
+
 // Models answer into the saved copy. A new local day (or a changed time axis) starts it
-// afresh; a model with no temperature at all is outside its area.
-function mergeModels(cache,raw,ids,at){
+// afresh; a model with no temperature at all is outside its area. runs (optional): the run
+// times at the moment of the request, to remember which run each model came from.
+function mergeModels(cache,raw,ids,at,runs=null){
   const hourly=raw?.hourly?.time,daily=raw?.daily?.time;
   if(!Array.isArray(hourly)||!hourly.length||!Array.isArray(daily)||!daily.length)throw new Error('Unexpected forecast answer');
   const c=cache||emptyForecast();
@@ -75,7 +85,7 @@ function mergeModels(cache,raw,ids,at){
   for(const id of ids){
     const h=fsModelBlock(raw.hourly,id,single);
     if(!Array.isArray(h.temperature_2m)||!h.temperature_2m.some(v=>v!=null)){next.models[id]={at,absent:true};continue;}
-    next.models[id]={at,hourly:h,daily:fsModelBlock(raw.daily,id,single)};
+    next.models[id]={at,run:fsRunOf(runs,id,at),hourly:h,daily:fsModelBlock(raw.daily,id,single)};
   }
   return next;
 }
@@ -88,6 +98,18 @@ function mergeNow(cache,raw,at){
   return {...c,off:raw.utc_offset_seconds??c.off,now:{at,day:d.time[0],current:raw.current,time:d.time,sunrise:d.sunrise,sunset:d.sunset}};
 }
 
+// Daily maximum of an hourly series per local day (Open-Meteo's own daily values are the same
+// local-day aggregation of its hourly ones)
+function fsDailyMax(hourlyTime,values,dailyTime){
+  const byDay=new Map();
+  hourlyTime.forEach((time,i)=>{
+    const v=values[i];if(v==null)return;
+    const d=time.slice(0,10),cur=byDay.get(d);
+    if(cur==null||v>cur)byDay.set(d,v);
+  });
+  return dailyTime.map(d=>byDay.has(d)?byDay.get(d):null);
+}
+
 // The saved copy as S.data, models in the given order. The "now" values and sunrise/sunset go
 // where the app has always read them: the first model's current block and daily arrays.
 function forecastData(cache,ids){
@@ -96,7 +118,9 @@ function forecastData(cache,ids){
   for(const id of ids){
     const e=cache.models[id];
     if(!e||e.absent)continue;
-    out[id]={hourly:{time:cache.time.hourly,...e.hourly},daily:{time:cache.time.daily,...e.daily},utcOffset:cache.off||0};
+    const daily={time:cache.time.daily,...e.daily};
+    if(Array.isArray(e.hourly.wind_gusts_10m))daily.wind_gusts_10m_max=fsDailyMax(cache.time.hourly,e.hourly.wind_gusts_10m,cache.time.daily);
+    out[id]={hourly:{time:cache.time.hourly,...e.hourly},daily,utcOffset:cache.off||0,at:e.at,run:e.run??null};
   }
   const first=Object.values(out)[0],n=cache.now;
   if(first&&n&&n.day===cache.day){
@@ -114,4 +138,4 @@ function forecastTs(cache){
   return times.length?Math.max(...times):0;
 }
 
-if(typeof module!=='undefined')module.exports={forecastPlan,mergeModels,mergeNow,forecastData,forecastTs,emptyForecast,fsLocalDay,fsInEurope,FS_NOW_EVERY,FS_FALLBACK_EVERY,FS_RUN_SETTLE,FS_RUNS_MAX_AGE,FS_ABSENT_RECHECK};
+if(typeof module!=='undefined')module.exports={forecastPlan,fsRunOf,mergeModels,mergeNow,forecastData,forecastTs,emptyForecast,fsDailyMax,fsLocalDay,fsInEurope,FS_NOW_EVERY,FS_FALLBACK_EVERY,FS_RUN_SETTLE,FS_RUNS_MAX_AGE,FS_ABSENT_RECHECK};

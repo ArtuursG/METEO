@@ -166,7 +166,7 @@ function ensureHome(){
     H.promise=ST.lvc.promise=ST.lvgmc.promise=null;
     try{renderLvcRows();renderLvgmcRows();}catch(e){console.warn('[stations] render',e);}
     // The now block follows every refresh (today.js, local-warnings.js)
-    for(const f of ['showRoad','renderNearestStation','refreshHomeWarnings'])
+    for(const f of ['showRoad','renderNearestStation','refreshHomeWarnings','refreshTempObservations','buildModelInfo'])
       if(typeof window[f]==='function')try{window[f]();}catch(e){console.warn('[stations]',f,e);}
     return H.data;
   })();
@@ -184,7 +184,7 @@ function setNetwork(net,part){
 // Open-Meteo model run times from the same answer (unix seconds per model, null if unknown)
 function homeRuns(){
   const r=H.data?.runs;
-  return r?.ok&&r.models?{models:r.models,checkedAt:Date.parse(H.data.updated||r.fetchedAt)}:null;
+  return r?.ok&&r.models?{models:r.models,inits:r.inits||{},checkedAt:Date.parse(H.data.updated||r.fetchedAt)}:null;
 }
 function ensureStations(){return ensureHome().then(()=>{});}
 // Night minimum and day maximum periods (pure.js synopticPeriods): the ones the worker used for

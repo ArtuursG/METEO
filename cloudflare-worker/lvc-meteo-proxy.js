@@ -658,6 +658,23 @@ const MODEL_DOMAINS = {
   knmi_harmonie_arome_europe: ["knmi_harmonie_arome_europe"],
   dmi_harmonie_arome_europe: ["dmi_harmonie_arome_europe"],
 };
+// Kura domēna aprēķinu rādīt pie modeļa: tas, kas Latvijā dod pirmās prognozes dienas
+const MODEL_RUN_DOMAIN = {
+  ecmwf_ifs025: "ecmwf_ifs025",
+  ecmwf_aifs025: "ecmwf_aifs025_single",
+  gfs_seamless: "ncep_gfs013",
+  icon_seamless: "dwd_icon_eu",
+  icon_eu: "dwd_icon_eu",
+  gem_seamless: "cmc_gem_gdps",
+  ukmo_seamless: "ukmo_global_deterministic_10km",
+  metno_seamless: "metno_nordic_pp",
+  meteofrance_seamless: "meteofrance_arpege_europe",
+  jma_seamless: "jma_gsm",
+  cma_grapes_global: "cma_grapes_global",
+  meteofrance_arpege_europe: "meteofrance_arpege_europe",
+  knmi_harmonie_arome_europe: "knmi_harmonie_arome_europe",
+  dmi_harmonie_arome_europe: "dmi_harmonie_arome_europe",
+};
 const modelMetaUrl = (domain) => `https://api.open-meteo.com/data/${domain}/static/meta.json`;
 
 // Unix sekundes: kad aprēķins pieejams API un kad tas sākts. Laiks, kas vecāks par 36 h
@@ -678,6 +695,10 @@ function modelRuns(byDomain) {
   }
   return models;
 }
+// Aprēķina sākuma laiks (unix sekundes) katram modelim; null, ja nav zināms
+function modelInits(byDomain) {
+  return Object.fromEntries(Object.entries(MODEL_RUN_DOMAIN).map(([id, d]) => [id, byDomain[d]?.init ?? null]));
+}
 async function buildRuns() {
   const domains = [...new Set(Object.values(MODEL_DOMAINS).flat())];
   const now = Date.now();
@@ -690,7 +711,7 @@ async function buildRuns() {
   );
   const byDomain = Object.fromEntries(domains.map((d, i) => [d, runTimes(metas[i], now)]));
   if (!Object.values(byDomain).some(Boolean)) throw new Error("No model metadata");
-  return { models: modelRuns(byDomain), domains: byDomain };
+  return { models: modelRuns(byDomain), inits: modelInits(byDomain), domains: byDomain };
 }
 
 // ─── SNAPSHOTI ───────────────────────────────────────────────────────────────
@@ -877,5 +898,5 @@ export default {
   },
 
   // Tikai testiem (Node): tīrās parsēšanas funkcijas
-  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData, parseLvgmc, lvgmcBody, runTimes, modelRuns, homeText, nextCron, MODEL_DOMAINS, synopticPeriods, buildStationList },
+  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData, parseLvgmc, lvgmcBody, runTimes, modelRuns, modelInits, homeText, nextCron, MODEL_DOMAINS, synopticPeriods, buildStationList },
 };
