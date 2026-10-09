@@ -78,7 +78,6 @@ function lvcRow(s){
   const lat=radarNum(s?.lat),lon=radarNum(s?.lon);
   if(lat==null||lon==null)return null;
   const air=radarNum(s.airTemp),time=parseStationTime(s.time);
-  const lows=[radarNum(s.minTemp),air].filter(v=>v!=null),highs=[radarNum(s.maxTemp),air].filter(v=>v!=null);
   return {key:'lvc:'+s.id,net:'lvc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
     time,airTemp:air,surfaceTemp:radarNum(s.surfaceTemp),dewPoint:radarNum(s.dewPoint),
     windSpeed:radarNum(s.windSpeed),windGust:radarNum(s.windGust),windDir:radarNum(s.windDir),
@@ -86,7 +85,8 @@ function lvcRow(s){
     cond:s.roadCondition||null,
     // prevTime/prevAirTemp come from the worker; older worker versions do not send them
     trend:tempTrend(air,time,s.prevAirTemp,s.prevTime),
-    min24:lows.length?Math.min(...lows):null,max24:highs.length?Math.max(...highs):null,dist:null};
+    // Synoptic night minimum and day maximum, worked out by the worker from its 15 min readings
+    nightMin:radarNum(s.nightMin),dayMax:radarNum(s.dayMax),dist:null};
 }
 function lvgmcRow(s){
   const lat=radarNum(s?.lat),lon=radarNum(s?.lon);
@@ -98,8 +98,13 @@ function lvgmcRow(s){
   if(!reading)return null;
   const time=parseStationTime(reading.time);
   const day=Number.isFinite(time)?hist.filter(h=>{const at=parseStationTime(h.time);return at>time-24*3600000&&at<=time;}):[reading];
-  const lows=day.flatMap(h=>[radarNum(h.airTemp),radarNum(h.minTemp)]).filter(v=>v!=null);
-  const highs=day.flatMap(h=>[radarNum(h.airTemp),radarNum(h.maxTemp)]).filter(v=>v!=null);
+  // Synoptic night minimum and day maximum from the hourly extremes (HATMN/HATMX), for the
+  // same periods as the LVC values
+  const per=stationPeriods();
+  const samples=hist.map(h=>{
+    const air=radarNum(h.airTemp),lo=[radarNum(h.minTemp),air].filter(v=>v!=null),hi=[radarNum(h.maxTemp),air].filter(v=>v!=null);
+    return {t:parseStationTime(h.time),lo:lo.length?Math.min(...lo):null,hi:hi.length?Math.max(...hi):null};
+  });
   const spark=day.map(h=>({t:parseStationTime(h.time),v:radarNum(h.airTemp)})).filter(p=>Number.isFinite(p.t)&&p.v!=null);
   const prev=prevReading(hist,time);
   return {key:'lvgmc:'+s.id,net:'lvgmc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
@@ -108,7 +113,7 @@ function lvgmcRow(s){
     precip:radarNum(reading.precipHour),humidity:radarNum(reading.humidity),pressure:radarNum(reading.pressure),
     visibility:radarNum(reading.visibility),uv:radarNum(reading.uv),cond:null,
     trend:prev?tempTrend(reading.airTemp,time,prev.airTemp,prev.time):null,
-    min24:lows.length?Math.min(...lows):null,max24:highs.length?Math.max(...highs):null,spark,dist:null};
+    nightMin:periodExtreme(samples,per.night,'min')?.v??null,dayMax:periodExtreme(samples,per.day,'max')?.v??null,spark,dist:null};
 }
 
 function fetchStationJson(url){
@@ -171,7 +176,7 @@ function setNetwork(net,part){
   const list=part&&part.ok!==false&&Array.isArray(part.stations)?part.stations:null;
   const st=ST[net];
   if(list){
-    if(net==='lvc')_lvcStations=list;else _lvgmcStations=list;
+    if(net==='lvc'){_lvcStations=list;_lvcUpdated=Date.parse(part.updated)||0;}else _lvgmcStations=list;
     st.fetchedAt=Date.now();st.error=false;
   }else{st.error=true;st.failedAt=Date.now();}
 }
@@ -181,6 +186,13 @@ function homeRuns(){
   return r?.ok&&r.models?{models:r.models,checkedAt:Date.parse(H.data.updated||r.fetchedAt)}:null;
 }
 function ensureStations(){return ensureHome().then(()=>{});}
+// Night minimum and day maximum periods (pure.js synopticPeriods): the ones the worker used for
+// the LVC values, so both networks show the same night and day; the current ones otherwise
+let _lvcUpdated=0;
+function stationPeriods(){
+  const now=Date.now();
+  return synopticPeriods(now-_lvcUpdated<30*60000?_lvcUpdated:now);
+}
 // Keeping the live answer current pays off for places near Latvia or once the station map is
 // open; hidden pages make no requests
 function liveWanted(){return !document.hidden&&(nearLatvia()||!!_rMap);}
@@ -518,22 +530,13 @@ function bindRadarBar(){
   }));
   syncRadarBar();
 }
-// One choice for the map and the table: the network buttons on the map decide which stations
-// the table lists, and the table's network filter switches the networks on the map
+// One choice for the map and the table: the same LVC and LVĢMC buttons sit on the map and
+// above the table, and either switches the network in both places
 function toggleNetwork(net,on=!ST.on[net]){
   ST.on[net]=on;saveRadarPrefs();
   const layer=ST.layers[net];
   if(_rMap&&layer){if(on)layer.addTo(_rMap);else _rMap.removeLayer(layer);}
   syncRadarBar();declutterStations();
-  renderStationTable();
-}
-// Both on (or both off: the table still lists everything) -> all; otherwise the one that is on
-const tableNet=()=>ST.on.lvc===ST.on.lvgmc?'all':ST.on.lvc?'lvc':'lvgmc';
-function showNetworks(choice){
-  for(const net of ['lvc','lvgmc']){
-    const on=choice==='all'||choice===net;
-    if(ST.on[net]!==on)toggleNetwork(net,on);
-  }
   renderStationTable();
 }
 function syncRadarBar(){
@@ -837,8 +840,7 @@ function sortStationRows(rows){
 }
 function filteredStationRows(){
   let rows=allStationRows();
-  const net=tableNet();
-  if(net!=='all')rows=rows.filter(r=>r.net===net);
+  rows=rows.filter(r=>ST.on[r.net]);
   const q=foldText(ST.query.trim());
   if(q)rows=rows.filter(r=>foldText(r.name).includes(q));
   if(ST.inView&&_rMap&&radarPanelVisible()){
@@ -892,10 +894,10 @@ function renderStationTable(){
   const body=$('stBody'),list=$('stList');
   if(!body||!list)return;
   const all=allStationRows();
-  const counts={all:all.length,lvc:ST.lvc.rows.length,lvgmc:ST.lvgmc.rows.length};
   document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>{
-    b.setAttribute('aria-pressed',String(b.dataset.net===tableNet()));
-    const c=b.querySelector('.st-count');if(c)c.textContent=counts[b.dataset.net]?String(counts[b.dataset.net]):'';
+    const net=b.dataset.net,n=ST[net].rows.length;
+    b.setAttribute('aria-pressed',String(ST.on[net]));
+    const c=b.querySelector('.radar-count');if(c)c.textContent=n?String(n):'';
   });
   stationTimesText();
 
@@ -912,15 +914,16 @@ function renderStationTable(){
   const rows=filteredStationRows();
   const shown=ST.showAll?rows:rows.slice(0,STATION_ROWS);
   let lo=Infinity,hi=-Infinity;
-  for(const r of shown)for(const v of [r.min24,r.max24,r.airTemp])if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  for(const r of shown)for(const v of [r.nightMin,r.dayMax,r.airTemp])if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}
   const scale={lo,hi:Math.max(hi,lo+1)};
   const maxPrecip=Math.max(2,...shown.map(r=>r.precip||0));
 
   body.replaceChildren(...shown.map(r=>stationTableRow(r,scale,maxPrecip)));
   list.replaceChildren(...shown.map(stationListItem));
   if(!shown.length&&all.length){
-    const tr=radarNode('tr','st-empty'),td=radarNode('td',null,t('st.none'));td.colSpan=ST_COLUMNS.length;tr.append(td);body.append(tr);
-    list.append(radarNode('li','st-empty',t('st.none')));
+    const empty=t(ST.on.lvc||ST.on.lvgmc?'st.none':'st.nets_off');
+    const tr=radarNode('tr','st-empty'),td=radarNode('td',null,empty);td.colSpan=ST_COLUMNS.length;tr.append(td);body.append(tr);
+    list.append(radarNode('li','st-empty',empty));
   }
   $('stationTable').hidden=!all.length;
   list.hidden=!all.length;
@@ -1004,22 +1007,29 @@ function stationTableRow(r,scale,maxPrecip){
   );
   return tr;
 }
-// 24 h min…max on a scale shared by the visible rows, tick at the current temperature
+// Night minimum … day maximum on a scale shared by the visible rows, tick at the current
+// temperature. After a cold front the night can be warmer than the day: the bar then runs
+// from the lower to the higher value, the labels keep night left and day right.
 function rangeBar(r,scale){
-  if(r.min24==null||r.max24==null)return radarNode('span','st-muted','-');
+  const night=r.nightMin,day=r.dayMax;
+  if(night==null&&day==null)return radarNode('span','st-muted','-');
   const pos=v=>(100*(v-scale.lo)/(scale.hi-scale.lo)).toFixed(1)+'%';
+  const per=stationPeriods(),soFar=p=>p.running?t('st.so_far'):'';
   const box=radarNode('div','st-range');
-  box.title=t('st.range_title',{min:fmtTemp(r.min24,1),max:fmtTemp(r.max24,1),now:fmtTemp(r.airTemp,1)});
+  box.title=t('st.range_title',{night:fmtTemp(night,1)+soFar(per.night),day:fmtTemp(day,1)+soFar(per.day),now:fmtTemp(r.airTemp,1)});
   const bar=radarNode('div','st-range-bar');
-  const fill=radarNode('i','st-range-fill');
-  fill.style.left=pos(r.min24);
-  fill.style.width=`calc(${pos(r.max24)} - ${pos(r.min24)})`;
-  // data-encoding gradient: colour of the min temperature to colour of the max
-  fill.style.background=`linear-gradient(90deg,${tempColor(r.min24)},${tempColor(r.max24)})`;
-  bar.append(fill);
+  if(night!=null&&day!=null){
+    const lo=Math.min(night,day),hi=Math.max(night,day);
+    const fill=radarNode('i','st-range-fill');
+    fill.style.left=pos(lo);
+    fill.style.width=`calc(${pos(hi)} - ${pos(lo)})`;
+    // data-encoding gradient: colour of the lower temperature to colour of the higher
+    fill.style.background=`linear-gradient(90deg,${tempColor(lo)},${tempColor(hi)})`;
+    bar.append(fill);
+  }
   if(r.airTemp!=null){const now=radarNode('i','st-range-now');now.style.left=pos(r.airTemp);bar.append(now);}
   const labels=radarNode('div','st-range-lbl');
-  labels.append(radarNode('span',null,fmtTemp(r.min24,1)),radarNode('span',null,fmtTemp(r.max24,1)));
+  labels.append(radarNode('span',null,fmtTemp(night,1)),radarNode('span',null,fmtTemp(day,1)));
   box.append(bar,labels);
   return box;
 }
@@ -1049,7 +1059,7 @@ function initStationTable(){
   const search=$('stSearch');
   let typing=null;
   search?.addEventListener('input',()=>{clearTimeout(typing);typing=setTimeout(()=>{ST.query=search.value;renderStationTable();},120);});
-  document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>b.addEventListener('click',()=>showNetworks(b.dataset.net)));
+  document.querySelectorAll('#stNetFilter [data-net]').forEach(b=>b.addEventListener('click',()=>toggleNetwork(b.dataset.net)));
   $('stInView')?.addEventListener('change',e=>{ST.inView=e.target.checked;renderStationTable();});
   $('stMore')?.addEventListener('click',()=>{ST.showAll=!ST.showAll;renderStationTable();});
   // Row click selects the station on the map; the name stays a normal link

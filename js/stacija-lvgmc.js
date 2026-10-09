@@ -161,6 +161,19 @@ function renderTrend(cur){
   el.title=t('rad.trend_title',{v:(tr.delta>0?'+':'')+fmtT(tr.delta)});
 }
 
+// Nakts min un dienas max ar laiku, kad tie sasniegti; notiekošajam periodam "līdz šim"
+function renderExtremes(samples){
+  const per=synopticPeriods(Date.now());
+  const show=(id,p,kind)=>{
+    const x=periodExtreme(samples,p,kind);
+    $(id).textContent=x?fmtT(x.v):'-';
+    const at=x?samples.find(s=>s.t===x.t):null;
+    $(id+'Time').textContent=at?fmtTime(at.time).join(' ')+(p.running?t('st.so_far'):''):'';
+  };
+  show('stMin',per.night,'min');
+  show('stMax',per.day,'max');
+}
+
 function renderNow(){
   const hist=P.hist,cur=hist[hist.length-1];
   $('stAirTemp').textContent=fmtT(cur.airTemp);
@@ -168,13 +181,12 @@ function renderNow(){
   renderTrend(cur);
   $('stFeels').textContent=fmtT(cur.feelsLike);
 
-  // 24 h min/max no stundu vēstures: minTemp/maxTemp ir katras stundas galējības
-  // (HATMN/HATMX); ja to nav, ņem gaisa temperatūru
-  const day=hist.slice(-24);
-  const lows=day.map(h=>({v:h.minTemp??h.airTemp,time:h.time})).filter(x=>x.v!=null);
-  const highs=day.map(h=>({v:h.maxTemp??h.airTemp,time:h.time})).filter(x=>x.v!=null);
-  if(lows.length){const lo=lows.reduce((a,b)=>b.v<a.v?b:a);$('stMin').textContent=fmtT(lo.v);$('stMinTime').textContent=fmtTime(lo.time).join(' ');}
-  if(highs.length){const hi=highs.reduce((a,b)=>b.v>a.v?b:a);$('stMax').textContent=fmtT(hi.v);$('stMaxTime').textContent=fmtTime(hi.time).join(' ');}
+  // Sinoptiskais nakts minimums (18-06 UTC) un dienas maksimums (06-18 UTC) no stundu
+  // galējībām (HATMN/HATMX), kopā ar gaisa temperatūru stundas beigās
+  renderExtremes(hist.map(h=>{
+    const lo=[h.minTemp,h.airTemp].filter(v=>v!=null),hi=[h.maxTemp,h.airTemp].filter(v=>v!=null);
+    return {t:parseStationTime(h.time),lo:lo.length?Math.min(...lo):null,hi:hi.length?Math.max(...hi):null,time:h.time};
+  }));
 
   $('dWind').textContent=cur.windSpeed!=null?`${fmtN(cur.windSpeed,1)} m/s ${windDirLv(cur.windDir)}`:noData();
   $('dGust').textContent=cur.windGust!=null?`${fmtN(cur.windGust,1)} m/s`:noData();

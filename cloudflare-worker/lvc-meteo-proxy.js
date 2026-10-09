@@ -252,10 +252,42 @@ const READING_COLUMNS = `
   r.wind_speed AS windSpeed, r.wind_gust AS windGust, r.wind_dir AS windDir, r.wind_gust_dir AS windGustDir
 `;
 
+// Sinoptiskie temperatūras ekstrēmi kā SYNOP ziņojumos Eiropā (WMO II reģions): dienas
+// maksimums 06-18 UTC, nakts minimums 18-06 UTC. Katram notiekošais periods vai, ja tas
+// nenotiek, pēdējais beigušais (tāpat kā lapas js/pure.js synopticPeriods).
+const SYN_HOUR = 3600000;
+function synopticPeriods(nowMs) {
+  const d = new Date(nowMs), day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const h = (nowMs - day0) / SYN_HOUR;
+  const nightFrom = h >= 18 ? day0 + 18 * SYN_HOUR : day0 - 6 * SYN_HOUR;
+  const dayFrom = h >= 6 ? day0 + 6 * SYN_HOUR : day0 - 18 * SYN_HOUR;
+  const period = (from) => ({ from, to: Math.min(nowMs, from + 12 * SYN_HOUR), running: nowMs < from + 12 * SYN_HOUR });
+  return { night: period(nightFrom), day: period(dayFrom) };
+}
+const isoPeriod = (p) => ({ from: new Date(p.from).toISOString(), to: new Date(p.to).toISOString(), running: p.running });
+// Min/max no 15 min rādījumiem periodā (from, to]. julianday() pareizi salīdzina laikus ar
+// dažādām zonu nobīdēm; teksta robeža tikai sašaurina indeksa diapazonu (ar rezervi).
+async function synopticExtremes(env, periods) {
+  try {
+    const iso = (ms) => new Date(ms).toISOString();
+    const since = iso(Math.min(periods.night.from, periods.day.from) - 4 * SYN_HOUR);
+    const { results } = await env.DB.prepare(
+      `SELECT station_id AS id,
+         MIN(CASE WHEN julianday(time) > julianday(?1) AND julianday(time) <= julianday(?2) THEN air_temp END) AS nightMin,
+         MAX(CASE WHEN julianday(time) > julianday(?3) AND julianday(time) <= julianday(?4) THEN air_temp END) AS dayMax
+       FROM readings WHERE time >= ?5 AND air_temp IS NOT NULL GROUP BY station_id`
+    ).bind(iso(periods.night.from), iso(periods.night.to), iso(periods.day.from), iso(periods.day.to), since).all();
+    return results || [];
+  } catch (e) {
+    return [];
+  }
+}
+
 // Jaunākais rādījums katrai stacijai. CROSS JOIN nosaka cilpu secību: katrai stacijai
 // pāris indeksa meklējumi, nevis visas "readings" tabulas pārskatīšana.
 async function buildStationList(env) {
-  const [{ results }, recent] = await Promise.all([
+  const now = Date.now(), periods = synopticPeriods(now);
+  const [{ results }, recent, extremes] = await Promise.all([
     env.DB.prepare(
       `SELECT s.id AS id, s.name AS name, s.lat AS lat, s.lon AS lon, ${READING_COLUMNS}
        FROM stations s CROSS JOIN readings r
@@ -263,8 +295,19 @@ async function buildStationList(env) {
          AND r.time = (SELECT MAX(time) FROM readings WHERE station_id = s.id)`
     ).all(),
     recentReadings(env),
+    synopticExtremes(env, periods),
   ]);
-  return { updated: new Date().toISOString(), stations: withPrevious(results || [], recent) };
+  const ext = new Map(extremes.map((e) => [e.id, e]));
+  const stations = withPrevious(results || [], recent).map((s) => ({
+    ...s,
+    nightMin: ext.get(s.id)?.nightMin ?? null,
+    dayMax: ext.get(s.id)?.dayMax ?? null,
+  }));
+  return {
+    updated: new Date(now).toISOString(),
+    periods: { night: isoPeriod(periods.night), day: isoPeriod(periods.day) },
+    stations,
+  };
 }
 
 // ─── PUBLISKIE DATI ──────────────────────────────────────────────────────────
@@ -822,5 +865,5 @@ export default {
   },
 
   // Tikai testiem (Node): tīrās parsēšanas funkcijas
-  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData, parseLvgmc, lvgmcBody, runTimes, modelRuns, homeText, nextCron, MODEL_DOMAINS },
+  parsers: { csvRows, parseWarnings, parseKp, parseHydro, parseMarine, dueData, parseLvgmc, lvgmcBody, runTimes, modelRuns, homeText, nextCron, MODEL_DOMAINS, synopticPeriods, buildStationList },
 };
