@@ -121,3 +121,29 @@ test('tempColor clamps and interpolates', () => {
   assert.match(P.tempColor(12.5), /^#[0-9a-f]{6}$/);
   assert.notEqual(P.tempColor(12.5), P.tempColor(10));
 });
+
+test('synoptic periods: night 18-06 UTC, day 06-18 UTC, the running one or the last that ended',()=>{
+  const P=require('../js/pure.js');
+  const at=s=>Date.parse(s);
+  const iso=ms=>new Date(ms).toISOString().slice(0,16);
+  const show=p=>[iso(p.night.from),iso(p.night.to),p.night.running,iso(p.day.from),iso(p.day.to),p.day.running];
+  // Daytime: last night (ended), today so far
+  assert.deepEqual(show(P.synopticPeriods(at('2026-10-09T11:30:00Z'))),['2026-10-08T18:00','2026-10-09T06:00',false,'2026-10-09T06:00','2026-10-09T11:30',true]);
+  // Evening: tonight so far, today's day (ended)
+  assert.deepEqual(show(P.synopticPeriods(at('2026-10-09T19:00:00Z'))),['2026-10-09T18:00','2026-10-09T19:00',true,'2026-10-09T06:00','2026-10-09T18:00',false]);
+  // After midnight UTC: the night that began yesterday, yesterday's day
+  assert.deepEqual(show(P.synopticPeriods(at('2026-10-10T03:00:00Z'))),['2026-10-09T18:00','2026-10-10T03:00',true,'2026-10-09T06:00','2026-10-09T18:00',false]);
+  // Exactly 06 UTC: the night has just ended, the day has just begun
+  assert.deepEqual(show(P.synopticPeriods(at('2026-10-09T06:00:00Z'))),['2026-10-08T18:00','2026-10-09T06:00',false,'2026-10-09T06:00','2026-10-09T06:00',true]);
+});
+
+test('period extremes: hourly extremes stamped at the end of their hour, edges and gaps',()=>{
+  const P=require('../js/pure.js');
+  const t=h=>Date.parse('2026-10-09T00:00:00Z')+h*3600000;
+  const night={from:t(-6),to:t(6)},day={from:t(6),to:t(18)};
+  const samples=[{t:t(-6),lo:-9,hi:-9},{t:t(2),lo:1.5,hi:3},{t:t(6),lo:0.8,hi:2},{t:t(7),lo:2,hi:4.1},{t:t(14),lo:null,hi:11.2},{t:t(19),lo:-20,hi:30}];
+  assert.deepEqual(P.periodExtreme(samples,night,'min'),{v:0.8,t:t(6)});
+  assert.deepEqual(P.periodExtreme(samples,day,'max'),{v:11.2,t:t(14)});
+  assert.equal(P.periodExtreme([],day,'max'),null);
+  assert.equal(P.periodExtreme(samples,null,'max'),null);
+});

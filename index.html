@@ -273,10 +273,9 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
             <input type="search" id="stSearch" autocomplete="off" spellcheck="false" data-i18n-ph="st.search_ph" data-i18n-aria="st.search" placeholder="Meklēt staciju" aria-label="Meklēt staciju pēc nosaukuma">
           </label>
-          <div class="st-seg" id="stNetFilter" role="group" data-i18n-aria="st.net_aria" aria-label="Tīkls">
-            <button type="button" data-net="all" aria-pressed="true"><span data-i18n="st.all">Visas</span><span class="st-count"></span></button>
-            <button type="button" data-net="lvc" aria-pressed="false"><span>LVC</span><span class="st-count"></span></button>
-            <button type="button" data-net="lvgmc" aria-pressed="false"><span>LVĢMC</span><span class="st-count"></span></button>
+          <div class="st-nets" id="stNetFilter" role="group" data-i18n-aria="st.net_aria" aria-label="Tīkls">
+            <button type="button" class="radar-toggle" data-net="lvc" aria-pressed="true"><i class="radar-key is-lvc" aria-hidden="true"></i><span>LVC</span><span class="radar-count"></span></button>
+            <button type="button" class="radar-toggle" data-net="lvgmc" aria-pressed="true"><i class="radar-key is-lvgmc" aria-hidden="true"></i><span>LVĢMC</span><span class="radar-count"></span></button>
           </div>
           <label class="st-check"><input type="checkbox" id="stInView"><span data-i18n="st.in_view">Tikai kartē redzamās</span></label>
         </div>

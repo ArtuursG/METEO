@@ -759,12 +759,9 @@ footer a:hover{text-decoration:underline}
 .st-search svg{width:16px;height:16px;flex:none}
 .st-search input{flex:1;min-width:0;padding:0;background:none;border:0;outline:0;color:var(--t);font:inherit;font-size:14px}
 .st-search input::placeholder{color:var(--t3)}
-.st-seg{display:inline-flex;gap:2px;padding:2px;background:var(--s2);border:1px solid var(--line);border-radius:8px}
-.st-seg button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;background:none;color:var(--t2);font:inherit;font-size:13px;cursor:pointer}
-.st-seg button:hover{color:var(--t)}
-.st-seg button[aria-pressed=true]{background:var(--panel);border-color:var(--b2);color:var(--t)}
-.st-seg button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .st-count{font:11px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--t3);font-variant-numeric:tabular-nums}
+/* The same network buttons as on the map, in a group like the map's */
+.st-nets{display:inline-flex;gap:3px;padding:3px;background:var(--panel);border:1px solid var(--b2);border-radius:10px}
 .st-check{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--t2);cursor:pointer}
 .st-check input{width:16px;height:16px;margin:0;accent-color:var(--acc)}
 .st-msg{margin:0 0 10px;font-size:13px;color:var(--t2)}
@@ -852,7 +849,7 @@ footer a:hover{text-decoration:underline}
  .radar-toggle,.radar-metric button{height:40px;padding:0 9px}
  .radar-metric button{min-width:40px}
  .radar-metric-label{display:none}
- .radar-count{display:none}
+ .radar-bar .radar-count{display:none}
  .radar-settings-panel{width:208px}
  .map-stage .leaflet-container .leaflet-control-attribution{font-size:9.5px;line-height:1.4}
  .timeline{left:6px;right:6px;bottom:6px;padding:6px 8px}
@@ -875,7 +872,7 @@ footer a:hover{text-decoration:underline}
  /* Station table becomes a list of cards */
  .st-filters{gap:8px}
  .st-search{flex:1 1 100%;max-width:none;height:42px}
- .st-seg button{height:38px;padding:0 10px}
+ .st-nets .radar-toggle{height:38px;padding:0 10px}
  .st-check{margin-left:0;min-height:40px}
  .st-scroll{display:none}
  .st-list{display:block;border-top:1px solid var(--line)}

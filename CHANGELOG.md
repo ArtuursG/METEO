@@ -11,7 +11,8 @@ Fewer requests for the same data, and new data sooner.
 - Failed forecast requests back off 1, 2, 4 up to 15 minutes. When only the current values change, the charts are not redrawn.
 - Changes to worker code, workflows, docs and tests no longer start a GitHub Pages deployment.
 - The home warning lines name the area the place lies in, so two warnings for one place can be told apart.
-- The network buttons on the station map and the station table's network filter are one choice: switching LVC or LVĢMC in one place switches it in the other.
+- The station table has the same LVC and LVĢMC buttons as the map, and they work as one: switching a network in one place switches it in the other.
+- Station minimum and maximum follow synoptic practice (WMO Region VI) instead of a rolling 24 hours: the night minimum over 18-06 UTC and the day maximum over 06-18 UTC, the running period marked "so far". LVC values come from the worker's 15-minute readings, LVĢMC values from the hourly extremes; the station pages show the same with the time each was reached.
 
 ## v2.0.0 - 2026-10-08
 

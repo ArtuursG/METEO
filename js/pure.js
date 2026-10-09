@@ -118,6 +118,32 @@ function tempColor(v){
   return TEMP_STOPS[TEMP_STOPS.length-1][1];
 }
 
+// Synoptic temperature extremes as in SYNOP reports for Europe (WMO Region VI): the day
+// maximum covers 06-18 UTC, the night minimum 18-06 UTC. The period shown is the one running
+// now or, if it is not running, the one that ended last. Times in ms; to is now while running.
+const SYN_HOUR=3600000;
+function synopticPeriods(nowMs){
+  const d=new Date(nowMs),day0=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+  const h=(nowMs-day0)/SYN_HOUR;
+  const nightFrom=h>=18?day0+18*SYN_HOUR:day0-6*SYN_HOUR;
+  const dayFrom=h>=6?day0+6*SYN_HOUR:day0-18*SYN_HOUR;
+  const period=from=>({from,to:Math.min(nowMs,from+12*SYN_HOUR),running:nowMs<from+12*SYN_HOUR});
+  return {night:period(nightFrom),day:period(dayFrom)};
+}
+// Lowest (kind 'min') or highest value of timed samples [{t, lo, hi}] in a period, with its time.
+// A sample counts for the period when from < t <= to: an hourly extreme stamped at t covers the
+// hour ending at t, so the hours of the period are covered exactly.
+function periodExtreme(samples,period,kind){
+  let best=null;
+  for(const s of samples||[]){
+    if(!period||!(s.t>period.from&&s.t<=period.to))continue;
+    const v=kind==='min'?s.lo:s.hi;
+    if(v==null||!Number.isFinite(v))continue;
+    if(!best||(kind==='min'?v<best.v:v>best.v))best={v,t:s.t};
+  }
+  return best;
+}
+
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor};
+  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor,synopticPeriods,periodExtreme};
 }
