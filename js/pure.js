@@ -143,7 +143,15 @@ function periodExtreme(samples,period,kind){
   }
   return best;
 }
+// The extreme of the period or, while it has no samples yet (a night just begun, a source a few
+// hours behind), of the same kind of period a day earlier, marked prev
+function latestExtreme(samples,period,kind){
+  const x=periodExtreme(samples,period,kind);
+  if(x||!period)return x&&{...x,prev:false};
+  const day=24*SYN_HOUR,y=periodExtreme(samples,{from:period.from-day,to:period.from-day/2},kind);
+  return y&&{...y,prev:true};
+}
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor,synopticPeriods,periodExtreme};
+  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor,synopticPeriods,periodExtreme,latestExtreme};
 }

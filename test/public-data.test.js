@@ -111,10 +111,13 @@ test('LVĢMC: history is shortened only when the row would not fit in D1',async(
 
 test('model run times: newest of a model\'s domains, unknown when one is missing',async()=>{
   const {runTimes,modelRuns,MODEL_DOMAINS}=await parsers();
-  assert.deepEqual(runTimes({last_run_initialisation_time:100,last_run_availability_time:200}),{init:100,avail:200});
-  assert.deepEqual(runTimes({last_run_modification_time:150}),{init:null,avail:150});
-  assert.equal(runTimes(null),null);
-  assert.equal(runTimes({last_run_availability_time:0}),null);
+  const now=Date.parse('2026-10-09T08:00:00Z'),s=now/1000;
+  assert.deepEqual(runTimes({last_run_initialisation_time:s-7200,last_run_availability_time:s-600},now),{init:s-7200,avail:s-600});
+  assert.deepEqual(runTimes({last_run_modification_time:s-900},now),{init:null,avail:s-900});
+  assert.equal(runTimes(null,now),null);
+  assert.equal(runTimes({last_run_availability_time:0},now),null);
+  // A domain no longer updated (GEM's stopped in May): unknown, so the page falls back to 30 min
+  assert.equal(runTimes({last_run_availability_time:1779772299},now),null);
   const byDomain=Object.fromEntries([...new Set(Object.values(MODEL_DOMAINS).flat())].map(d=>[d,{init:1,avail:1000}]));
   byDomain.dwd_icon={init:1,avail:1500};
   byDomain.jma_gsm=null;

@@ -183,14 +183,15 @@ function renderTrend(cur){
 // Nakts min un dienas max ar laiku, kad tie sasniegti; notiekošajam periodam "līdz šim"
 function renderExtremes(samples){
   const per=synopticPeriods(Date.now());
-  const show=(id,p,kind)=>{
-    const x=periodExtreme(samples,p,kind);
+  // Kamēr tekošajā periodā nav rādījumu, iepriekšējais ar atzīmi
+  const show=(id,p,kind,prevKey)=>{
+    const x=latestExtreme(samples,p,kind);
     $(id).textContent=x?fmtT(x.v):'-';
     const at=x?samples.find(s=>s.t===x.t):null;
-    $(id+'Time').textContent=at?fmtTime(at.time).join(' ')+(p.running?t('st.so_far'):''):'';
+    $(id+'Time').textContent=at?fmtTime(at.time).join(' ')+(x.prev?t(prevKey):p.running?t('st.so_far'):''):'';
   };
-  show('stMin',per.night,'min');
-  show('stMax',per.day,'max');
+  show('stMin',per.night,'min','st.prev_night');
+  show('stMax',per.day,'max','st.prev_day');
 }
 
 function renderNow(){

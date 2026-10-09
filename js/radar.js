@@ -85,8 +85,9 @@ function lvcRow(s){
     cond:s.roadCondition||null,
     // prevTime/prevAirTemp come from the worker; older worker versions do not send them
     trend:tempTrend(air,time,s.prevAirTemp,s.prevTime),
-    // Synoptic night minimum and day maximum, worked out by the worker from its 15 min readings
-    nightMin:radarNum(s.nightMin),dayMax:radarNum(s.dayMax),dist:null};
+    // Synoptic night minimum and day maximum, worked out by the worker from its 15 min readings;
+    // prev: the period before, while the current one has no readings yet
+    nightMin:radarNum(s.nightMin),nightPrev:!!s.nightPrev,dayMax:radarNum(s.dayMax),dayPrev:!!s.dayPrev,dist:null};
 }
 function lvgmcRow(s){
   const lat=radarNum(s?.lat),lon=radarNum(s?.lon);
@@ -113,7 +114,7 @@ function lvgmcRow(s){
     precip:radarNum(reading.precipHour),humidity:radarNum(reading.humidity),pressure:radarNum(reading.pressure),
     visibility:radarNum(reading.visibility),uv:radarNum(reading.uv),cond:null,
     trend:prev?tempTrend(reading.airTemp,time,prev.airTemp,prev.time):null,
-    nightMin:periodExtreme(samples,per.night,'min')?.v??null,dayMax:periodExtreme(samples,per.day,'max')?.v??null,spark,dist:null};
+    ...stationExtremes(samples,per),spark,dist:null};
 }
 
 function fetchStationJson(url){
@@ -189,6 +190,10 @@ function ensureStations(){return ensureHome().then(()=>{});}
 // Night minimum and day maximum periods (pure.js synopticPeriods): the ones the worker used for
 // the LVC values, so both networks show the same night and day; the current ones otherwise
 let _lvcUpdated=0;
+function stationExtremes(samples,per){
+  const n=latestExtreme(samples,per.night,'min'),d=latestExtreme(samples,per.day,'max');
+  return {nightMin:n?n.v:null,nightPrev:!!n?.prev,dayMax:d?d.v:null,dayPrev:!!d?.prev};
+}
 function stationPeriods(){
   const now=Date.now();
   return synopticPeriods(now-_lvcUpdated<30*60000?_lvcUpdated:now);
@@ -1014,9 +1019,12 @@ function rangeBar(r,scale){
   const night=r.nightMin,day=r.dayMax;
   if(night==null&&day==null)return radarNode('span','st-muted','-');
   const pos=v=>(100*(v-scale.lo)/(scale.hi-scale.lo)).toFixed(1)+'%';
-  const per=stationPeriods(),soFar=p=>p.running?t('st.so_far'):'';
+  const per=stationPeriods();
+  // Which period each value is from: the running one so far, or the one before while it is empty
+  const note=(prev,p,key)=>prev?t(key):p.running?t('st.so_far'):'';
   const box=radarNode('div','st-range');
-  box.title=t('st.range_title',{night:fmtTemp(night,1)+soFar(per.night),day:fmtTemp(day,1)+soFar(per.day),now:fmtTemp(r.airTemp,1)});
+  box.title=t('st.range_title',{night:fmtTemp(night,1)+note(r.nightPrev,per.night,'st.prev_night'),
+    day:fmtTemp(day,1)+note(r.dayPrev,per.day,'st.prev_day'),now:fmtTemp(r.airTemp,1)});
   const bar=radarNode('div','st-range-bar');
   if(night!=null&&day!=null){
     const lo=Math.min(night,day),hi=Math.max(night,day);
