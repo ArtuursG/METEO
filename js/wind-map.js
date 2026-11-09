@@ -15,6 +15,8 @@ function openWindMap(){
  const frame=document.createElement('iframe');
  frame.title=t('wm.frame',{provider:windMapProvider==='windy'?'Windy':'Ventusky'});
  frame.referrerPolicy='strict-origin-when-cross-origin';frame.allowFullscreen=true;
+ // The map runs its own scripts and may open its site in a new tab, but cannot move this page
+ frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
  windMapFrame=frame;const container=$('windMapEmbed');container.hidden=false;container.replaceChildren(frame);
  frame.src=windMapURL(windMapProvider,S.lat,S.lon);refreshWindMap();
 }

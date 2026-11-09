@@ -130,12 +130,12 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 Lapa ir statiska, būvēšana nav vajadzīga.
 
 ```sh
-git fetch origin dev
-git checkout dev
+git fetch origin DEV-Meteo
+git checkout DEV-Meteo
 python -m http.server 8000           # vai VS Code paplašinājums "Live Server"
 ```
 
-Izmaiņas vispirms nonāk zarā `dev` (pārbaude: https://raw.githack.com/ArtuursG/METEO/dev/index.html),
+Izmaiņas vispirms nonāk zarā `DEV-Meteo` (pārbaude: https://raw.githack.com/ArtuursG/METEO/DEV-Meteo/index.html),
 main saņem tās kopā kā versiju. Sīkāk README sadaļā "Branches and releases".
 
 Atver http://localhost:8000. Dati nāk no tiem pašiem avotiem kā īstajā lapā.

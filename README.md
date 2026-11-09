@@ -217,7 +217,9 @@ cloudflare-worker/
 - **LVĢMC weather stations** - the public CSV already carries a 48h rolling window. The LVC worker's cron downloads it every run (with ETag / a cheap fingerprint) and parses it only when it changed, about once an hour; the page gets it in `?data=home`, the station page from `?data=lvgmc`. Precipitation-only gauge stations (no temperature sensor) are filtered out of the table/map, matching how other public displays of this data handle them.
 - **Service worker** - HTML uses network-first (new deploys load immediately); JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
-- **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Tile URLs are hardcoded templates with no user input.
+- **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Leaflet tooltips and popups always get DOM nodes, never strings: Leaflet inserts a string as HTML, and names can come from a shared link (`?city=`, `?name=`). Tile URLs are hardcoded templates with no user input.
+- **Content-Security-Policy** - every page carries a `<meta http-equiv="Content-Security-Policy">` that lists exactly the hosts the site uses (scripts from cdnjs and the jsdelivr `@openmeteo/` path, the APIs, the tile servers, the Windy and Ventusky embeds), `'wasm-unsafe-eval'` and `blob:` workers for the cloud map library, and no inline script except the theme script in `<head>`, allowed by its sha256 hash. Editing that script means updating the hash; `test/security.test.js` checks it, and that the pages have no inline event handlers. A new outside host has to be added to the policy, or the browser blocks it.
+- **Other hardening** - the Windy/Ventusky iframe is sandboxed (it cannot navigate this page), share windows open with `noopener`, CI runs with a read-only token, and the worker answers errors with a generic message (details only in its log).
 - **Accessibility** - the tab bar is a proper ARIA `tablist` with roving tabindex and Left/Right/Home/End keyboard navigation; panels are `tabpanel`s. Model toggle buttons expose `aria-pressed`. A skip link jumps to `<main>`. `prefers-reduced-motion` zeroes chart animations and CSS transitions (the loading spinner is kept). Chart `<canvas>` elements carry `role="img"` + `aria-label`.
 - **i18n** - static text uses `data-i18n*` attributes resolved by `applyStaticI18n()`; dynamic strings go through `t(key, vars)`. `setLang()` swaps `LANG`/`LOCALE`, updates the URL and calls `relangUI()`, which re-renders every JS-built piece (metrics, charts, tables, model list, lazy tabs, station rows). The two station detail pages load `js/i18n.js` and honour the same stored language (they have no toggle of their own). Radar and station controls are relabelled on a language switch by `relabelRadarControl()`.
 - **Failed reload** - a forecast fetch that fails mid-session keeps the previous location's data on screen, shows a toast and reverts the header, rather than blanking the page.
@@ -236,11 +238,11 @@ cd METEO
 
 ## Branches and releases
 
-- `dev` - every change lands here first. Test it at https://raw.githack.com/ArtuursG/METEO/dev/index.html
+- `DEV-Meteo` - every change lands here first. Test it at https://raw.githack.com/ArtuursG/METEO/DEV-Meteo/index.html
 - `main` - what the public site serves. GitHub Pages deploys on every push to `main` that changes the site, so changes reach `main` together as a tested release, not one by one.
 - Versions are MAJOR.MINOR.PATCH: MINOR (2.1.0) for new features or changed behaviour, PATCH (2.1.1) for fixes and small adjustments, MAJOR for a redesign.
-- A release: version in `package.json`, asset version (`?v=`) in the HTML files and `CACHE` in `sw.js`, a `CHANGELOG.md` entry, merge `dev` into `main`, then a GitHub Release with the tag `vX.Y.Z` on `main`.
-- When a release changes the LVC worker, the worker is updated first (the new worker also serves the current page), then `dev` is merged.
+- A release: version in `package.json`, asset version (`?v=`) in the HTML files and `CACHE` in `sw.js`, a `CHANGELOG.md` entry, merge `DEV-Meteo` into `main`, then a GitHub Release with the tag `vX.Y.Z` on `main`.
+- When a release changes the LVC worker, the worker is updated first (the new worker also serves the current page), then `DEV-Meteo` is merged.
 
 ## Install as app (iOS / Android)
 

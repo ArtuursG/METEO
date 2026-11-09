@@ -182,3 +182,16 @@ function refreshForecast(){
 }
 setInterval(()=>{renderDataAge();refreshForecast();},60*1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderDataAge();refreshForecast();}});
+
+// Header buttons and the service worker are set up here, not in the HTML: the
+// Content-Security-Policy allows no inline handlers and only the hashed theme script
+$('searchBtn')?.addEventListener('click',()=>searchCity());
+$('locateBtn')?.addEventListener('click',()=>locateMe());
+$('langToggle')?.addEventListener('click',()=>setLang(LANG==='lv'?'en':'lv'));
+$('themeToggle')?.addEventListener('click',()=>toggleTheme());
+$('favBtn')?.addEventListener('click',()=>toggleFav(S.geo));
+$('shareWa')?.addEventListener('click',()=>shareWA());
+$('shareTg')?.addEventListener('click',()=>shareTG());
+$('nowRoad')?.addEventListener('click',()=>openTab('radar'));
+$('openTableBtn')?.addEventListener('click',()=>openTab('table'));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');

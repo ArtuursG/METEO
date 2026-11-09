@@ -271,14 +271,15 @@ function showRecent(){
 function shareWA(){
   const url=window.location.href;
   const text=`${t('share.text',{city:S.city})} | prognoze.lv`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');
+  // noopener: the opened page gets no handle on this window
+  window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank','noopener');
 }
 
 // Opens Telegram share sheet with city name and current URL
 function shareTG(){
   const url=window.location.href;
   const text=t('share.text',{city:S.city});
-  window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank');
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,'_blank','noopener');
 }
 
 // ─── GEOLOCATION ──────────────────────────────────────────────────────────────

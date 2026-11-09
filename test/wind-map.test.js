@@ -6,10 +6,10 @@ test('wind embeds load on demand, replace providers and unload on location chang
  const node=()=>({textContent:'',setAttribute(){},replaceChildren(){},querySelectorAll:()=>buttons});
  const buttons=['windy','ventusky'].map(provider=>({...node(),dataset:{windMap:provider}}));
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,node());return elements.get(id);};
- const ctx=vm.createContext({URLSearchParams,Number,Math,$,S:{lat:56.95,lon:24.11,city:'Rīga'},t:(key,vars)=>key+(vars?JSON.stringify(vars):''),document:{querySelectorAll:()=>buttons,createElement:()=>{const frame={remove(){frames.splice(frames.indexOf(frame),1);}};frames.push(frame);return frame;}}});
+ const ctx=vm.createContext({URLSearchParams,Number,Math,$,S:{lat:56.95,lon:24.11,city:'Rīga'},t:(key,vars)=>key+(vars?JSON.stringify(vars):''),document:{querySelectorAll:()=>buttons,createElement:()=>{const frame={attrs:{},setAttribute(k,v){this.attrs[k]=v;},remove(){frames.splice(frames.indexOf(frame),1);}};frames.push(frame);return frame;}}});
  vm.runInContext(fs.readFileSync('js/wind-map.js','utf8'),ctx);
  vm.runInContext('refreshWindMap()',ctx);assert.equal(frames.length,0);
- $('windMapToggle').onclick();assert.equal(frames.length,1);assert.equal(new URL(frames[0].src).hostname,'embed.windy.com');
+ $('windMapToggle').onclick();assert.equal(frames.length,1);assert.equal(new URL(frames[0].src).hostname,'embed.windy.com');assert.match(frames[0].attrs.sandbox,/allow-scripts/);assert.doesNotMatch(frames[0].attrs.sandbox,/allow-top-navigation/);
  buttons[1].onclick();assert.equal(frames.length,1);assert.equal(new URL(frames[0].src).hostname,'embed.ventusky.com');
  ctx.S.lat=57.2;vm.runInContext('refreshWindMap()',ctx);assert.equal(frames.length,0);
  $('windMapToggle').onclick();assert.equal(frames.length,1);

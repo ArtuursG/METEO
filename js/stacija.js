@@ -163,7 +163,8 @@ function renderMiniMap(lat,lon,name){
     _mapLayers.push({layer,part});
   }
   const marker=L.circleMarker([lat,lon],{radius:8,color:'#fff',weight:2,fillColor:'#e0796d',fillOpacity:0.95}).addTo(_miniMap);
-  if(name)marker.bindTooltip(name,{permanent:false,direction:'top'});
+  // Nosaukums nāk no saites (?name=): Leaflet virkni ievieto kā HTML, tāpēc tikai kā teksts
+  if(name)marker.bindTooltip(Object.assign(document.createElement('span'),{textContent:name}),{permanent:false,direction:'top'});
 }
 
 // ─── TAGAD UN DETAĻAS ────────────────────────────────────────────────────────

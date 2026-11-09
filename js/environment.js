@@ -135,9 +135,10 @@ function renderWarnings(data){
   // Most severe drawn last, on top
   for(const g of groups.slice().reverse())for(const ring of g.polygons){
    const color=cssVar('--sev-'+(g.severity in WARN_SEVERITY?g.severity:'Moderate'));
-   L.polygon(ring,{color,weight:1,fillColor:color,fillOpacity:.3}).bindTooltip(warningTitle(g.event,LANG),{sticky:true}).addTo(environmentMap);
+   // Leaflet inserts a string tooltip as HTML: feed and address texts go in as text nodes
+   L.polygon(ring,{color,weight:1,fillColor:color,fillOpacity:.3}).bindTooltip(envNode('span',warningTitle(g.event,LANG)),{sticky:true}).addTo(environmentMap);
   }
-  L.circleMarker([S.lat,S.lon],{radius:6,color:'#fff',weight:2,fillColor:cssVar('--acc'),fillOpacity:1}).bindTooltip(S.city).addTo(environmentMap);
+  L.circleMarker([S.lat,S.lon],{radius:6,color:'#fff',weight:2,fillColor:cssVar('--acc'),fillOpacity:1}).bindTooltip(envNode('span',S.city)).addTo(environmentMap);
   environmentMap.fitBounds([[55.6,20.9],[58.1,28.3]]);
  }
  for(const g of groups){

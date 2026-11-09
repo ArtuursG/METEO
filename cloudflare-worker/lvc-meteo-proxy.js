@@ -893,7 +893,9 @@ export default {
       } catch (e) {}
       return row ? cachedJson(row.json) : json(await buildStationList(env));
     } catch (e) {
-      return json({ error: String(e) }, 502);
+      // Sīkāka kļūda tikai Cloudflare žurnālā, ne atbildē
+      console.log("Pieprasījums neizdevās:", String(e));
+      return json({ error: "Server error" }, 502);
     }
   },
 

@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, DEV-Meteo]
   pull_request:
   workflow_dispatch:
+
+# Read-only token: the checks only read the code
+permissions:
+  contents: read
 
 jobs:
   test:

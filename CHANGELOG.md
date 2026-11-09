@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.1 - 2026-11-09
+
+Security fixes.
+
+- A shared link could put markup into the page: the city name (`?city=`) on the warnings map and the station name (`?name=`) on the station pages went into Leaflet tooltips as HTML. They now go in as text, as do the warning titles on the map. A test keeps every Leaflet tooltip and popup on DOM nodes.
+- Every page has a Content-Security-Policy that allows only the sources the site uses and no inline scripts except the hashed theme script, so injected code would not run even if another hole appeared. The inline button handlers and the service worker registration moved into `app.js`.
+- The Windy/Ventusky map runs in a sandboxed frame and cannot navigate the page; WhatsApp and Telegram share windows open without a handle on the page (`noopener`).
+- CI runs with a read-only token and checks the `DEV-Meteo` branch; the LVC worker no longer puts internal error text in its answers.
+- The development branch is now `DEV-Meteo`.
+
 ## v2.1.0 - 2026-10-09
 
 Fewer requests for the same data, and new data sooner.
