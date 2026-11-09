@@ -112,8 +112,8 @@ function buildCloudMap(){
   _cloudPlace=S.lat.toFixed(2)+','+S.lon.toFixed(2);
   _cloudTimeline=createTimeline({
     baseDelay:900,
-    formatTime:fmtClock,
-    formatTick:ms=>_cloudMode==='sat'?new Date(ms).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'}):new Date(ms).toLocaleDateString(LOCALE,{day:'numeric',month:'short'}),
+    formatTime:ms=>fmtClock(ms,false),
+    formatTick:ms=>_cloudMode==='sat'?new Date(ms).toLocaleTimeString(LOCALE,{...clockZone(),hour:'2-digit',minute:'2-digit'}):new Date(ms).toLocaleDateString(LOCALE,{...clockZone(),day:'numeric',month:'short'}),
     labelKey:'rad.cloud_time',
     latestKey:()=>_cloudMode==='sat'?'rad.tl_latest':'rad.tl_now',
     latestIndex:times=>_cloudMode==='sat'?times.length-1:nowFrameIndex(times),

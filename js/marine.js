@@ -34,9 +34,9 @@ function renderMarine(data){
  let index=Math.max(0,nowFrameIndex(frameTimes));
  const tl=createTimeline({
   baseDelay:700,
-  formatTime:fmtClock,
-  formatTick:ms=>new Date(ms).toLocaleDateString(LOCALE,{day:'numeric',month:'short'}),
-  formatValue:ms=>fmtClock(ms)+' ('+Intl.DateTimeFormat().resolvedOptions().timeZone+')',
+  formatTime:ms=>fmtClock(ms,false),
+  formatTick:ms=>new Date(ms).toLocaleDateString(LOCALE,{...clockZone(),day:'numeric',month:'short'}),
+  formatValue:ms=>TIME_UTC?fmtClock(ms):fmtClock(ms)+' ('+Intl.DateTimeFormat().resolvedOptions().timeZone+')',
   labelKey:'env.marine_time',
   latestKey:'rad.tl_now',
   latestIndex:list=>nowFrameIndex(list),

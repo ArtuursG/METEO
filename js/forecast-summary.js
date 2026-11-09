@@ -12,6 +12,8 @@ const FS_SNOW_T=0.5;      // median temperature at or below this: snow
 const FS_RAIN_ICON=0.5;   // share of models with precipitation for a rain icon
 const FS_POSSIBLE=0.35;   // share for "possible" precipitation in the summary
 const FS_LIKELY=0.6;      // mean share in a window for a definite wording
+const FS_SNOW_CM_PER_MM=0.7; // Open-Meteo snowfall: 7 cm of snow is about 10 mm of water
+const FS_FREEZING_CODES=new Set([56,57,66,67]); // freezing drizzle and freezing rain
 
 const fsMedian=typeof median==='function'?median:require('./pure.js').median;
 const fsHaversine=typeof haversineKm==='function'?haversineKm:require('./pure.js').haversineKm;
@@ -46,6 +48,31 @@ function fsTrimmedRange(sorted){
 
 // Per-hour consensus over every model that has data, from the current hour on.
 // rows[k] = {time,n,t,spread,p,wet,pn,cloud,prob} (null where nothing is known).
+// ─── Precipitation type ───
+// Share of an amount that falls as snow (0..1) from the model's snowfall; when the model gives
+// no snowfall, by temperature as the sky icon does (FS_SNOW_T)
+function fsSnowShare(p,snowCm,t){
+  const s=fsNum(snowCm);
+  if(s!=null)return Math.min(1,Math.max(0,s/FS_SNOW_CM_PER_MM/p));
+  const tv=fsNum(t);
+  return tv!=null&&tv<=FS_SNOW_T?1:0;
+}
+const fsKindOfShare=(share,t)=>share>=0.75?'snow':share>=0.25?'mixed':(t!=null&&t<=0?'freezing':'rain');
+// One model, one hour: snow | mixed | freezing (liquid at or below 0 °C at 2 m) | rain | null
+function precipKind(p,snowCm,t){
+  const pv=fsNum(p);
+  if(pv==null||pv<FS_WET_MM)return null;
+  return fsKindOfShare(fsSnowShare(pv,snowCm,t),fsNum(t));
+}
+// One model, one day: freezing when the day's weather code says so, otherwise by snow share
+function dailyPrecipKind(sum,snowCm,code){
+  const pv=fsNum(sum);
+  if(pv==null||pv<FS_WET_MM)return null;
+  if(FS_FREEZING_CODES.has(fsNum(code)))return 'freezing';
+  const s=fsNum(snowCm);
+  return s==null?null:fsKindOfShare(Math.min(1,s/FS_SNOW_CM_PER_MM/pv),null);
+}
+
 function hourlyConsensus(data,{nowMs=Date.now(),hours=50}={}){
   const models=fsModels(data,'hourly');
   if(!models.length)return {rows:[],models:0,ids:[]};
@@ -56,20 +83,25 @@ function hourlyConsensus(data,{nowMs=Date.now(),hours=50}={}){
   const look=models.map(([id,m])=>({id,h:m.hourly,at:fsAligner(time,m.hourly.time)}));
   const rows=[];
   for(let i=start;i<Math.min(time.length,start+hours);i++){
-    const temps=[],precs=[],clouds=[],probs=[];let wetN=0;
+    const temps=[],precs=[],clouds=[],probs=[],shares=[],wetTemps=[],snows=[];let wetN=0;
     for(const {h,at} of look){
       const j=at(i);if(j<0)continue;
       const tv=fsNum(h.temperature_2m?.[j]);if(tv!=null)temps.push(tv);
-      const pv=fsNum(h.precipitation?.[j]);if(pv!=null){precs.push(pv);if(pv>=FS_WET_MM)wetN++;}
+      const sv=fsNum(h.snowfall?.[j]);if(sv!=null)snows.push(sv);
+      const pv=fsNum(h.precipitation?.[j]);if(pv!=null){precs.push(pv);if(pv>=FS_WET_MM){wetN++;shares.push(fsSnowShare(pv,sv,tv));if(tv!=null)wetTemps.push(tv);}}
       const cv=fsNum(h.cloud_cover?.[j]);if(cv!=null)clouds.push(cv);
       const pr=fsNum(h.precipitation_probability?.[j]);if(pr!=null)probs.push(pr);
     }
     temps.sort((a,b)=>a-b);
+    // Type from the models that have precipitation this hour: their median snow share
+    const p=fsMedian(precs);
     rows.push({
       time:time[i], n:temps.length,
       t:fsMedian(temps), spread:fsTrimmedRange(temps),
-      p:fsMedian(precs), wet:precs.length?wetN/precs.length:null, pn:precs.length,
+      p, wet:precs.length?wetN/precs.length:null, pn:precs.length,
       cloud:fsMedian(clouds), prob:fsMedian(probs),
+      kind:p!=null&&p>=FS_WET_MM&&shares.length?fsKindOfShare(fsMedian(shares),fsMedian(wetTemps)):null,
+      snow:fsMedian(snows),
     });
   }
   return {rows,models:models.length,ids:models.map(([id])=>id),start,time};
@@ -82,7 +114,7 @@ function hourSlots(rows){
   for(let k=0;k+1<rows.length;k++){
     const a=rows[k],b=rows[k+1];
     out.push({time:a.time,end:b.time,n:a.n,t:a.t,spread:a.spread,cloud:a.cloud??b.cloud,
-      p:b.p,wet:b.wet,pn:b.pn,prob:b.prob});
+      p:b.p,wet:b.wet,pn:b.pn,prob:b.prob,kind:b.kind,snow:b.snow});
   }
   return out;
 }
@@ -129,13 +161,16 @@ function dailyConsensus(data,{nowMs=Date.now(),maxDays=10,minModels=3}={}){
   const out=[];
   for(let i=0;i<dates.length&&out.length<maxDays;i++){
     if(dates[i]<today)continue;
-    const mins=[],maxs=[],sums=[],probs=[],clouds=[];
+    const mins=[],maxs=[],sums=[],probs=[],clouds=[],snows=[],shares=[];let wetN=0,freezeN=0;
     for(const {d,at} of look){
       const j=at(i);if(j<0)continue;
       const mx=fsNum(d.temperature_2m_max?.[j]),mn=fsNum(d.temperature_2m_min?.[j]);
       if(mx==null||mn==null)continue;
       maxs.push(mx);mins.push(mn);
       const ps=fsNum(d.precipitation_sum?.[j]);if(ps!=null)sums.push(ps);
+      const sn=fsNum(d.snowfall_sum?.[j]);if(sn!=null)snows.push(sn);
+      const kind=dailyPrecipKind(ps,sn,d.weather_code?.[j]);
+      if(kind){wetN++;if(kind==='freezing')freezeN++;else shares.push(Math.min(1,(sn||0)/FS_SNOW_CM_PER_MM/ps));}
       const pp=fsNum(d.precipitation_probability_max?.[j]);if(pp!=null)probs.push(pp);
       const cc=fsNum(d.cloud_cover_mean?.[j]);if(cc!=null)clouds.push(cc);
     }
@@ -144,6 +179,9 @@ function dailyConsensus(data,{nowMs=Date.now(),maxDays=10,minModels=3}={}){
       tmin:fsMedian(mins),tmax:fsMedian(maxs),lo:Math.min(...mins),hi:Math.max(...maxs),
       precip:fsMedian(sums),prob:fsMedian(probs),cloud:fsMedian(clouds)};
     row.snow=(row.tmin+row.tmax)/2<=FS_SNOW_T;
+    // Snow amount (median of the models, cm) and the type most models agree on
+    row.snowCm=fsMedian(snows);
+    row.kind=!wetN||!(row.precip>=FS_WET_MM)?null:freezeN*2>=wetN?'freezing':shares.length?fsKindOfShare(fsMedian(shares),null):null;
     row.sky=skyKey({cloud:row.cloud,p:row.precip,t:row.snow?0:10,daily:true});
     out.push(row);
   }
@@ -293,7 +331,14 @@ function nearestStationReading(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAg
     if(!Number.isFinite(age)||age>maxAgeMin||age<-15)continue;
     const dist=fsHaversine(lat,lon,+s.lat,+s.lon);
     if(dist>maxKm||(best&&dist>=best.dist))continue;
-    best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time,ageMin:Math.max(0,Math.round(age))};
+    // Snow depth is measured less often: the latest value of the 30 h before the reading
+    let snow=null;
+    for(let i=s.history.length-1;i>=0;i--){
+      const r=s.history[i];
+      if(stationTimeMs(r?.time)<stationTimeMs(h.time)-30*3600000)break;
+      if(fsNum(r?.snowDepth)!=null){snow=+r.snowDepth;break;}
+    }
+    best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time,snow,ageMin:Math.max(0,Math.round(age))};
   }
   return best;
 }
@@ -317,5 +362,5 @@ function stationHourly(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAgeH=6}={}
 }
 
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={hourlyConsensus,hourSlots,sunTimes,isNightAt,skyKey,dailyConsensus,forecastSummary,stationTimeMs,nearestStationReading,stationHourly};
+  module.exports={hourlyConsensus,hourSlots,sunTimes,isNightAt,skyKey,dailyConsensus,forecastSummary,stationTimeMs,nearestStationReading,stationHourly,precipKind,dailyPrecipKind};
 }

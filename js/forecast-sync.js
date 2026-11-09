@@ -80,7 +80,7 @@ function mergeModels(cache,raw,ids,at,runs=null){
   const c=cache||emptyForecast();
   const day=hourly[0].slice(0,10);
   const keep=c.day===day&&fsSameTimes(c.time?.hourly,hourly)&&fsSameTimes(c.time?.daily,daily);
-  const next={...c,day,off:raw.utc_offset_seconds??c.off,time:keep?c.time:{hourly,daily},models:keep?{...c.models}:{}};
+  const next={...c,day,off:raw.utc_offset_seconds??c.off,tz:raw.timezone??c.tz,time:keep?c.time:{hourly,daily},models:keep?{...c.models}:{}};
   const single=ids.length===1;
   for(const id of ids){
     const h=fsModelBlock(raw.hourly,id,single);
@@ -95,7 +95,7 @@ function mergeNow(cache,raw,at){
   const d=raw?.daily;
   if(!raw?.current||!Array.isArray(d?.time)||!d.time.length)throw new Error('Unexpected current answer');
   const c=cache||emptyForecast();
-  return {...c,off:raw.utc_offset_seconds??c.off,now:{at,day:d.time[0],current:raw.current,time:d.time,sunrise:d.sunrise,sunset:d.sunset}};
+  return {...c,off:raw.utc_offset_seconds??c.off,tz:raw.timezone??c.tz,now:{at,day:d.time[0],current:raw.current,time:d.time,sunrise:d.sunrise,sunset:d.sunset}};
 }
 
 // Daily maximum of an hourly series per local day (Open-Meteo's own daily values are the same
@@ -110,6 +110,16 @@ function fsDailyMax(hourlyTime,values,dailyTime){
   return dailyTime.map(d=>byDay.has(d)?byDay.get(d):null);
 }
 
+// Daily sum of an hourly series per local day (snowfall: Open-Meteo sums its daily values so)
+function fsDailySum(hourlyTime,values,dailyTime){
+  const byDay=new Map();
+  hourlyTime.forEach((time,i)=>{
+    const v=values[i];if(v==null)return;
+    const d=time.slice(0,10);byDay.set(d,(byDay.get(d)||0)+v);
+  });
+  return dailyTime.map(d=>byDay.has(d)?Math.round(byDay.get(d)*100)/100:null);
+}
+
 // The saved copy as S.data, models in the given order. The "now" values and sunrise/sunset go
 // where the app has always read them: the first model's current block and daily arrays.
 function forecastData(cache,ids){
@@ -120,6 +130,7 @@ function forecastData(cache,ids){
     if(!e||e.absent)continue;
     const daily={time:cache.time.daily,...e.daily};
     if(Array.isArray(e.hourly.wind_gusts_10m))daily.wind_gusts_10m_max=fsDailyMax(cache.time.hourly,e.hourly.wind_gusts_10m,cache.time.daily);
+    if(Array.isArray(e.hourly.snowfall))daily.snowfall_sum=fsDailySum(cache.time.hourly,e.hourly.snowfall,cache.time.daily);
     out[id]={hourly:{time:cache.time.hourly,...e.hourly},daily,utcOffset:cache.off||0,at:e.at,run:e.run??null};
   }
   const first=Object.values(out)[0],n=cache.now;
@@ -138,4 +149,4 @@ function forecastTs(cache){
   return times.length?Math.max(...times):0;
 }
 
-if(typeof module!=='undefined')module.exports={forecastPlan,fsRunOf,mergeModels,mergeNow,forecastData,forecastTs,emptyForecast,fsDailyMax,fsLocalDay,fsInEurope,FS_NOW_EVERY,FS_FALLBACK_EVERY,FS_RUN_SETTLE,FS_RUNS_MAX_AGE,FS_ABSENT_RECHECK};
+if(typeof module!=='undefined')module.exports={forecastPlan,fsRunOf,mergeModels,mergeNow,forecastData,forecastTs,emptyForecast,fsDailyMax,fsDailySum,fsLocalDay,fsInEurope,FS_NOW_EVERY,FS_FALLBACK_EVERY,FS_RUN_SETTLE,FS_RUNS_MAX_AGE,FS_ABSENT_RECHECK};

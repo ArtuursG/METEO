@@ -48,6 +48,10 @@ $('themeToggle').addEventListener('click',()=>{
   setTheme(cur==='light'?'dark':'light');
 });
 $('langToggle').addEventListener('click',()=>setLang(LANG==='lv'?'en':'lv'));
+// Laiki vietējā laikā vai UTC (chart-time.js); tā pati pārzīmēšana kā valodas maiņai
+const syncUtcToggle=()=>$('utcToggle').setAttribute('aria-pressed',String(TIME_UTC));
+$('utcToggle').addEventListener('click',()=>{setTimeUtc(!TIME_UTC);syncUtcToggle();renderPage();});
+syncUtcToggle();
 renderThemeIcon();
 
 // setLang (i18n.js) izsauc šo pēc statisko [data-i18n] tekstu nomaiņas

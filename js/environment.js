@@ -22,7 +22,7 @@ function environmentLabels(){
 function environmentFreshness(data,maxAge){
  const at=Date.parse(data?.fetchedAt),stale=!Number.isFinite(at)||Date.now()-at>maxAge;
  const p=envNode('p',Number.isFinite(at)?t('env.updated',{age:fmtAge(at)}):t('env.outdated'),'env-fresh'+(stale?' is-stale':''));
- if(Number.isFinite(at))p.title=new Date(at).toLocaleString(LOCALE)+(stale?' · '+t('env.outdated'):'');
+ if(Number.isFinite(at))p.title=new Date(at).toLocaleString(LOCALE,clockZone())+utcMark()+(stale?' · '+t('env.outdated'):'');
  return p;
 }
 // Title row: heading on the left, data age on the right
@@ -43,10 +43,11 @@ function envMetric(label,value,unit,level,levelText){
  if(levelText)card.append(envNode('em',levelText));
  return card;
 }
-// "šodien 14:10", "rīt 04:56", else "6. okt. 14:10" (Riga time like the rest of the site)
+// "šodien 14:10", "rīt 04:56", else "6. okt. 14:10" (Riga time like the rest of the site, or UTC)
 function envWhen(ms){
- const ymd=v=>new Date(v).toLocaleDateString('en-CA',{timeZone:'Europe/Riga'});
- const time=new Date(ms).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Riga'});
+ const timeZone=TIME_UTC?'UTC':'Europe/Riga';
+ const ymd=v=>new Date(v).toLocaleDateString('en-CA',{timeZone});
+ const time=new Date(ms).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit',timeZone})+utcMark();
  return ymd(ms)===ymd(Date.now())?t('today.day_today')+' '+time:ymd(ms)===ymd(Date.now()+864e5)?t('today.day_tomorrow')+' '+time:fmtClock(ms);
 }
 // "2 h" / "40 min" until a moment
@@ -57,10 +58,10 @@ function envChart(id,labels,datasets,unit='',{type='line',legend=true,yMax}={}){
  canvas.setAttribute('aria-label',datasets.map(d=>d.label).join(', ')+(unit?' · '+unit:''));
  const wrap=envNode('div',null,'env-chart');wrap.append(canvas);$('environmentContent').append(wrap);
  const cd=CD();
- S.charts.environment=new Chart(canvas,{type,data:{labels:labels.map(t=>chartTimeLabel(t,LOCALE)),datasets:datasets.map(d=>({tension:.25,pointHoverRadius:5,pointHitRadius:16,spanGaps:false,...d}))},
+ S.charts.environment=new Chart(canvas,{type,data:{labels:labels.map(t=>chartTimeLabel(t,LOCALE,'Europe/Riga')),datasets:datasets.map(d=>({tension:.25,pointHoverRadius:5,pointHitRadius:16,spanGaps:false,...d}))},
   options:{...cd,layout:{padding:8},scales:{...cd.scales,x:{...cd.scales.x,grid:{display:false},ticks:{...cd.scales.x.ticks,maxTicksLimit:window.innerWidth<600?4:8}},
    y:{...cd.scales.y,beginAtZero:type==='bar',...(yMax!=null?{max:yMax}:{}),title:{display:!!unit,text:unit,color:cssVar('--t2')}}},
-   plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{title:items=>items.length?chartTimeTitle(labels[items[0].dataIndex],LOCALE):''}},
+   plugins:{...cd.plugins,tooltip:{...cd.plugins.tooltip,callbacks:{title:items=>items.length?chartTimeTitle(labels[items[0].dataIndex],LOCALE,'Europe/Riga'):''}},
     legend:{display:legend,labels:{color:cssVar('--t2'),usePointStyle:true,pointStyle:'line',boxWidth:24,padding:16}}}}});
  return wrap;
 }

@@ -1,14 +1,22 @@
 # Changelog
 
-## v2.1.1 - 2026-11-09
+## v2.2.0 - 2026-11-09
 
-Security fixes.
+Winter and synoptic additions, and security fixes.
+
+- UTC time: a "UTC" button in the header of every page shows all clock times in UTC instead of local time: the charts, the hourly strip, station readings, the radar, cloud and sea timelines, warnings and the station pages. Forecast wall-clock times convert with the place's time zone, summer time included; days and dates stay local.
+- Precipitation type from every model's hourly snowfall: snow, sleet, rain, or freezing when liquid at 0 °C or below. The hourly strip and a single model's precipitation bars are coloured by it, the daily table names it with the snow amount, and the Today list shows the snow amount or "sasalst". A new place costs about 27 Open-Meteo calls instead of 25.
+- Snow depth: the nearest station line in the now block adds it when there is snow, and the station table gets a snow column while some station reports snow; popups and the phone list show it too.
+- The now block names the ECMWF run its values come from ("ECMWF IFS 00 UTC").
+- The service worker keeps one copy of each page instead of one per address (?lat=..&city=..), so visiting many places no longer fills the browser storage.
+
+Security:
 
 - A shared link could put markup into the page: the city name (`?city=`) on the warnings map and the station name (`?name=`) on the station pages went into Leaflet tooltips as HTML. They now go in as text, as do the warning titles on the map. A test keeps every Leaflet tooltip and popup on DOM nodes.
 - Every page has a Content-Security-Policy that allows only the sources the site uses and no inline scripts except the hashed theme script, so injected code would not run even if another hole appeared. The inline button handlers and the service worker registration moved into `app.js`.
 - The Windy/Ventusky map runs in a sandboxed frame and cannot navigate the page; WhatsApp and Telegram share windows open without a handle on the page (`noopener`).
 - CI runs with a read-only token and checks the `DEV-Meteo` branch; the LVC worker no longer puts internal error text in its answers.
-- The development branch is now `DEV-Meteo`.
+- The development branch is now `DEV-Meteo` (`dev` stays for later).
 
 ## v2.1.0 - 2026-10-09
 

@@ -118,6 +118,16 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
       atvērta lapa ~1900 -> ~300 izsaukumi dienā).
 - [x] Modeļu precizitāte kešota 6 h, tā mainās lēni.
 
+## 11. Ziemai un sinoptiķiem, drošība (2.2.0)
+
+- [x] UTC poga galvenē: visi pulksteņa laiki UTC (grafiki, stundas, stacijas, radars, brīdinājumi).
+- [x] Nokrišņu veids (sniegs, slapjš sniegs, lietus, sasalstoši) stundās, dienās un nokrišņu grafikā.
+- [x] Sniega sega pie tuvākās stacijas un staciju tabulā, kad kaut kur ir sniegs.
+- [x] ECMWF aprēķins "tagad" blokā; service worker glabā katru lapu vienreiz.
+- [x] Drošība: saites teksts Leaflet paskaidrojumos kā teksts, Content-Security-Policy, iframe sandbox.
+- [ ] Brīdinājumu apgabali uz radara kartes.
+- [ ] Spiediens jūras līmenī ar tendenci.
+
 ## Vēlāk
 
 - EUMETNET OPERA radars (CC BY 4.0, 1 km / 5 min). Dati nāk kā faili, nevis kartes

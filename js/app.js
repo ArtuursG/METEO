@@ -188,6 +188,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderDat
 $('searchBtn')?.addEventListener('click',()=>searchCity());
 $('locateBtn')?.addEventListener('click',()=>locateMe());
 $('langToggle')?.addEventListener('click',()=>setLang(LANG==='lv'?'en':'lv'));
+// Clock times local or UTC: the same redraw as a language change
+const syncUtcToggle=()=>$('utcToggle')?.setAttribute('aria-pressed',String(TIME_UTC));
+$('utcToggle')?.addEventListener('click',()=>{setTimeUtc(!TIME_UTC);syncUtcToggle();relangUI();renderDataAge();});
+syncUtcToggle();
 $('themeToggle')?.addEventListener('click',()=>toggleTheme());
 $('favBtn')?.addEventListener('click',()=>toggleFav(S.geo));
 $('shareWa')?.addEventListener('click',()=>shareWA());

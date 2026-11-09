@@ -1,9 +1,9 @@
-const CACHE = 'prognoze-v51';
+const CACHE = 'prognoze-v52';
 const SHELL = [
   './',
   './index.html',
   './style.css',
-  './style.css?v=51',
+  './style.css?v=52',
   './js/i18n.js',
   './js/pure.js',
   './js/chart-time.js',
@@ -32,7 +32,7 @@ const SHELL = [
   './js/timeline.js',
   './js/cloud-map.js',
   './favicon.svg',
-].map(path=>path.startsWith('./js/')?path+'?v=51':path);
+].map(path=>path.startsWith('./js/')?path+'?v=52':path);
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -62,16 +62,18 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // HTML: network-first so new deploys load immediately
+  // HTML: network-first so new deploys load immediately. Saved once per page, without the
+  // query (?lat=..&city=..), so visiting many places does not pile up copies of the same page
   if (e.request.mode === 'navigate') {
+    const page = new URL(url); page.search = ''; page.hash = '';
     e.respondWith(
       fetch(e.request)
         .then(r => {
           // Clone synchronously before caches.open() - body can't be cloned after respondWith streams it
-          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(page.href, clone)); }
           return r;
         })
-        .catch(async () => (await caches.match(e.request)) || (await caches.match(new URL('./index.html',self.registration.scope).href)) || Response.error())
+        .catch(async () => (await caches.match(page.href)) || (await caches.match(new URL('./index.html',self.registration.scope).href)) || Response.error())
     );
     return;
   }

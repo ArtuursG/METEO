@@ -34,6 +34,7 @@ async function renderNearestStation(){
     if(!r){el.hidden=true;return;}
     el.hidden=false;
     el.textContent=t('today.station',{name:r.name,km:fmtNum(r.dist,r.dist<10?1:0),temp:fmtTemp(r.temp,1),
+      snow:r.snow>0?', '+t('today.snow',{n:fmtNum(r.snow,r.snow<10?1:0)}):'',
       ago:r.ageMin<1?t('reltime.just_now'):t('reltime.min_ago',{n:r.ageMin})});
   };
   if(!nearLatvia()||typeof ensureLvgmcStations!=='function'){show(null);return;}
@@ -123,9 +124,9 @@ function pruneSnapshots(){
   drop.forEach(k=>localStorage.removeItem(k));
 }
 
-// "07:10", "vakar 18:40", else the weekday (the visitor's own clock)
+// "07:10", "vakar 18:40", else the weekday (the visitor's own clock, or UTC)
 function sinceText(ts){
-  const d=new Date(ts),time=d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+  const d=new Date(ts),time=d.toLocaleTimeString(LOCALE,{...clockZone(),hour:'2-digit',minute:'2-digit'})+utcMark();
   const days=Math.round((new Date().setHours(0,0,0,0)-new Date(ts).setHours(0,0,0,0))/864e5);
   if(days<=0)return t('today.since_today',{time});
   if(days===1)return t('today.since_yesterday',{time});
@@ -185,16 +186,20 @@ function renderHours(){
     cell.className='hr'+(k===0?' hr-now':'');
     cell.setAttribute('role','listitem');
     const time=document.createElement('span');time.className='hr-time';
-    time.textContent=k===0?t('today.now'):s.time.slice(11,13);
+    // The hour in local or UTC (chart-time.js); the slot keys stay the place's wall clock
+    const clock=chartTimeLabel(s.time,LOCALE)[1];
+    time.textContent=k===0?t('today.now'):clock.slice(0,2);
     const icon=document.createElement('span');icon.className='wi wi-'+(key||'none');icon.innerHTML=iconFor(key);
     const temp=document.createElement('span');temp.className='hr-temp mono';temp.textContent=fmtTemp(s.t);
     const bar=document.createElement('span');bar.className='hr-bar';
     const fill=document.createElement('i');fill.style.height=s.p>0?Math.max(2,Math.min(18,s.p*9))+'px':'0';
+    // Snow, sleet or freezing precipitation get their own colour (models' median, hourlyConsensus)
+    if(s.kind&&s.kind!=='rain'){fill.className='is-'+s.kind;bar.title=t('pk.'+s.kind);}
     bar.append(fill);
     const prob=document.createElement('span');prob.className='hr-prob mono';
     prob.textContent=s.prob!=null&&s.prob>=20?Math.round(s.prob)+'%':'';
     cell.append(time,icon,temp,bar,prob);
-    cell.setAttribute('aria-label',`${k===0?t('today.now'):s.time.slice(11,16)}: ${fmtTemp(s.t)}${key?', '+t('wx.'+key):''}${prob.textContent?', '+t('today.prob_aria',{n:prob.textContent}):''}`);
+    cell.setAttribute('aria-label',`${k===0?t('today.now'):clock+utcMark()}: ${fmtTemp(s.t)}${key?', '+t('wx.'+key):''}${s.kind&&s.kind!=='rain'?', '+t('pk.'+s.kind):''}${prob.textContent?', '+t('today.prob_aria',{n:prob.textContent}):''}`);
     wrap.append(cell);
   });
 }
@@ -222,6 +227,14 @@ function renderDays(){
     const icon=document.createElement('span');icon.className='wi wi-'+(d.sky||'none');icon.innerHTML=iconFor(d.sky);
     const prob=document.createElement('span');prob.className='day-prob mono';
     prob.textContent=d.prob!=null&&d.prob>=20?Math.round(d.prob)+'%':'';
+    // Snow amount (its colour says snow or sleet), or freezing precipitation, under the chance
+    // (models' median, dailyConsensus); the full words in the title
+    const cm=d.snowCm>=0.5&&(d.kind==='snow'||d.kind==='mixed')?fmtNum(d.snowCm,d.snowCm<10?1:0):null;
+    if(d.kind==='freezing'||cm){
+      const tag=Object.assign(document.createElement('small'),{className:'pk-tag is-'+d.kind,textContent:cm?cm+' cm':t('pk.freezing_short')});
+      tag.title=cm?t('pk.'+d.kind)+', '+t('pk.snow_cm',{n:cm}):t('pk.freezing');
+      prob.append(tag);
+    }
     const mn=document.createElement('span');mn.className='day-min mono';mn.textContent=fmtTemp(d.tmin);
     const bar=document.createElement('span');bar.className='day-bar';
     const spread=document.createElement('i');spread.className='day-spread';

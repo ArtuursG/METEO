@@ -121,13 +121,14 @@ function fmtAge(ms,now=Date.now()){
   const h=Math.floor(total/60),m=total%60;
   return h>=6||m===0?t('rad.age_h',{h}):t('rad.age_hm',{h,m});
 }
-// 14:10, or "6. okt. 14:10" when not today
-function fmtClock(ms){
+// 14:10, or "6. okt. 14:10" when not today; in UTC with " UTC" (mark=false where space is
+// short: timeline ticks and the label by the slider)
+function fmtClock(ms,mark=true){
   if(!Number.isFinite(ms))return '-';
-  const d=new Date(ms),now=new Date();
-  const hm=d.toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
-  if(d.toDateString()===now.toDateString())return hm;
-  return d.toLocaleDateString(LOCALE,{day:'numeric',month:'short'})+' '+hm;
+  const zone=clockZone(),d=new Date(ms),day=x=>x.toLocaleDateString('en-CA',zone);
+  const hm=d.toLocaleTimeString(LOCALE,{...zone,hour:'2-digit',minute:'2-digit'});
+  const text=day(d)===day(new Date())?hm:d.toLocaleDateString(LOCALE,{...zone,day:'numeric',month:'short'})+' '+hm;
+  return mark?text+utcMark():text;
 }
 
 const MAP_ICONS={

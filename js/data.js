@@ -35,7 +35,9 @@ let _srcModel='';
 function renderDataAge(){
   if(!S.dataTs)return;
   const srcEl=$('metricsSrc');
-  if(srcEl)srcEl.textContent=t('today.src',{model:_srcModel,ago:relTime(S.dataTs)});
+  // The run of the model the now values come from, when it is known (charts.js modelRun)
+  const run=_srcModel==='ECMWF IFS'&&typeof modelRun==='function'?fmtRunShort(modelRun('ecmwf_ifs025')):'';
+  if(srcEl)srcEl.textContent=t('today.src',{model:_srcModel+(run?' '+run:''),ago:relTime(S.dataTs)});
   if($('lastUpdate'))$('lastUpdate').textContent=`${t('metric.updated_prefix')} ${relTime(S.dataTs)}`;
 }
 
@@ -68,7 +70,8 @@ function updateMetrics(){
   if(typeof renderToday==='function')renderToday();
   // Sunrise/sunset times are in the daily[0] slot as ISO strings with local timezone offset
   if(ecmwf.daily?.sunrise?.[0]&&ecmwf.daily?.sunset?.[0]){
-    const fmt=iso=>new Date(iso).toLocaleTimeString(LOCALE,{hour:'2-digit',minute:'2-digit'});
+    // Wall-clock times of the place, or UTC (chart-time.js)
+    const fmt=iso=>chartTimeLabel(iso,LOCALE)[1];
     const rise=fmt(ecmwf.daily.sunrise[0]),set=fmt(ecmwf.daily.sunset[0]);
     const sunEl=$('heroSun');
     const moon=moonPhaseInfo();
@@ -90,11 +93,11 @@ function updateMetrics(){
 // models outside their area are left out of the answer.
 const FC_URL='https://api.open-meteo.com/v1/forecast';
 const FC_NOW='temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,precipitation,wind_gusts_10m,snowfall';
-// Gusts only hourly: their daily maximum is worked out from them (forecast-sync.js)
-const FC_HOURLY='temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,cloud_cover,uv_index';
+// Gusts and snowfall only hourly: their daily maximum and sum are worked out from them (forecast-sync.js)
+const FC_HOURLY='temperature_2m,precipitation,snowfall,precipitation_probability,wind_speed_10m,wind_gusts_10m,cloud_cover,uv_index';
 const FC_DAILY='temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,relative_humidity_2m_mean,weather_code,cloud_cover_mean';
 // The prefix changes with the requested variables, so a saved copy always has all of them
-const FC_PFX='wx9_',FC_PLACES=FC_PFX+'places',FC_KEEP_PLACES=6;
+const FC_PFX='wx10_',FC_PLACES=FC_PFX+'places',FC_KEEP_PLACES=6;
 const fcKey=(lat,lon)=>`${FC_PFX}${lat.toFixed(3)}_${lon.toFixed(3)}`;
 const fcModelIds=()=>MODELS.map(m=>m.id);
 let _fc={key:null,cache:null},_fcFails=0,_fcFailedAt=0;
@@ -177,7 +180,7 @@ async function syncForecast(lat,lon,signal,{force=false}={}){
   const ts=forecastTs(view);
   // No network: a saved forecast stands in for up to CACHE_KEEP (its age is shown)
   if(!Object.keys(data).length||(failed.length&&Date.now()-ts>CACHE_KEEP))throw failed[0]||new Error('No forecast');
-  return {key,data,ts,modelsChanged};
+  return {key,data,ts,modelsChanged,tz:view.tz||null};
 }
 
 // Loads the forecast (only what changed, see above) and redraws what depends on it
@@ -224,6 +227,8 @@ async function loadAll({quiet=false}={}){
   S.data=fresh;
   S.dataTs=fetched.ts;
   S.dataKey=fetched.key;
+  // The place's time zone: its wall-clock times convert to UTC with it (chart-time.js)
+  if(fetched.tz)PLACE_ZONE=fetched.tz;
   updateMetrics();
   if(nowOnly)return true;
   // Snapshots for the "forecast changed" line come only from models fresh from the API

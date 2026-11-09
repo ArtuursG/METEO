@@ -28,6 +28,7 @@
   --chart-tip-body:#b4b3a9;
   --sun:#e9b85a;          /* weather accents: sunny icon, rain marks, status dots */
   --rain:#6aa2f0;
+  --pk-snow:#e3ebf6;--pk-snow-ink:#dbe5f3;--pk-mixed:#b48ef0;--pk-freezing:#f2708f;
   --ok:#5bbf8c;
   --warn:#e0a948;
   --bad:#e06a62;
@@ -61,6 +62,7 @@
   --chart-tip-body:#56544c;
   --sun:#c98a12;
   --rain:#2f6fd1;
+  --pk-snow:#8aa3c4;--pk-snow-ink:#4f6b91;--pk-mixed:#7f52cc;--pk-freezing:#cf3b62;
   --ok:#2f9a66;
   --warn:#b7791f;
   --bad:#c2453d;
@@ -115,6 +117,10 @@ header{
 .tt svg{width:17px;height:17px}
 #langToggle{font-size:12px;font-weight:600;letter-spacing:.5px;font-family:'IBM Plex Mono',ui-monospace,monospace}
 #langToggle+.tt{margin-left:0}
+/* Clock times in UTC: sits left of the language button, lit while on */
+#utcToggle{font-size:11px;font-weight:600;letter-spacing:.3px;font-family:'IBM Plex Mono',ui-monospace,monospace}
+#utcToggle+.tt{margin-left:0}
+#utcToggle[aria-pressed=true]{color:var(--t);border-color:var(--acc);background:var(--acc-soft)}
 .tt:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 .city-drop{position:absolute;top:calc(100% + 8px);left:0;min-width:100%;background:var(--panel);border:1px solid var(--b2);border-radius:10px;z-index:200;overflow:hidden;box-shadow:0 12px 38px rgba(0,0,0,.4);display:none}
@@ -559,10 +565,21 @@ footer a:hover{text-decoration:underline}
 .hr-temp{font-size:14px}
 .hr-bar{height:18px;width:12px;display:flex;align-items:flex-end;justify-content:center}
 .hr-bar i{display:block;width:8px;border-radius:2px 2px 0 0;background:var(--rain);opacity:.8}
+/* Precipitation type: snow, sleet, freezing (forecast-summary.js precipKind) */
+.hr-bar i.is-snow{background:var(--pk-snow);opacity:1}
+.hr-bar i.is-mixed{background:var(--pk-mixed)}
+.hr-bar i.is-freezing{background:var(--pk-freezing)}
+.pk-tag{display:inline-block;margin-left:6px;font-size:11px;white-space:nowrap}
+.pk-tag.is-snow{color:var(--pk-snow-ink)}
+.pk-tag.is-mixed{color:var(--pk-mixed)}
+.pk-tag.is-freezing{color:var(--pk-freezing)}
+/* In the daily table the type goes on a second line, so the column does not widen */
+.ft-precip .pk-tag{display:block;margin:2px 0 0;font-family:inherit}
+.day-prob small{display:block;margin-left:0;font-size:10.5px;line-height:1.2;white-space:nowrap}
 .hr-prob{font-size:10.5px;color:var(--rain);min-height:15px}
 
 .days{display:flex;flex-direction:column}
-.day{display:grid;grid-template-columns:88px 28px 40px 44px minmax(60px,1fr) 44px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.day{display:grid;grid-template-columns:88px 28px 52px 44px minmax(60px,1fr) 44px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .day:last-child{border-bottom:0}
 .day-name{font-size:14px;font-weight:500;display:flex;align-items:baseline;gap:6px}
 .day-name small{font-size:11px;font-weight:400;color:var(--t3);font-family:'IBM Plex Mono',ui-monospace,monospace}
@@ -586,7 +603,7 @@ footer a:hover{text-decoration:underline}
  .now-temp{font-size:48px}
  .now-facts{grid-column:1;grid-row:auto;padding:12px 0 0;border-left:0;border-top:1px solid var(--line);margin-top:10px}
  .now-src{text-align:left}
- .day{grid-template-columns:62px 24px 34px 34px minmax(40px,1fr) 34px;gap:7px}
+ .day{grid-template-columns:62px 24px 44px 34px minmax(40px,1fr) 34px;gap:7px}
  .day-name{flex-direction:column;gap:0;font-size:13.5px}
  .hr{flex-basis:48px}
 }
@@ -761,6 +778,7 @@ footer a:hover{text-decoration:underline}
 .st-search input{flex:1;min-width:0;padding:0;background:none;border:0;outline:0;color:var(--t);font:inherit;font-size:14px}
 .st-search input::placeholder{color:var(--t3)}
 .st-count{font:11px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--t3);font-variant-numeric:tabular-nums}
+#stationTable:not(.has-snow) .st-col-snow,#stationTable:not(.has-snow) .st-c-snow{display:none}
 /* The same network buttons as on the map, in a group like the map's */
 .st-nets{display:inline-flex;gap:3px;padding:3px;background:var(--panel);border:1px solid var(--b2);border-radius:10px}
 .st-check{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--t2);cursor:pointer}

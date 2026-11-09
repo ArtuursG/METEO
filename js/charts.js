@@ -180,6 +180,12 @@ function modelRun(id){
   const runs=typeof homeRuns==='function'&&fsInEurope(S.lat,S.lon)?homeRuns():null;
   return fsRunOf(runs,id,d.at,Date.now());
 }
+// "00 UTC", with the date when the run is not from today (UTC)
+function fmtRunShort(init){
+  if(!Number.isFinite(init))return '';
+  const d=new Date(init*1000),hh=String(d.getUTCHours()).padStart(2,'0')+' UTC';
+  return d.toISOString().slice(0,10)===new Date().toISOString().slice(0,10)?hh:d.toLocaleDateString(LOCALE,{day:'numeric',month:'short',timeZone:'UTC'})+' '+hh;
+}
 const runText=id=>{const r=modelRun(id);return Number.isFinite(r)?t('models.run',{run:fmtRun(r)}):'';};
 
 function buildModelInfo(){
@@ -467,11 +473,21 @@ function buildPrecipCharts(){
   showChart('loadP','cP');
   if(S.charts.precip)S.charts.precip.destroy();
 
+  // Precipitation type per hour and model (forecast-summary.js precipKind): a single model's
+  // bars are coloured by it, and the tooltip names it for any model
+  const kindsOf=id=>{const h=S.data[id].hourly;return (h.precipitation||[]).map((p,i)=>precipKind(p,h.snowfall?.[i],h.temperature_2m?.[i]));};
+  const kindColor=k=>k&&k!=='rain'?cssVar('--pk-'+k):null;
   const datasets=multi
-    ? active.map(m=>({label:m.name,data:S.data[m.id].hourly.precipitation,borderColor:m.color,backgroundColor:m.color+'30',borderWidth:1.5,pointRadius:0,tension:0.3,fill:true}))
+    ? active.map(m=>({label:m.name,data:S.data[m.id].hourly.precipitation,borderColor:m.color,backgroundColor:m.color+'30',borderWidth:1.5,pointRadius:0,tension:0.3,fill:true,_kinds:kindsOf(m.id)}))
     : active.length===1
-      ? [{label:active[0].name,data:S.data[active[0].id].hourly.precipitation||[],backgroundColor:active[0].color+'8c',borderColor:active[0].color,borderWidth:0,borderRadius:2}]
+      ? (()=>{const k=kindsOf(active[0].id);return [{label:active[0].name,data:S.data[active[0].id].hourly.precipitation||[],
+          backgroundColor:k.map(x=>kindColor(x)||active[0].color+'8c'),borderColor:active[0].color,borderWidth:0,borderRadius:2,_kinds:k}];})()
       : [];
+  const note=$('precipKinds');
+  if(note){
+    const any=datasets.some(d=>d._kinds.some(k=>k&&k!=='rain'));
+    note.hidden=!any;note.textContent=any?t(multi?'chart.pk_note_multi':'chart.pk_note'):'';
+  }
 
   S.charts.precip=new Chart($('cP'),{
     type:multi?'line':'bar',
@@ -482,7 +498,7 @@ function buildPrecipCharts(){
       },
       plugins:{...chartDefaults.plugins,tooltip:{...chartDefaults.plugins.tooltip,callbacks:{
         title:items=>fmtTooltipTitle(base.hourly.time,items[0].dataIndex),
-        label:c=>` ${c.dataset.label}: ${fmtNum(c.parsed.y,1)} mm`
+        label:c=>{const k=c.dataset._kinds?.[c.dataIndex];return ` ${c.dataset.label}: ${fmtNum(c.parsed.y,1)} mm${k&&k!=='rain'?' · '+t('pk.'+k):''}`;}
       }}}
     }
   });
@@ -692,7 +708,7 @@ function buildTable(){
   const src=S.data[id];
   if(!src?.daily?.time)return;
   const {time,temperature_2m_max:tmax,temperature_2m_min:tmin,precipitation_sum:ps,
-         precipitation_probability_max:ppm,wind_speed_10m_max:wmax,wind_gusts_10m_max:gmax,
+         precipitation_probability_max:ppm,wind_speed_10m_max:wmax,wind_gusts_10m_max:gmax,snowfall_sum:snow,
          relative_humidity_2m_mean:rh,weather_code:wc,cloud_cover_mean:cc}=src.daily;
   const tbody=$('tBody');
   tbody.replaceChildren();
@@ -716,6 +732,12 @@ function buildTable(){
     if(ps?.[i]!=null){
       const bar=document.createElement('i');bar.style.width=Math.max(ps[i]>0?3:0,Math.round(ps[i]/pMax*46))+'px';
       pr.append(bar,document.createTextNode((ps[i]>0?fmtNum(ps[i],1):'0')+' mm'));
+      // Snow (with its amount), sleet or freezing precipitation; rain needs no word
+      const kind=dailyPrecipKind(ps[i],snow?.[i],wc?.[i]);
+      if(kind&&kind!=='rain'){
+        const text=kind==='snow'&&snow?.[i]>=0.1?t('pk.snow_cm',{n:fmtNum(snow[i],snow[i]<10?1:0)}):t('pk.'+kind);
+        pr.append(Object.assign(document.createElement('span'),{className:'pk-tag is-'+kind,textContent:text}));
+      }
     }else pr.textContent='-';
     tr.append(day,wx,pill(tmin?.[i]),pill(tmax?.[i]),pr,
       td('ft-num',ppm?.[i]!=null?r0(ppm[i])+'%':'-'),

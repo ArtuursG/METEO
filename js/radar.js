@@ -85,6 +85,7 @@ function lvcRow(s){
     cond:s.roadCondition||null,
     // prevTime/prevAirTemp come from the worker; older worker versions do not send them
     trend:tempTrend(air,time,s.prevAirTemp,s.prevTime),
+    snow:radarNum(s.snowDepthM)==null?null:Math.round(s.snowDepthM*1000)/10,
     // Synoptic night minimum and day maximum, worked out by the worker from its 15 min readings;
     // prev: the period before, while the current one has no readings yet
     nightMin:radarNum(s.nightMin),nightPrev:!!s.nightPrev,dayMax:radarNum(s.dayMax),dayPrev:!!s.dayPrev,dist:null};
@@ -107,6 +108,13 @@ function lvgmcRow(s){
     return {t:parseStationTime(h.time),lo:lo.length?Math.min(...lo):null,hi:hi.length?Math.max(...hi):null};
   });
   const spark=day.map(h=>({t:parseStationTime(h.time),v:radarNum(h.airTemp)})).filter(p=>Number.isFinite(p.t)&&p.v!=null);
+  // Snow depth is measured less often than the hourly readings: the latest value of the last 30 h
+  let snow=null;
+  for(let i=hist.length-1;i>=0;i--){
+    const at=parseStationTime(hist[i].time);
+    if(Number.isFinite(time)&&at<time-30*3600000)break;
+    if(radarNum(hist[i].snowDepth)!=null){snow=radarNum(hist[i].snowDepth);break;}
+  }
   const prev=prevReading(hist,time);
   return {key:'lvgmc:'+s.id,net:'lvgmc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
     time,airTemp:radarNum(reading.airTemp),feelsLike:radarNum(reading.feelsLike),surfaceTemp:null,
@@ -114,7 +122,7 @@ function lvgmcRow(s){
     precip:radarNum(reading.precipHour),humidity:radarNum(reading.humidity),pressure:radarNum(reading.pressure),
     visibility:radarNum(reading.visibility),uv:radarNum(reading.uv),cond:null,
     trend:prev?tempTrend(reading.airTemp,time,prev.airTemp,prev.time):null,
-    ...stationExtremes(samples,per),spark,dist:null};
+    ...stationExtremes(samples,per),snow,spark,dist:null};
 }
 
 function fetchStationJson(url){
@@ -285,7 +293,7 @@ function buildRadarMap(){
 
   R.timeline=createTimeline({
     baseDelay:600,
-    formatTime:fmtClock,
+    formatTime:ms=>fmtClock(ms,false),
     formatValue:ms=>fmtClock(ms)+', '+fmtAge(ms),
     onChange:i=>{R.followLatest=i===R.frames.length-1;showRadarFrame(i);},
   });
@@ -734,6 +742,7 @@ function stationPopup(row){
     ['station.wind',wind(row)],
     ['station.gust',row.windGust==null?null:fmtNum(row.windGust,1)+' m/s',true],
     ['station.precip',row.precip==null?null:fmtNum(row.precip,1)+' mm/h'],
+    ['station.snow',row.snow>0?fmtNum(row.snow,row.snow<10?1:0)+' cm':null],
     ['station.visibility',row.visibility==null?null:fmtNum(row.visibility/1000,1)+' km',true],
   ]:[
     ['station.air_t',air],
@@ -743,6 +752,7 @@ function stationPopup(row){
     ['station.humidity',row.humidity==null?null:fmtNum(row.humidity,0)+'%'],
     ['station.pressure',row.pressure==null?null:fmtNum(row.pressure,1)+' hPa',true],
     ['station.precip_h',row.precip==null?null:fmtNum(row.precip,1)+' mm'],
+    ['station.snow',row.snow>0?fmtNum(row.snow,row.snow<10?1:0)+' cm':null],
     ['station.visibility',row.visibility==null?null:fmtNum(row.visibility/1000,1)+' km',true],
     ['station.uv',row.uv==null?null:fmtNum(row.uv,0),true],
   ];
@@ -827,6 +837,8 @@ const ST_COLUMNS=[
   {key:'road',label:'st.col_road',title:'st.col_road_title',by:'st.by_road',dir:1,get:r=>r.surfaceTemp,num:true},
   {key:'wind',label:'st.col_wind',title:'st.col_wind_title',by:'st.by_wind',dir:-1,get:r=>r.windSpeed},
   {key:'precip',label:'st.col_precip',title:'st.col_precip_title',by:'st.by_precip',dir:-1,get:r=>r.precip,num:true},
+  // Shown only while some station reports snow (renderStationTable sets has-snow)
+  {key:'snow',label:'st.col_snow',title:'st.col_snow_title',by:'st.by_snow',dir:-1,get:r=>r.snow,num:true},
   {key:'hum',label:'st.col_hum',title:'st.col_hum_title',by:'st.by_hum',dir:-1,get:r=>r.humidity,num:true},
   {key:'cond',label:'st.col_cond',title:'st.col_cond_title',by:'st.by_cond',dir:-1,get:r=>r.cond==null?null:(ROAD_SEVERITY[r.cond]??.5)},
   {key:'range',label:'st.col_range',title:'st.col_range_title',sortable:false},
@@ -918,6 +930,8 @@ function renderStationTable(){
 
   const rows=filteredStationRows();
   const shown=ST.showAll?rows:rows.slice(0,STATION_ROWS);
+  // The snow column only while some station in the list has snow on the ground
+  $('stationTable').classList.toggle('has-snow',rows.some(r=>r.snow>0));
   let lo=Infinity,hi=-Infinity;
   for(const r of shown)for(const v of [r.nightMin,r.dayMax,r.airTemp])if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}
   const scale={lo,hi:Math.max(hi,lo+1)};
@@ -1006,6 +1020,7 @@ function stationTableRow(r,scale,maxPrecip){
     td('st-c-num',r.surfaceTemp==null?muted('-'):fmtTemp(r.surfaceTemp,1)),
     td('st-c-wind',wind),
     td('st-c-precip',precip),
+    td('st-c-num st-c-snow',r.snow==null?muted('-'):r.snow<=0?muted(fmtNum(0,0)):fmtNum(r.snow,r.snow<10?1:0)+' cm'),
     td('st-c-num',r.humidity==null?muted('-'):fmtNum(r.humidity,0)+'%'),
     td('st-c-cond',cond),
     td('st-c-range',rangeBar(r,scale)),
@@ -1051,6 +1066,7 @@ function stationListItem(r){
   const parts=[NETWORK_NAME[r.net]];
   if(r.dist!=null)parts.push(fmtNum(r.dist,r.dist<100?1:0)+' km');
   if(r.precip>0)parts.push(radarNode('span','st-rain',t('st.precip_short',{v:fmtNum(r.precip,1)})));
+  if(r.snow>0)parts.push(t('st.snow_short',{v:fmtNum(r.snow,r.snow<10?1:0)}));
   if(r.net==='lvc'){
     if(r.surfaceTemp!=null)parts.push(t('st.road_short',{v:fmtTemp(r.surfaceTemp,1)}));
     if(r.cond){const c=radarNode('span',ROAD_COND_TONE[r.cond]==='bad'?'st-ice':null,roadCondLabel(r.cond));parts.push(c);}

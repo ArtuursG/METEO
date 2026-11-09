@@ -237,3 +237,50 @@ test('station hourly readings for the temperature chart: nearest fresh station, 
   assert.equal(r.last,'2026-10-09T12:00:00');
   assert.equal(F.stationHourly([],56.95,24.1,{nowMs:now}),null);
 });
+
+test('nearest station reading carries the latest snow depth of the last 30 h',()=>{
+  const now=Date.parse('2026-11-09T09:20:00Z'); // 11:20 in Riga
+  const st=(snowAt)=>[{id:'s',name:'S',lat:56.95,lon:24.1,history:[
+    {time:'2026-11-08T03:00:00',snowDepth:snowAt==='old'?12:null,airTemp:-1},
+    {time:'2026-11-09T09:00:00',snowDepth:snowAt==='today'?5:null,airTemp:-2},
+    {time:'2026-11-09T11:00:00',airTemp:-1.5},
+  ]}];
+  assert.equal(F.nearestStationReading(st('today'),56.95,24.1,{nowMs:now}).snow,5);
+  assert.equal(F.nearestStationReading(st('old'),56.95,24.1,{nowMs:now}).snow,null);
+  assert.equal(F.nearestStationReading(st('none'),56.95,24.1,{nowMs:now}).temp,-1.5);
+});
+
+test('precipitation type: snow share of the amount, freezing when liquid at 0 °C or below',()=>{
+  // 7 cm of snow is about 10 mm of water (Open-Meteo)
+  assert.equal(F.precipKind(2,1.4,-2),'snow');
+  assert.equal(F.precipKind(2,0.7,0.5),'mixed');
+  assert.equal(F.precipKind(2,0,-1),'freezing');
+  assert.equal(F.precipKind(2,0,3),'rain');
+  // A model without snowfall: by temperature
+  assert.equal(F.precipKind(2,null,0.2),'snow');
+  assert.equal(F.precipKind(2,null,4),'rain');
+  assert.equal(F.precipKind(0.1,0,-5),null);
+  assert.equal(F.dailyPrecipKind(5,0,66),'freezing');
+  assert.equal(F.dailyPrecipKind(5,3.5,71),'snow');
+  assert.equal(F.dailyPrecipKind(5,1.5,61),'mixed');
+  assert.equal(F.dailyPrecipKind(5,0,61),'rain');
+  assert.equal(F.dailyPrecipKind(0,0,0),null);
+});
+
+test('consensus type: hours and days follow the models that have precipitation',()=>{
+  const now=Date.parse('2026-11-09T09:30:00Z');
+  const time=Array.from({length:30},(_,i)=>new Date(Date.UTC(2026,10,9,i)).toISOString().slice(0,16));
+  const model=(snow,temp)=>({utcOffset:0,hourly:{time,temperature_2m:time.map(()=>temp),precipitation:time.map(()=>2),snowfall:time.map(()=>snow)},
+    daily:{time:['2026-11-09','2026-11-10'],temperature_2m_max:[1,1],temperature_2m_min:[-2,-2],precipitation_sum:[20,20],snowfall_sum:[snow*24,snow*24],weather_code:[73,73]}});
+  const data={a:model(1.4,-2),b:model(1.4,-1),c:model(0,1)};
+  const row=F.hourlyConsensus(data,{nowMs:now,hours:3}).rows[0];
+  assert.equal(row.kind,'snow');
+  assert.equal(F.hourSlots(F.hourlyConsensus(data,{nowMs:now,hours:3}).rows)[0].kind,'snow');
+  const day=F.dailyConsensus(data,{nowMs:now,minModels:1})[0];
+  assert.equal(day.kind,'snow');
+  assert.ok(Math.abs(day.snowCm-33.6)<0.01);
+  // Two of three models say freezing rain for the day
+  const fr={a:model(0,-1),b:model(0,-1),c:model(1.4,-2)};
+  fr.a.daily.weather_code=[66,66];fr.b.daily.weather_code=[67,67];
+  assert.equal(F.dailyConsensus(fr,{nowMs:now,minModels:1})[0].kind,'freezing');
+});

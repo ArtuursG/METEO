@@ -133,3 +133,8 @@ test('the run can be worked out later from the fetch time, until a newer run com
   // A newer run already out: the saved data may be from the one before
   assert.equal(F.fsRunOf({...runs,models:{icon_eu:(NOW-20*MIN)/1000}},'icon_eu',at,NOW),null);
 });
+
+test('daily snowfall sum from the hourly snowfall, per local day',()=>{
+  const hourly=['2026-11-09T00:00','2026-11-09T12:00','2026-11-10T00:00'];
+  assert.deepEqual(F.fsDailySum(hourly,[0.4,1.1,null],['2026-11-09','2026-11-10']),[1.5,null]);
+});
