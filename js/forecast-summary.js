@@ -17,6 +17,7 @@ const FS_FREEZING_CODES=new Set([56,57,66,67]); // freezing drizzle and freezing
 
 const fsMedian=typeof median==='function'?median:require('./pure.js').median;
 const fsHaversine=typeof haversineKm==='function'?haversineKm:require('./pure.js').haversineKm;
+const fsPressure=typeof pressureTendency==='function'?pressureTendency:require('./pure.js').pressureTendency;
 
 const fsNum=v=>v==null||v===''||!Number.isFinite(+v)?null:+v;
 const fsKeyMs=key=>Date.parse(key.length===10?key+'T00:00Z':key.slice(0,16)+'Z');
@@ -338,7 +339,9 @@ function nearestStationReading(stations,lat,lon,{nowMs=Date.now(),maxKm=25,maxAg
       if(stationTimeMs(r?.time)<stationTimeMs(h.time)-30*3600000)break;
       if(fsNum(r?.snowDepth)!=null){snow=+r.snowDepth;break;}
     }
-    best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time,snow,ageMin:Math.max(0,Math.round(age))};
+    // Sea-level pressure of that reading and its change over the 3 h before it
+    const pTend=fsPressure(s.history.map(r=>({t:stationTimeMs(r?.time),p:fsNum(r?.pressure)})),stationTimeMs(h.time));
+    best={id:s.id,name:s.name,lat:+s.lat,lon:+s.lon,dist,temp:+h.airTemp,time:h.time,snow,pressure:fsNum(h.pressure),pTend,ageMin:Math.max(0,Math.round(age))};
   }
   return best;
 }

@@ -5,17 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Only the sources the site uses. The inline theme script in <head> is allowed by its hash:
      change it and the sha256 must change too (README, "Content-Security-Policy"). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-NMToPVl2H05XbiBnEXoxHfszFLMIZiv9i+dJRKh3ImI=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/npm/@openmeteo/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.rainviewer.com https://server.arcgisonline.com https://*.tile.openstreetmap.org https://*.tile.opentopomap.org https://view.eumetsat.int https://cdnjs.cloudflare.com; connect-src 'self' data: https://api.open-meteo.com https://air-quality-api.open-meteo.com https://archive-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://lvc-meteo-proxy.jkedainis.workers.dev https://api.rainviewer.com https://openmeteo.s3.amazonaws.com https://view.eumetsat.int; frame-src https://embed.windy.com https://embed.ventusky.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-NMToPVl2H05XbiBnEXoxHfszFLMIZiv9i+dJRKh3ImI=' https://cdn.jsdelivr.net/npm/@openmeteo/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://*.rainviewer.com https://server.arcgisonline.com https://*.tile.openstreetmap.org https://*.tile.opentopomap.org https://view.eumetsat.int; connect-src 'self' data: https://api.open-meteo.com https://air-quality-api.open-meteo.com https://archive-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://lvc-meteo-proxy.jkedainis.workers.dev https://api.rainviewer.com https://openmeteo.s3.amazonaws.com https://view.eumetsat.int; frame-src https://embed.windy.com https://embed.ventusky.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- Other servers (map tiles, data, embeds) learn only the site address, never the place in the link -->
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Ceļa meteostacija - prognoze.lv</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=53">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha512-ZwR1/gSZM3ai6vCdI+LVF1zSq/5HznD3ZSTk7kajkaj4D292NLuduDCO1c/NT8Id+jE58KYLKT7hXnbtryGmMg==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="style.css?v=54">
+<link rel="stylesheet" href="vendor/leaflet.css?v=1.9.4">
+<script src="vendor/chart.umd.js?v=4.4.1"></script>
+<script src="vendor/leaflet.js?v=1.9.4"></script>
 </head>
 <body>
 
@@ -93,7 +92,7 @@
         <div id="stMiniMap"></div>
         <div class="st-info-grid">
           <div><span data-i18n="stp.station_name">Stacijas nosaukums</span>: <b id="stInfoName">-</b></div>
-          <div><span data-i18n="stp.data_source">Datu avots</span>: <b><a href="https://www.transportdata.gov.lv" target="_blank">VSIA "Latvijas Valsts ceļi"</a></b></div>
+          <div><span data-i18n="stp.data_source">Datu avots</span>: <b><a href="https://www.transportdata.gov.lv" target="_blank" rel="noopener">VSIA "Latvijas Valsts ceļi"</a></b></div>
         </div>
       </div>
     </div>
@@ -101,14 +100,14 @@
 </main>
 
 <footer>
-  <span data-i18n="footer.data">Dati</span>: <a href="https://www.transportdata.gov.lv" target="_blank">transportdata.gov.lv</a> (LVC) ·
+  <span data-i18n="footer.data">Dati</span>: <a href="https://www.transportdata.gov.lv" target="_blank" rel="noopener">transportdata.gov.lv</a> (LVC) ·
   <a href="index.html" data-i18n="stp.back_home">Atpakaļ uz prognoze.lv</a>
 </footer>
 
-<script src="js/i18n.js?v=53"></script>
-<script src="js/pure.js?v=53"></script>
-<script src="js/chart-time.js?v=53"></script>
-<script src="js/map-utils.js?v=53"></script>
-<script src="js/stacija.js?v=53"></script>
+<script src="js/i18n.js?v=54"></script>
+<script src="js/pure.js?v=54"></script>
+<script src="js/chart-time.js?v=54"></script>
+<script src="js/map-utils.js?v=54"></script>
+<script src="js/stacija.js?v=54"></script>
 </body>
 </html>

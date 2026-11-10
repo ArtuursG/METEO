@@ -1,3 +1,10 @@
+/* IBM Plex Mono from the site's own folder (vendor/README.md): latin-ext carries the Latvian letters */
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(vendor/fonts/plex-mono-latin-ext-400.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(vendor/fonts/plex-mono-latin-ext-500.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(vendor/fonts/plex-mono-latin-ext-600.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(vendor/fonts/plex-mono-latin-400.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(vendor/fonts/plex-mono-latin-500.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(vendor/fonts/plex-mono-latin-600.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 /* ─────────────────────────────────────────────────────────────────────────────
    prognoze.lv - minimalist theme · dark + light
    ───────────────────────────────────────────────────────────────────────────── */
@@ -270,7 +277,8 @@ tr:hover td{background:var(--s2)}
 .st-detail-grid .val{color:var(--t2);font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;text-align:right}
 #stMiniMap{height:220px;border-radius:8px;overflow:hidden;background:var(--s2)}
 .st-now .now-facts{grid-template-columns:repeat(3,minmax(0,1fr))}
-.st-now .now-facts dd small{display:block;margin-top:2px;font-size:11px;white-space:nowrap}
+/* The time may carry a note ("līdz šim"): it wraps instead of running into the next value */
+.st-now .now-facts dd small{display:block;margin-top:2px;font-size:11px;line-height:1.35}
 .st-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12.5px;color:var(--t3);margin-top:1rem}
 .st-info-grid b{color:var(--t2);font-weight:500}
 .st-links{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px;margin:-6px 0 2px;font-size:13px}
@@ -663,6 +671,16 @@ footer a:hover{text-decoration:underline}
 .radar-toggle:focus-visible,.radar-metric button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .radar-key{width:9px;height:9px;border-radius:50%;flex:none}
 .radar-key.is-precip{background:#0099cc}
+.radar-key.is-warn{background:color-mix(in srgb,var(--sev-Moderate) 35%,transparent);border:1px solid var(--sev-Moderate)}
+.radar-toggle[hidden]{display:none}
+/* Warning area tooltip: title, then when it is in force */
+.radar-warn-tip{display:grid;gap:2px;max-width:240px;white-space:normal}
+.radar-warn-tip span{color:var(--t3);font-size:11.5px}
+/* Pressure tendency arrow in a station badge */
+.st-tend{display:inline-flex;margin-left:3px;vertical-align:-1px}
+.st-tend svg{width:10px;height:10px}
+.st-tend.is-down svg{transform:rotate(180deg)}
+.st-tend.is-fast{color:var(--warn)}
 .radar-key.is-lvc{background:var(--panel);border:1px solid var(--t2)}
 .radar-key.is-lvgmc{background:color-mix(in srgb,var(--acc) 30%,var(--panel));border:1px solid var(--acc)}
 .radar-toggle[aria-pressed=false] .radar-key{opacity:.35}
@@ -779,6 +797,14 @@ footer a:hover{text-decoration:underline}
 .st-search input::placeholder{color:var(--t3)}
 .st-count{font:11px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--t3);font-variant-numeric:tabular-nums}
 #stationTable:not(.has-snow) .st-col-snow,#stationTable:not(.has-snow) .st-c-snow{display:none}
+/* Pressure only with stations that measure it; the road columns only with road stations */
+#stationTable:not(.has-pres) .st-col-pres,#stationTable:not(.has-pres) .st-c-pres{display:none}
+#stationTable:not(.has-road) .st-col-road,#stationTable:not(.has-road) .st-c-road,
+#stationTable:not(.has-road) .st-col-cond,#stationTable:not(.has-road) .st-c-cond{display:none}
+.st-c-pres{white-space:nowrap}
+.st-c-pres .st-trend{margin-left:5px;vertical-align:-1px}
+/* A quick pressure change (over 3.5 hPa in 3 h) */
+.st-trend.is-fast{color:var(--warn)}
 /* The same network buttons as on the map, in a group like the map's */
 .st-nets{display:inline-flex;gap:3px;padding:3px;background:var(--panel);border:1px solid var(--b2);border-radius:10px}
 .st-check{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--t2);cursor:pointer}
@@ -865,6 +891,8 @@ footer a:hover{text-decoration:underline}
  /* Layers and the value chooser become two separate panels in the top left corner */
  .radar-bar{flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 66px);padding:0;background:none;border:0;border-radius:0;overflow:visible}
  .radar-layers,.radar-metric{padding:3px;margin:0;background:var(--panel);border:1px solid var(--b2);border-radius:10px}
+ /* With the warnings button the layer row is wider than the space left of the zoom buttons */
+ .radar-layers{flex-wrap:wrap;max-width:100%}
  .radar-toggle,.radar-metric button{height:40px;padding:0 9px}
  .radar-metric button{min-width:40px}
  .radar-metric-label{display:none}

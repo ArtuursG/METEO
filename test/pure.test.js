@@ -157,3 +157,27 @@ test('latest extreme: the period before stands in while the current one has no s
   assert.deepEqual(P.latestExtreme([...yesterday,{t:t(8),lo:9,hi:9.5}],day,'max'),{v:9.5,t:t(8),prev:false});
   assert.equal(P.latestExtreme([],day,'max'),null);
 });
+
+test('pressure tendency: change over the 3 h before the reading, in marine forecast steps',()=>{
+  const H=3600000,at=Date.parse('2026-11-10T12:00:00Z');
+  const hist=(now,old,oldAt=at-3*H)=>[{t:at-H,p:1009},{t:oldAt,p:old},{t:at,p:now}];
+  assert.deepEqual(P.pressureTendency(hist(1010.4,1012.2),at),{p:1010.4,change:-1.8,key:'fall'});
+  assert.equal(P.pressureTendency(hist(1010,1010.04),at).key,'steady');
+  assert.equal(P.pressureTendency(hist(1011,1010),at).key,'rise_slow');
+  assert.equal(P.pressureTendency(hist(1005,1010),at).key,'fall_quick');
+  assert.equal(P.pressureTendency(hist(1017,1010),at).key,'rise_rapid');
+  // The earlier reading may be up to 30 min off; further away there is no tendency
+  assert.equal(P.pressureTendency(hist(1010,1012,at-3*H-20*60000),at).change,-2);
+  assert.equal(P.pressureTendency(hist(1010,1012,at-4*H),at),null);
+  assert.equal(P.pressureTendency(hist(null,1012),at),null);
+  assert.equal(P.pressureTendency(hist(1010,null),at),null);
+  assert.equal(P.pressureTendency(null,at),null);
+});
+
+test('the browser position is rounded to about 1 km before it is used or shared',()=>{
+  assert.equal(P.coarseCoord(56.9496487),56.95);
+  assert.equal(P.coarseCoord(24.1051846),24.11);
+  assert.equal(P.coarseCoord(-0.004),-0);
+  // 0.01° is at most 1.1 km: half of that is the largest shift
+  assert.ok(Math.abs(P.coarseCoord(57.123456)-57.123456)<=0.005);
+});

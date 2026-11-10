@@ -292,7 +292,8 @@ async function locateMe(auto=false){
   navigator.geolocation.getCurrentPosition(
     async pos=>{
       if(btn)btn.classList.remove('loading');
-      const{latitude:lat,longitude:lon}=pos.coords;
+      // About 1 km precision, never the exact position (pure.js coarseCoord)
+      const lat=coarseCoord(pos.coords.latitude),lon=coarseCoord(pos.coords.longitude);
       // Start loading immediately with placeholder name; Nominatim updates it in background
       const ok=await selectCity({latitude:lat,longitude:lon,name:t('geo.current_location'),country:'',admin1:'',timezone:''});
       if(!ok)return;

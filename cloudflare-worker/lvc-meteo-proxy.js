@@ -121,9 +121,12 @@ function parseMeasurements(xml) {
   return readings;
 }
 
+// Dati ir publiski, tāpēc tos drīkst lasīt jebkura lapa. nosniff: pārlūks atbildi vienmēr
+// uztver kā JSON, arī ja to atver tieši.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "X-Content-Type-Options": "nosniff",
 };
 
 function json(data, status = 200) {
@@ -300,7 +303,8 @@ async function buildStationList(env) {
          AND r.time = (SELECT MAX(time) FROM readings WHERE station_id = s.id)`
     ).all(),
     recentReadings(env),
-    synopticExtremes(env, periods).catch((e) => ((extremesError = String(e)), [])),
+    // Kļūdas teksts paliek Cloudflare žurnālā; atbildē tikai atzīme, ka galējību nav
+    synopticExtremes(env, periods).catch((e) => (console.log("Galējības neizdevās:", String(e)), (extremesError = true), [])),
   ]);
   const ext = new Map(extremes.map((e) => [e.id, e]));
   // Tekošā perioda vērtība vai, kamēr tajā nav rādījumu, iepriekšējā (nightPrev/dayPrev = true)
@@ -317,7 +321,7 @@ async function buildStationList(env) {
   return {
     updated: new Date(now).toISOString(),
     periods: { night: isoPeriod(periods.night), day: isoPeriod(periods.day) },
-    ...(extremesError ? { extremesError } : {}),
+    ...(extremesError ? { extremesFailed: true } : {}),
     stations,
   };
 }
@@ -849,11 +853,17 @@ export default {
 
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+    // Worker tikai atdod datus: citas metodes nav vajadzīgas
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response(null, { status: 405, headers: { Allow: "GET, HEAD, OPTIONS", ...CORS_HEADERS } });
+    }
     if (!env.DB) return json({ error: NO_DB }, 500);
 
     const url = new URL(request.url);
     const stationId = url.searchParams.get("station");
     const dataName = url.searchParams.get("data");
+    // Stacijas identifikators ir īss; garš vai dīvains teksts nav jāmeklē datubāzē
+    if (stationId && !/^[\w.:-]{1,64}$/.test(stationId)) return json({ error: "Unknown station" }, 400);
 
     try {
       if (dataName === "home") return cachedJson(await homeData(env));

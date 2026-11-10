@@ -125,8 +125,15 @@ pieprasījumu dienā, D1 5M nolasītu rindu dienā).
 - [x] Sniega sega pie tuvākās stacijas un staciju tabulā, kad kaut kur ir sniegs.
 - [x] ECMWF aprēķins "tagad" blokā; service worker glabā katru lapu vienreiz.
 - [x] Drošība: saites teksts Leaflet paskaidrojumos kā teksts, Content-Security-Policy, iframe sandbox.
-- [ ] Brīdinājumu apgabali uz radara kartes.
-- [ ] Spiediens jūras līmenī ar tendenci.
+
+## 12. Spiediens, brīdinājumi kartē, bezsaiste, pārlūka tests (2.2.1)
+
+- [x] Spiediens jūras līmenī ar 3 h tendenci: tabulā, kartē ("hPa"), "tagad" blokā un stacijas lapā.
+- [x] Brīdinājumu apgabali uz radara kartes, ar pogu "Brīdinājumi".
+- [x] Lapa atveras bez interneta: Chart.js, Leaflet un fonts mapē `vendor/`, saglabātā prognoze derīga 24 h.
+- [x] Pārlūka tests CI (`test/browser/smoke.js`): kļūdas, drošības politika, galvene, UTC, bezsaiste.
+- [x] Drošība: pārlūka atrašanās vieta noapaļota līdz ~1 km, nekas netiek ielādēts no CDN vai Google Fonts,
+      worker pieņem tikai GET/HEAD un pārbauda stacijas identifikatoru, `noopener` visām ārējām saitēm.
 
 ## Vēlāk
 
@@ -150,4 +157,4 @@ main saņem tās kopā kā versiju. Sīkāk README sadaļā "Branches and releas
 
 Atver http://localhost:8000. Dati nāk no tiem pašiem avotiem kā īstajā lapā.
 
-Testi: `npm test`.
+Testi: `npm test`; pārlūka tests: `npm run test:browser` (vajag Playwright, sk. CONTRIBUTING.md).

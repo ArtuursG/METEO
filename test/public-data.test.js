@@ -156,3 +156,31 @@ test('model run shown per model: the domain that gives Latvia its first days',as
   assert.equal(m.metno_seamless,700);
   assert.equal(m.ecmwf_ifs025,null);
 });
+
+// The request handler itself, with a database that fails: what an outsider gets back
+test('worker requests: only reads, a checked station id, and no internal error text',async()=>{
+  const src=fs.readFileSync(path.join(__dirname,'..','cloudflare-worker','lvc-meteo-proxy.js'),'utf8');
+  const worker=(await import('data:text/javascript;base64,'+Buffer.from(src).toString('base64'))).default;
+  const asked=[];
+  const DB={prepare:sql=>{asked.push(sql);const q={bind:()=>q,first:async()=>{throw new Error('SECRET table detail');},all:async()=>{throw new Error('SECRET table detail');},run:async()=>{throw new Error('SECRET table detail');}};return q;}};
+  const ask=(url,method='GET')=>worker.fetch(new Request(url,{method}),{DB},{waitUntil(){}});
+  const log=console.log;console.log=()=>{};
+  try{
+    const post=await ask('https://w.example/?data=home','POST');
+    assert.equal(post.status,405);
+    assert.equal(post.headers.get('allow'),'GET, HEAD, OPTIONS');
+    for(const bad of ["x' OR 1=1","a".repeat(65),'<script>','a b']){
+      const r=await ask('https://w.example/?station='+encodeURIComponent(bad));
+      assert.equal(r.status,400,bad);
+    }
+    assert.equal(asked.length,0,'a refused request never reaches the database');
+    const ok=await ask('https://w.example/?station=0a1b2c');
+    assert.equal(ok.status,502);
+    assert.equal(ok.headers.get('x-content-type-options'),'nosniff');
+    assert.equal(ok.headers.get('content-type'),'application/json; charset=utf-8');
+    assert.deepEqual(await ok.json(),{error:'Server error'});
+    assert.equal((await ask('https://w.example/?data=nothing')).status,404);
+    const pre=await ask('https://w.example/','OPTIONS');
+    assert.equal(pre.headers.get('access-control-allow-origin'),'*');
+  }finally{console.log=log;}
+});

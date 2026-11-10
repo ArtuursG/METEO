@@ -1,5 +1,23 @@
 # Changelog
 
+## v2.2.1 - 2026-11-10
+
+Pressure and warnings on the map, the page without a network, a browser test, and a security pass.
+
+- Sea-level pressure with its 3 h tendency for the LVĢMC stations: a pressure column in the station table (only while the list has such stations; the road columns hide when it has no road stations), an "hPa" choice for the station labels on the map with an arrow up or down, the nearest-station line in the now block ("1012,4 hPa (krītas)") and a tendency row on the station page. The words follow the marine forecast steps: slowly up to 1.5 hPa, quickly above 3.5, very rapidly above 6.
+- MeteoAlarm warning areas on the radar map, under the radar picture: outlined in the warning's colour, dashed while it has not started, with the title and the time on hover. A "Brīdinājumi" button with the number of warnings turns them off; it shows only while there is a warning.
+- The page opens without a network: Chart.js, Leaflet and the IBM Plex Mono font are now served from the site's own `vendor/` folder and saved by the service worker, and a saved forecast stands in for up to 24 hours (3 before) with a note saying how old it is.
+- A browser test (`test/browser/smoke.js`, a CI job): the whole site in headless Chromium with every outside service replaced by a stand-in. It fails on a script error, on anything the Content-Security-Policy blocks, on a request to an unknown host, on the header buttons drifting apart, and when the page does not open offline.
+- Phones: the map's layer buttons wrap instead of running under the zoom buttons. Station pages: the time under the night minimum no longer runs into the day maximum.
+
+Security and privacy:
+
+- The browser's position is rounded to about 1 km (0.01°) before anything uses it. The exact position used to go to the forecast and geocoding services and into the address bar, so a shared link showed where you stand to within a few metres.
+- No script, style or font comes from another server any more (the cloud map library, loaded on demand with an integrity hash, is the one exception). The policy lost cdnjs and both Google Fonts hosts, and a visitor's browser no longer contacts them. A test pins the sha256 of every vendored file.
+- The LVC worker answers only GET and HEAD, refuses a station id that is not a short identifier before it reaches the database, sends `X-Content-Type-Options: nosniff`, and no longer puts the text of a failed extremes query into its answer.
+- Every page sets the referrer policy explicitly, every link that opens a new window has `rel="noopener"`, the saved wind unit is accepted only as one of the two known values, and the wind direction is checked to be a number before it goes into the page.
+- A commit that fails the unit tests is not published: the deploy workflow runs them first.
+
 ## v2.2.0 - 2026-11-09
 
 Winter and synoptic additions, and security fixes.

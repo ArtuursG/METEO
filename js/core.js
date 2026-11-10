@@ -27,6 +27,9 @@ const RECOMMENDED_MODELS=[
   {id:'metno_seamless', name:'MET Norway'},
 ];
 
+// A saved setting, or null when the browser blocks storage (private mode, strict settings)
+function storedSetting(key){try{return localStorage.getItem(key);}catch{return null;}}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 // Single mutable state object - all UI reads from here, all updates write here
 const S = {
@@ -37,8 +40,9 @@ const S = {
   precipModels: new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   windModels:   new Set(['ecmwf_ifs025','icon_eu','metno_seamless']),
   cloudModel:   'ecmwf_ifs025',
-  showSpread: localStorage.getItem('show_spread')!=='0', // shaded model-range band on the temp chart
-  windUnit: localStorage.getItem('wind_unit')||'m/s', // 'm/s' or 'km/h'
+  showSpread: storedSetting('show_spread')!=='0', // shaded model-range band on the temp chart
+  // Only the two known units: the saved value is shared with every page on the same host
+  windUnit: storedSetting('wind_unit')==='km/h'?'km/h':'m/s',
   data: {},    // keyed by model id, holds raw Open-Meteo API responses
   dataTs: 0,   // epoch ms when the currently shown data was fetched (fresh or cache write time)
   charts: {},  // keyed by chart name, holds Chart.js instances
@@ -58,8 +62,10 @@ const windConv=v=>v==null?null:S.windUnit==='km/h'?Math.round(v*3.6):Math.round(
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 // The forecast is saved per place and model (data.js, forecast-sync.js); when the network
-// fails, a saved one stands in if the page heard from Open-Meteo within this time
-const CACHE_KEEP=3*60*60*1000;
+// fails, a saved one stands in if the page heard from Open-Meteo within this time. A day:
+// the libraries are served from the site itself, so the page also opens with no network at
+// all, and yesterday evening's forecast with its age shown beats an error message
+const CACHE_KEEP=24*60*60*1000;
 
 // "pirms N min" / "pirms N h" for the data timestamp
 function relTime(ts){

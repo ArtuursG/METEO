@@ -34,6 +34,7 @@ const R={
   fetchedAt:0,failedAt:0,failed:false,loading:null,
   host:RAINVIEWER_TILES,  // tile host from the API answer
   show:true,opacity:.7,base:'theme',metric:'temp',
+  warn:true,warnLayer:null,warnCount:0,  // MeteoAlarm warning areas
   themeLayers:[],extraBase:{},
   timeline:null,legend:null,settings:null,place:null,attr:'',
   placeKey:'',ticker:null,
@@ -62,15 +63,16 @@ function loadRadarPrefs(){
   try{
     const p=JSON.parse(localStorage.getItem(RADAR_PREFS)||'{}');
     if(['theme','osm','relief','satellite'].includes(p.base))R.base=p.base;
-    if(['temp','road','wind','precip'].includes(p.metric))R.metric=p.metric;
+    if(['temp','road','wind','precip','pres'].includes(p.metric))R.metric=p.metric;
     if(Number.isFinite(p.opacity))R.opacity=Math.min(1,Math.max(.2,p.opacity));
     if(typeof p.show==='boolean')R.show=p.show;
+    if(typeof p.warn==='boolean')R.warn=p.warn;
     if(typeof p.lvc==='boolean')ST.on.lvc=p.lvc;
     if(typeof p.lvgmc==='boolean')ST.on.lvgmc=p.lvgmc;
   }catch{}
 }
 function saveRadarPrefs(){
-  try{localStorage.setItem(RADAR_PREFS,JSON.stringify({base:R.base,metric:R.metric,opacity:R.opacity,show:R.show,lvc:ST.on.lvc,lvgmc:ST.on.lvgmc}));}catch{}
+  try{localStorage.setItem(RADAR_PREFS,JSON.stringify({base:R.base,metric:R.metric,opacity:R.opacity,show:R.show,warn:R.warn,lvc:ST.on.lvc,lvgmc:ST.on.lvgmc}));}catch{}
 }
 
 // ─── STATION DATA ───────────────────────────────────────────────────────────
@@ -116,13 +118,15 @@ function lvgmcRow(s){
     if(radarNum(hist[i].snowDepth)!=null){snow=radarNum(hist[i].snowDepth);break;}
   }
   const prev=prevReading(hist,time);
+  // Sea-level pressure change over the 3 h before the reading (pure.js)
+  const pTend=pressureTendency(hist.map(h=>({t:parseStationTime(h.time),p:radarNum(h.pressure)})),time);
   return {key:'lvgmc:'+s.id,net:'lvgmc',id:s.id,name:String(s.name||s.id||'-'),lat,lon,src:s,
     time,airTemp:radarNum(reading.airTemp),feelsLike:radarNum(reading.feelsLike),surfaceTemp:null,
     windSpeed:radarNum(reading.windSpeed),windGust:radarNum(reading.windGust),windDir:radarNum(reading.windDir),
     precip:radarNum(reading.precipHour),humidity:radarNum(reading.humidity),pressure:radarNum(reading.pressure),
     visibility:radarNum(reading.visibility),uv:radarNum(reading.uv),cond:null,
     trend:prev?tempTrend(reading.airTemp,time,prev.airTemp,prev.time):null,
-    ...stationExtremes(samples,per),snow,spark,dist:null};
+    ...stationExtremes(samples,per),snow,pTend,spark,dist:null};
 }
 
 function fetchStationJson(url){
@@ -174,7 +178,7 @@ function ensureHome(){
     H.promise=ST.lvc.promise=ST.lvgmc.promise=null;
     try{renderLvcRows();renderLvgmcRows();}catch(e){console.warn('[stations] render',e);}
     // The now block follows every refresh (today.js, local-warnings.js)
-    for(const f of ['showRoad','renderNearestStation','refreshHomeWarnings','refreshTempObservations','buildModelInfo'])
+    for(const f of ['showRoad','renderNearestStation','refreshHomeWarnings','refreshTempObservations','buildModelInfo','renderRadarWarnings'])
       if(typeof window[f]==='function')try{window[f]();}catch(e){console.warn('[stations]',f,e);}
     return H.data;
   })();
@@ -268,9 +272,9 @@ function buildRadarMap(){
   _rMap=L.map('radarMap',{maxZoom:12,minZoom:4,zoomSnap:.5,zoomControl:false});
   _rMap.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
   // Own panes: radar frames above every base map (all base maps share tilePane, 200),
-  // place names above the radar (blended, see style.css), the selected-place ring
+  // warning areas under them, place names above the radar (blended, see style.css), the selected-place ring
   // below the station markers (markerPane is 600).
-  for(const [name,z] of [['radarPane',450],['radarLabels',460],['radarPlace',590]]){
+  for(const [name,z] of [['radarWarn',440],['radarPane',450],['radarLabels',460],['radarPlace',590]]){
     const pane=_rMap.createPane(name);pane.style.zIndex=z;pane.style.pointerEvents='none';
   }
   fitPlace();
@@ -288,6 +292,9 @@ function buildRadarMap(){
 
   ST.layers.lvc=L.layerGroup();ST.layers.lvgmc=L.layerGroup();
   for(const net of ['lvc','lvgmc'])if(ST.on[net])ST.layers[net].addTo(_rMap);
+  R.warnLayer=L.layerGroup([],{attribution:'<a href="https://meteoalarm.org/en/live/" target="_blank" rel="noopener">MeteoAlarm</a>'});
+  if(R.warn)R.warnLayer.addTo(_rMap);
+  renderRadarWarnings();
   R.place=L.marker([S.lat,S.lon],{pane:'radarPlace',interactive:false,keyboard:false,
     icon:L.divIcon({className:'radar-place',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(_rMap);
 
@@ -535,6 +542,11 @@ function bindRadarBar(){
     syncFrameLayers();syncRadarBar();updateRadarStatus();
     if(R.show&&!R.loading&&Date.now()-R.fetchedAt>=RADAR_REFRESH)loadRadarFrames();
   });
+  $('radarToggleWarn')?.addEventListener('click',()=>{
+    R.warn=!R.warn;saveRadarPrefs();
+    if(_rMap&&R.warnLayer){if(R.warn)R.warnLayer.addTo(_rMap);else _rMap.removeLayer(R.warnLayer);}
+    syncRadarBar();
+  });
   $('radarToggleLvc')?.addEventListener('click',()=>toggleNetwork('lvc'));
   $('radarToggleLvgmc')?.addEventListener('click',()=>toggleNetwork('lvgmc'));
   document.querySelectorAll('#radarMetric [data-metric]').forEach(b=>b.addEventListener('click',()=>{
@@ -555,15 +567,18 @@ function toggleNetwork(net,on=!ST.on[net]){
 function syncRadarBar(){
   const set=(id,on)=>$(id)?.setAttribute('aria-pressed',String(on));
   set('radarTogglePrecip',R.show);set('radarToggleLvc',ST.on.lvc);set('radarToggleLvgmc',ST.on.lvgmc);
+  // The warnings button only while there is a warning to show
+  set('radarToggleWarn',R.warn);
+  if($('radarToggleWarn'))$('radarToggleWarn').hidden=!R.warnCount;
   const count=(id,n)=>{const e=$(id);if(e)e.textContent=n?String(n):'';};
-  count('radarCountLvc',ST.lvc.rows.length);count('radarCountLvgmc',ST.lvgmc.rows.length);
+  count('radarCountLvc',ST.lvc.rows.length);count('radarCountLvgmc',ST.lvgmc.rows.length);count('radarCountWarn',R.warnCount);
   document.querySelectorAll('#radarMetric [data-metric]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.metric===R.metric)));
 }
 function labelRadarBar(){
   $('radarBar')?.setAttribute('aria-label',t('rad.layers_aria'));
   $('radarMap')?.setAttribute('aria-label',t('rad.map_aria'));
   const title=(id,key)=>{const e=$(id);if(e)e.title=t(key);};
-  title('radarTogglePrecip','rad.layer_precip_title');title('radarToggleLvc','rad.layer_lvc_title');title('radarToggleLvgmc','rad.layer_lvgmc_title');
+  title('radarTogglePrecip','rad.layer_precip_title');title('radarToggleLvc','rad.layer_lvc_title');title('radarToggleLvgmc','rad.layer_lvgmc_title');title('radarToggleWarn','rad.layer_warn_title');
   document.querySelectorAll('#radarMetric [data-metric]').forEach(b=>{
     b.title=t('rad.metric_'+b.dataset.metric+'_title');
     b.setAttribute('aria-label',t('rad.metric_'+b.dataset.metric+'_title'));
@@ -625,13 +640,52 @@ function relabelRadarSettings(){
   s.range.setAttribute('aria-label',t('rad.opacity'));
 }
 
+// ─── WARNING AREAS ──────────────────────────────────────────────────────────
+// MeteoAlarm warning areas from the same live answer, under the radar frames: one outline per
+// area, coloured by level, the most severe drawn last. A warning that has not started yet is
+// dashed and fainter. The full list stays in the Vide section.
+function radarWarnTip(g){
+  const box=radarNode('span','radar-warn-tip');
+  const on=Date.parse(g.onset),off=Date.parse(g.expires),later=on>Date.now();
+  box.append(radarNode('strong',null,typeof warningTitle==='function'?warningTitle(g.event,LANG):g.event));
+  if(typeof envWhen==='function'&&Number.isFinite(off))
+    box.append(radarNode('span',null,later?t('lw.starts',{from:envWhen(on),to:envWhen(off)}):t('lw.active_until',{time:envWhen(off)})));
+  return box;
+}
+function renderRadarWarnings(){
+  if(!_rMap||!R.warnLayer)return;
+  R.warnLayer.clearLayers();
+  const w=H.data?.warnings,now=Date.now();
+  const groups=w?.ok&&Array.isArray(w.alerts)&&typeof groupWarnings==='function'?groupWarnings(w.alerts,now):[];
+  const point=p=>Array.isArray(p)&&Number.isFinite(p[0])&&Number.isFinite(p[1]);
+  let shown=0;
+  for(const g of groups.slice().reverse()){
+    const color=cssVar('--sev-'+(['Minor','Moderate','Severe','Extreme'].includes(g.severity)?g.severity:'Moderate'));
+    const later=Date.parse(g.onset)>now;
+    let drawn=false;
+    for(const ring of g.polygons||[]){
+      if(!Array.isArray(ring)||ring.length<4||!ring.every(point))continue;
+      // Leaflet inserts a string tooltip as HTML: the feed text goes in as a text node
+      L.polygon(ring,{pane:'radarWarn',color,weight:1.5,opacity:later?.7:1,dashArray:later?'5 5':null,fillColor:color,fillOpacity:later?.07:.16})
+        .bindTooltip(()=>radarWarnTip(g),{sticky:true,className:'radar-warn-tooltip'}).addTo(R.warnLayer);
+      drawn=true;
+    }
+    if(drawn)shown++;
+  }
+  R.warnCount=shown;
+  syncRadarBar();
+}
+
 // ─── STATION MARKERS ────────────────────────────────────────────────────────
 const RADAR_METRICS={
   temp:{get:r=>r.airTemp,text:v=>fmtTemp(v,1),color:v=>tempColor(v),extremes:'both'},
   road:{get:r=>r.surfaceTemp,text:v=>fmtTemp(v,1),color:v=>tempColor(v),extremes:'both'},
   wind:{get:r=>r.windSpeed,text:v=>fmtNum(v,1),color:()=>null,extremes:'max'},
   precip:{get:r=>r.precip,text:v=>fmtNum(v,1),color:()=>null,extremes:'max'},
+  // Sea-level pressure in whole hPa with an arrow for its 3 h tendency (LVĢMC stations)
+  pres:{get:r=>r.pressure,text:v=>fmtNum(v,0),color:()=>null,extremes:'both'},
 };
+const RADAR_UNIT={wind:' m/s',precip:' mm/h',pres:' hPa'};
 const windArrow=deg=>`<svg class="st-wind-arrow" viewBox="0 0 12 12" aria-hidden="true" style="transform:rotate(${Math.round(deg)}deg)"><path d="M6 1.5v8.5M2.8 6.8 6 10l3.2-3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function renderStationMarkers(){
@@ -649,8 +703,11 @@ function renderStationMarkers(){
     const color=value==null?null:m.color(value);
     const style=color?` style="--mark:${color}"`:'';
     const tone=R.metric==='precip'&&value>0?' is-rain':color?' is-temp':'';
-    const html=`<span class="st-badge${tone}"${style}>${arrow?windArrow(row.windDir):''}${text}</span><span class="st-dot${tone}"${style}></span>`;
-    const label=row.name+(text?': '+text+(R.metric==='wind'?' m/s':R.metric==='precip'?' mm/h':''):'');
+    // Pressure: arrow up or down unless steady, stronger for a quick change
+    const pt=R.metric==='pres'&&value!=null&&row.pTend&&row.pTend.key!=='steady'?row.pTend:null;
+    const tend=pt?`<i class="st-tend${pt.change<0?' is-down':''}${/_(quick|rapid)$/.test(pt.key)?' is-fast':''}">${STATION_TREND_ARROW}</i>`:'';
+    const html=`<span class="st-badge${tone}"${style}>${arrow?windArrow(row.windDir):''}${text}${tend}</span><span class="st-dot${tone}"${style}></span>`;
+    const label=row.name+(text?': '+text+(RADAR_UNIT[R.metric]||'')+(pt?', '+t('pt.'+pt.key):''):'');
     const marker=L.marker([row.lat,row.lon],{
       icon:L.divIcon({className:'st-marker is-'+row.net+' is-dot',html,iconSize:[0,0],iconAnchor:[0,0]}),
       title:label,alt:label,riseOnHover:true,keyboard:true,
@@ -659,7 +716,7 @@ function renderStationMarkers(){
     marker.bindPopup(()=>stationPopup(row),{maxWidth:280,minWidth:210});
     marker.on('popupopen',()=>{if(!ST.quiet&&ST.selected!==row.key)selectStation(row.key,{fromMap:true});});
     marker.addTo(ST.layers[row.net]);
-    ST.markers.set(row.key,{marker,row,value,width:12+6.7*text.length+(arrow?13:0)});
+    ST.markers.set(row.key,{marker,row,value,width:12+6.7*text.length+(arrow||tend?13:0)});
   }
   declutterStations();
   if(reopen)ST.markers.get(ST.selected)?.marker.openPopup();
@@ -750,7 +807,7 @@ function stationPopup(row){
     ['station.wind',wind(row)],
     ['station.gust',row.windGust==null?null:fmtNum(row.windGust,1)+' m/s',true],
     ['station.humidity',row.humidity==null?null:fmtNum(row.humidity,0)+'%'],
-    ['station.pressure',row.pressure==null?null:fmtNum(row.pressure,1)+' hPa',true],
+    ['station.pressure',row.pressure==null?null:[fmtNum(row.pressure,1)+' hPa',pressureMark(row.pTend,true)],true],
     ['station.precip_h',row.precip==null?null:fmtNum(row.precip,1)+' mm'],
     ['station.snow',row.snow>0?fmtNum(row.snow,row.snow<10?1:0)+' cm':null],
     ['station.visibility',row.visibility==null?null:fmtNum(row.visibility/1000,1)+' km',true],
@@ -840,6 +897,8 @@ const ST_COLUMNS=[
   // Shown only while some station reports snow (renderStationTable sets has-snow)
   {key:'snow',label:'st.col_snow',title:'st.col_snow_title',by:'st.by_snow',dir:-1,get:r=>r.snow,num:true},
   {key:'hum',label:'st.col_hum',title:'st.col_hum_title',by:'st.by_hum',dir:-1,get:r=>r.humidity,num:true},
+  // Sea-level pressure with its 3 h tendency: only while the list has stations that measure it
+  {key:'pres',label:'st.col_pres',title:'st.col_pres_title',by:'st.by_pres',dir:-1,get:r=>r.pressure,num:true},
   {key:'cond',label:'st.col_cond',title:'st.col_cond_title',by:'st.by_cond',dir:-1,get:r=>r.cond==null?null:(ROAD_SEVERITY[r.cond]??.5)},
   {key:'range',label:'st.col_range',title:'st.col_range_title',sortable:false},
 ];
@@ -932,6 +991,9 @@ function renderStationTable(){
   const shown=ST.showAll?rows:rows.slice(0,STATION_ROWS);
   // The snow column only while some station in the list has snow on the ground
   $('stationTable').classList.toggle('has-snow',rows.some(r=>r.snow>0));
+  // Pressure only with stations that measure it, the road columns only with road stations
+  $('stationTable').classList.toggle('has-pres',rows.some(r=>r.pressure!=null));
+  $('stationTable').classList.toggle('has-road',rows.some(r=>r.net==='lvc'));
   let lo=Infinity,hi=-Infinity;
   for(const r of shown)for(const v of [r.nightMin,r.dayMax,r.airTemp])if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}
   const scale={lo,hi:Math.max(hi,lo+1)};
@@ -977,6 +1039,22 @@ function stationTrendMark(tr,withValue){
   if(withValue)a.append(fmtTemp(Math.abs(tr.delta),1));
   return a;
 }
+// "-1,8 hPa 3 h laikā: krītas" for a pressure tendency (pure.js pressureTendency)
+function pressureTendText(pt){
+  const sign=pt.change>0?'+':pt.change<0?'\u2212':'';
+  return t('st.pres_tend',{change:sign+fmtNum(Math.abs(pt.change),1),word:t('pt.'+pt.key)});
+}
+// Arrow for a rising or falling pressure; a quick change is stronger in colour
+function pressureMark(pt,withValue){
+  if(!pt||pt.key==='steady')return null;
+  const fast=/_(quick|rapid)$/.test(pt.key);
+  const a=radarNode('span','st-trend '+(pt.change>0?'is-up':'is-down')+(fast?' is-fast':''));
+  const label=pressureTendText(pt);
+  a.title=label;a.setAttribute('role','img');a.setAttribute('aria-label',label);
+  a.innerHTML=STATION_TREND_ARROW;
+  if(withValue)a.append(fmtNum(Math.abs(pt.change),1));
+  return a;
+}
 // Temperature pill plus the trend arrow
 function stationTempCell(r){
   const box=radarNode('span','st-temp');
@@ -1017,11 +1095,12 @@ function stationTableRow(r,scale,maxPrecip){
     td('st-c-name',stationNameCell(r)),
     td('st-c-num',r.dist==null?'-':fmtNum(r.dist,r.dist<100?1:0)+' km'),
     td('st-c-air',stationTempCell(r)),
-    td('st-c-num',r.surfaceTemp==null?muted('-'):fmtTemp(r.surfaceTemp,1)),
+    td('st-c-num st-c-road',r.surfaceTemp==null?muted('-'):fmtTemp(r.surfaceTemp,1)),
     td('st-c-wind',wind),
     td('st-c-precip',precip),
     td('st-c-num st-c-snow',r.snow==null?muted('-'):r.snow<=0?muted(fmtNum(0,0)):fmtNum(r.snow,r.snow<10?1:0)+' cm'),
     td('st-c-num',r.humidity==null?muted('-'):fmtNum(r.humidity,0)+'%'),
+    td('st-c-num st-c-pres',...(r.pressure==null?[muted('-')]:[fmtNum(r.pressure,1),pressureMark(r.pTend)].filter(Boolean))),
     td('st-c-cond',cond),
     td('st-c-range',rangeBar(r,scale)),
   );

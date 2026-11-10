@@ -28,7 +28,16 @@ runner, no dependencies):
 npm test        # node --test test/**/*.test.js
 ```
 
-CI (`.github/workflows/ci.yml`) syntax-checks every script and runs the tests on
+The browser test opens the whole site in headless Chromium with every outside
+service replaced by a stand-in (no real network). It needs Playwright:
+
+```bash
+npm install --no-save playwright @openmeteo/weather-map-layer@0.1.0
+npx playwright install chromium
+npm run test:browser      # SHOTS=<folder> also saves screenshots
+```
+
+CI (`.github/workflows/ci.yml`) syntax-checks every script and runs both on
 each push and pull request.
 
 ## Making changes

@@ -152,6 +152,33 @@ function latestExtreme(samples,period,kind){
   return y&&{...y,prev:true};
 }
 
+// The browser's own position, rounded to about 1 km (0.01°). That is finer than any model
+// grid, and it is what goes to the data services, into the address bar and into shared links:
+// a link then names the neighbourhood, not the house.
+const coarseCoord=v=>Math.round(v*100)/100;
+
+// Pressure tendency as in synoptic reports: the change over the 3 hours before a reading.
+// samples: [{t:ms,p:hPa|null}] in any order; atMs: the time of the reading. The earlier value
+// is the one closest to 3 h before, at most 30 min off. Words follow the usual marine
+// forecast steps: under 0.1 hPa steady, to 1.5 slowly, to 3.5 plain, to 6 quickly, above
+// that very rapidly. Returns {p,change,key} or null when either end is missing.
+function pressureTendency(samples,atMs){
+  if(!Array.isArray(samples)||!Number.isFinite(atMs))return null;
+  const ok=s=>s&&Number.isFinite(s.t)&&Number.isFinite(s.p);
+  const cur=samples.find(s=>ok(s)&&s.t===atMs);
+  if(!cur)return null;
+  const want=atMs-3*3600000;
+  let old=null;
+  for(const s of samples){
+    if(!ok(s)||Math.abs(s.t-want)>30*60000)continue;
+    if(!old||Math.abs(s.t-want)<Math.abs(old.t-want))old=s;
+  }
+  if(!old)return null;
+  const change=Math.round((cur.p-old.p)*10)/10||0,size=Math.abs(change);
+  const step=size<0.1?'':size<=1.5?'_slow':size<=3.5?'':size<=6?'_quick':'_rapid';
+  return {p:cur.p,change,key:size<0.1?'steady':(change>0?'rise':'fall')+step};
+}
+
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor,synopticPeriods,periodExtreme,latestExtreme};
+  module.exports={tempCls,wKey,compassIndex,haversineKm,moonPhaseFrac,stripeColor,processClimate,sameLoc,_avg,median,tempColor,synopticPeriods,periodExtreme,latestExtreme,pressureTendency,coarseCoord};
 }

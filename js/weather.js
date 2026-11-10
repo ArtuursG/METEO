@@ -3,7 +3,9 @@
 
 // Returns a rotated Unicode arrow + direction label; Unicode avoids mobile SVG rendering issues
 function wDir(deg){
-  if(deg==null)return '-';
+  // The result goes into the page as HTML: only a number may reach the style
+  deg=deg==null?NaN:Number(deg);
+  if(!Number.isFinite(deg))return '-';
   const label=COMPASS[LANG][compassIndex(deg)];
   return `<span style="display:inline-block;transform:rotate(${deg}deg);font-size:13px;line-height:1">↑</span> ${label}`;
 }

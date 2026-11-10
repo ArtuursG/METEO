@@ -48,8 +48,9 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - The frame list refreshes every 5 minutes while the radar is on screen; the view stays on the newest frame, or on the same time if you had moved back
 - Every frame is loaded up front as its own hidden tile layer, so playback switches instantly without blank frames; the status line counts frames until all are loaded
 - Shared timeline over the bottom of the map (also in full screen): play/pause, previous/next, a slider with one tick per frame, "Jaunākais", 0,5×/1×/2× speed and the age of the latest frame. Works from the keyboard
-- One bar on the map toggles precipitation and the two station networks and chooses what station labels show: air temperature, road temperature, wind or precipitation. A settings button holds the base map (follows the site theme by default, or OSM, relief, satellite) and radar opacity. Choices are remembered
+- One bar on the map toggles precipitation and the two station networks and chooses what station labels show: air temperature, road temperature, wind, precipitation or sea-level pressure (with an arrow for its 3 h tendency). A settings button holds the base map (follows the site theme by default, or OSM, relief, satellite) and radar opacity. Choices are remembered
 - Word-only precipitation legend (light, moderate, heavy)
+- MeteoAlarm warning areas under the radar picture, outlined in the warning's colour (dashed until it starts), with the title and time on hover; the "Brīdinājumi" button appears only while there is a warning
 - Playback stops when leaving the radar tab or hiding the page; Leaflet maps are created only when a map view is opened
 
 ### Weather stations (Radar tab)
@@ -59,6 +60,7 @@ Free meteorological forecast site displaying **14 leading global weather models*
 - One table for both networks: search by name, the same LVC and LVĢMC buttons as on the map (switching a network in one place switches it in the other), "only stations visible on the map", the 10 nearest by default with "Rādīt visas". Columns: temperature pill with a trend arrow for the last hour (current readings only), road temperature, wind arrow, precipitation bar, humidity, road condition tag and a min..max bar. Stale stations are marked
 - Minimum and maximum follow synoptic practice for Europe (WMO Region VI): the night minimum over 18-06 UTC and the day maximum over 06-18 UTC, the period running now or the last one that ended, marked "so far" while it runs (`synopticPeriods` in `js/pure.js`). LVC values come from the worker's 15-minute readings in D1, LVĢMC values from the hourly extremes (HATMN/HATMX); both networks use the same periods. The station pages show the same values with the time they were reached
 - Clicking a row highlights the station on the map and opens its popup; the station name links to the detail page with 24h/48h charts. LVĢMC popups include a 24 h temperature sparkline
+- Sea-level pressure with its 3 h tendency (LVĢMC): the change over the three hours before the reading, as in synoptic reports, worded in the marine forecast steps (`pressureTendency` in `js/pure.js`). The pressure column shows only while the list has stations that measure it, the road columns only with road stations
 - On phones the table becomes a card list
 
 ### Model accuracy (Modeļi tab)
@@ -135,8 +137,9 @@ All 14 models cover Latvia. ICON-EU and MET Norway are default models for the pr
 ## Stack
 
 - **HTML / CSS / JavaScript** - no framework, no build tools
-- **[Chart.js 4.4.1](https://www.chartjs.org/)** - interactive charts (CDN, SRI integrity hash)
-- **[Leaflet 1.9.4](https://leafletjs.com/)** - interactive radar map (CDN, SRI integrity hash)
+- **[Chart.js 4.4.1](https://www.chartjs.org/)** - interactive charts (served from `vendor/`)
+- **[Leaflet 1.9.4](https://leafletjs.com/)** - interactive radar map (served from `vendor/`)
+- **IBM Plex Mono** - the numbers font, latin and latin-ext subsets (served from `vendor/fonts/`, see `vendor/README.md` for versions and licences)
 - **[Open-Meteo API](https://open-meteo.com/)** - free meteorological data (CC BY 4.0), no API key required
 - **[Open-Meteo Archive API](https://open-meteo.com/en/docs/historical-weather-api)** - ERA5 reanalysis (1940-present) for the Climate tab, no API key required
 - **[Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)** - city search with live autocomplete
@@ -180,8 +183,10 @@ js/                                   - all application logic, plain sequential 
   app.js        - tab switching, language re-render (relangUI), init
   stacija.js / stacija-lvgmc.js - the two standalone station detail pages (own scripts)
 
-test/pure.test.js                     - node:test unit tests for js/pure.js (npm test)
-.github/workflows/ci.yml              - syntax-check + unit tests on every push / PR
+vendor/                               - Chart.js, Leaflet and the font, unchanged from their npm packages (vendor/README.md)
+test/*.test.js                        - node:test unit tests (npm test)
+test/browser/smoke.js                 - the whole site in headless Chromium (npm run test:browser)
+.github/workflows/ci.yml              - syntax-check, unit tests and the browser test on every push / PR
 
 Load order matters: each file's top-level code only references names from files loaded before it;
 cross-file calls that happen at runtime (tab clicks, language switch) can point anywhere.
@@ -221,8 +226,10 @@ cloudflare-worker/
 - **Service worker** - HTML uses network-first (new deploys load immediately) and is saved once per page, without the query, so visiting many places does not pile up copies; JS/CSS uses stale-while-revalidate (cached version served instantly, new version fetched in background and ready on next load).
 - **No flash of wrong theme** - small inline `<script>` in `<head>` reads saved theme and sets `data-theme` before stylesheet loads.
 - **XSS prevention** - city search results and all API-returned strings use `textContent` instead of `innerHTML`. Leaflet tooltips and popups always get DOM nodes, never strings: Leaflet inserts a string as HTML, and names can come from a shared link (`?city=`, `?name=`). Tile URLs are hardcoded templates with no user input.
-- **Content-Security-Policy** - every page carries a `<meta http-equiv="Content-Security-Policy">` that lists exactly the hosts the site uses (scripts from cdnjs and the jsdelivr `@openmeteo/` path, the APIs, the tile servers, the Windy and Ventusky embeds), `'wasm-unsafe-eval'` and `blob:` workers for the cloud map library, and no inline script except the theme script in `<head>`, allowed by its sha256 hash. Editing that script means updating the hash; `test/security.test.js` checks it, and that the pages have no inline event handlers. A new outside host has to be added to the policy, or the browser blocks it.
-- **Other hardening** - the Windy/Ventusky iframe is sandboxed (it cannot navigate this page), share windows open with `noopener`, CI runs with a read-only token, and the worker answers errors with a generic message (details only in its log).
+- **Content-Security-Policy** - every page carries a `<meta http-equiv="Content-Security-Policy">` that lists exactly the hosts the site uses (scripts only from the site itself and the jsdelivr `@openmeteo/` path for the cloud map library, styles and fonts only from the site itself, the APIs, the tile servers, the Windy and Ventusky embeds), `'wasm-unsafe-eval'` and `blob:` workers for the cloud map library, and no inline script except the theme script in `<head>`, allowed by its sha256 hash. Editing that script means updating the hash; `test/security.test.js` checks it, and that the pages have no inline event handlers. A new outside host has to be added to the policy, or the browser blocks it.
+- **Other hardening** - the Windy/Ventusky iframe is sandboxed (it cannot navigate this page), share windows open with `noopener`, CI runs with a read-only token, and the worker answers errors with a generic message (details only in its log), accepts only GET and HEAD and checks the station id before it reaches the database. Links that open a new window carry `rel="noopener"`, and every page sets `strict-origin-when-cross-origin` as its referrer policy.
+- **Position privacy** - the browser's position is rounded to 0.01° (about 1 km, `coarseCoord` in `js/pure.js`) before it is used: the exact position never reaches a data service, the address bar or a shared link.
+- **Offline** - the service worker saves the pages, the scripts, the libraries and the font, and a saved forecast stands in for up to 24 hours (`CACHE_KEEP`), with a note saying how old it is.
 - **Accessibility** - the tab bar is a proper ARIA `tablist` with roving tabindex and Left/Right/Home/End keyboard navigation; panels are `tabpanel`s. Model toggle buttons expose `aria-pressed`. A skip link jumps to `<main>`. `prefers-reduced-motion` zeroes chart animations and CSS transitions (the loading spinner is kept). Chart `<canvas>` elements carry `role="img"` + `aria-label`.
 - **i18n** - static text uses `data-i18n*` attributes resolved by `applyStaticI18n()`; dynamic strings go through `t(key, vars)`. `setLang()` swaps `LANG`/`LOCALE`, updates the URL and calls `relangUI()`, which re-renders every JS-built piece (metrics, charts, tables, model list, lazy tabs, station rows). The two station detail pages load `js/i18n.js` and honour the same stored language (they have no toggle of their own). Radar and station controls are relabelled on a language switch by `relabelRadarControl()`.
 - **Failed reload** - a forecast fetch that fails mid-session keeps the previous location's data on screen, shows a toast and reverts the header, rather than blanking the page.
@@ -244,6 +251,7 @@ cd METEO
 - `DEV-Meteo` - every change lands here first. Test it at https://raw.githack.com/ArtuursG/METEO/DEV-Meteo/index.html
 - `main` - what the public site serves. GitHub Pages deploys on every push to `main` that changes the site, so changes reach `main` together as a tested release, not one by one.
 - Versions are MAJOR.MINOR.PATCH: MINOR (2.1.0) for new features or changed behaviour, PATCH (2.1.1) for fixes and small adjustments, MAJOR for a redesign.
+- Before a release both test suites pass: `npm test` and, with Playwright installed, `npm run test:browser`.
 - A release: version in `package.json`, asset version (`?v=`) in the HTML files and `CACHE` in `sw.js`, a `CHANGELOG.md` entry, merge `DEV-Meteo` into `main`, then a GitHub Release with the tag `vX.Y.Z` on `main`.
 - When a release changes the LVC worker, the worker is updated first (the new worker also serves the current page), then `DEV-Meteo` is merged.
 

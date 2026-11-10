@@ -1,9 +1,9 @@
-const CACHE = 'prognoze-v53';
+const CACHE = 'prognoze-v54';
 const SHELL = [
   './',
   './index.html',
   './style.css',
-  './style.css?v=53',
+  './style.css?v=54',
   './js/i18n.js',
   './js/pure.js',
   './js/chart-time.js',
@@ -32,7 +32,17 @@ const SHELL = [
   './js/timeline.js',
   './js/cloud-map.js',
   './favicon.svg',
-].map(path=>path.startsWith('./js/')?path+'?v=53':path);
+  // Libraries and the font from the site's own folder, so the page opens without a network
+  './vendor/chart.umd.js?v=4.4.1',
+  './vendor/leaflet.js?v=1.9.4',
+  './vendor/leaflet.css?v=1.9.4',
+  './vendor/fonts/plex-mono-latin-400.woff2',
+  './vendor/fonts/plex-mono-latin-500.woff2',
+  './vendor/fonts/plex-mono-latin-600.woff2',
+  './vendor/fonts/plex-mono-latin-ext-400.woff2',
+  './vendor/fonts/plex-mono-latin-ext-500.woff2',
+  './vendor/fonts/plex-mono-latin-ext-600.woff2',
+].map(path=>path.startsWith('./js/')?path+'?v=54':path);
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -56,9 +66,7 @@ self.addEventListener('fetch', e => {
   // Bypass cache entirely for API calls
   if (url.includes('api.open-meteo.com') ||
       url.includes('geocoding-api.open-meteo.com') ||
-      url.includes('nominatim.openstreetmap.org') ||
-      url.includes('fonts.googleapis.com') ||
-      url.includes('fonts.gstatic.com')) {
+      url.includes('nominatim.openstreetmap.org')) {
     return;
   }
 

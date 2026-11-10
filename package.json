@@ -1,10 +1,11 @@
 {
   "name": "prognoze-lv",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "14 laika prognožu modeļu salīdzinājums, nokrišņu radars un Latvijas meteostacijas",
   "private": true,
   "scripts": {
     "test": "node --test test/*.test.js",
+    "test:browser": "node --test test/browser/smoke.js",
     "check": "node -e \"require('fs').readdirSync('js').filter(f=>f.endsWith('.js')).forEach(f=>require('child_process').execSync('node --check js/'+f,{stdio:'inherit'}))\""
   },
   "license": "MIT",

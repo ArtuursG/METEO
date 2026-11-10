@@ -180,7 +180,8 @@ async function syncForecast(lat,lon,signal,{force=false}={}){
   const ts=forecastTs(view);
   // No network: a saved forecast stands in for up to CACHE_KEEP (its age is shown)
   if(!Object.keys(data).length||(failed.length&&Date.now()-ts>CACHE_KEEP))throw failed[0]||new Error('No forecast');
-  return {key,data,ts,modelsChanged,tz:view.tz||null};
+  // stale: the network failed and this is the saved copy
+  return {key,data,ts,modelsChanged,tz:view.tz||null,stale:failed.length>0};
 }
 
 // Loads the forecast (only what changed, see above) and redraws what depends on it
@@ -230,6 +231,8 @@ async function loadAll({quiet=false}={}){
   // The place's time zone: its wall-clock times convert to UTC with it (chart-time.js)
   if(fetched.tz)PLACE_ZONE=fetched.tz;
   updateMetrics();
+  // The visitor opened or asked for this place and the network did not answer
+  if(fetched.stale&&!quiet)showToast(t('toast.saved_shown',{ago:relTime(fetched.ts)}),8000);
   if(nowOnly)return true;
   // Snapshots for the "forecast changed" line come only from models fresh from the API
   if(fetched.modelsChanged&&typeof saveForecastSnapshot==='function')saveForecastSnapshot(lat,lon);

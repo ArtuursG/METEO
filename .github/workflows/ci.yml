@@ -20,6 +20,25 @@ jobs:
           node-version: '22'
       - name: Syntax-check every script
         run: |
-          for f in js/*.js sw.js test/*.test.js; do node --check "$f"; done
+          for f in js/*.js sw.js test/*.test.js test/browser/*.js cloudflare-worker/*.js; do node --check "$f"; done
       - name: Unit tests
         run: node --test test/*.test.js
+
+  # The whole site in headless Chromium with every outside service replaced by a stand-in:
+  # policy violations, script errors, layout, UTC, offline start (test/browser/smoke.js)
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright and the cloud map library
+        # Exact versions, nothing saved to the repository; the library is the same file the
+        # page loads from the CDN, so its integrity hash in cloud-map.js is checked too
+        run: |
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0 @openmeteo/weather-map-layer@0.1.0
+          npx playwright install --with-deps chromium
+      - name: Browser test
+        run: node --test test/browser/smoke.js

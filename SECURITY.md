@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-This is a single-page static site with no versioned releases - the `main`
-branch is always the deployed, supported version.
+The `main` branch is the deployed site and the only supported version; fixes
+go out as a new release (see `CHANGELOG.md`).
 
 ## Reporting a Vulnerability
 

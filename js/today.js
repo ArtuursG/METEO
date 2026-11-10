@@ -33,8 +33,11 @@ async function renderNearestStation(){
   const show=r=>{
     if(!r){el.hidden=true;return;}
     el.hidden=false;
+    // Pressure with the word for its 3 h tendency: "1012,4 hPa (krītas)"
+    const pres=r.pressure==null?'':', '+fmtNum(r.pressure,1)+' hPa'+(r.pTend?' ('+t('pt.'+r.pTend.key)+')':'');
+    el.title=r.pTend&&typeof pressureTendText==='function'?t('station.pressure')+': '+pressureTendText(r.pTend):'';
     el.textContent=t('today.station',{name:r.name,km:fmtNum(r.dist,r.dist<10?1:0),temp:fmtTemp(r.temp,1),
-      snow:r.snow>0?', '+t('today.snow',{n:fmtNum(r.snow,r.snow<10?1:0)}):'',
+      snow:(r.snow>0?', '+t('today.snow',{n:fmtNum(r.snow,r.snow<10?1:0)}):'')+pres,
       ago:r.ageMin<1?t('reltime.just_now'):t('reltime.min_ago',{n:r.ageMin})});
   };
   if(!nearLatvia()||typeof ensureLvgmcStations!=='function'){show(null);return;}

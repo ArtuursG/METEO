@@ -198,6 +198,9 @@ function renderNow(){
   $('dGust').textContent=cur.windGust!=null?`${fmtN(cur.windGust,1)} m/s`:noData();
   $('dHum').textContent=cur.humidity!=null?`${fmtN(cur.humidity,0)}%`:noData();
   $('dPressure').textContent=cur.pressure!=null?`${fmtN(cur.pressure,1)} hPa`:noData();
+  // Izmaiņa 3 stundās pirms šī rādījuma, kā sinoptiskajos ziņojumos (pure.js)
+  const pt=pressureTendency(hist.map(h=>({t:parseStationTime(h.time),p:h.pressure==null?null:+h.pressure})),parseStationTime(cur.time));
+  $('dPresTend').textContent=pt?`${pt.change>0?'+':pt.change<0?'\u2212':''}${fmtN(Math.abs(pt.change),1)} hPa, ${t('pt.'+pt.key)}`:noData();
   $('dPrecip').textContent=cur.precipHour!=null?`${fmtN(cur.precipHour,1)} mm`:noData();
   $('dVis').textContent=cur.visibility!=null?`${fmtN(cur.visibility/1000,1)} km`:noData();
   $('dSnow').textContent=cur.snowDepth!=null?`${fmtN(cur.snowDepth,0)} cm`:noData();
